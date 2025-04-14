@@ -17,40 +17,15 @@
 - aiohttp
 - Uvicorn
 
-### Frontend
-- React.js
-- Tailwind CSS
 
-## Установка и запуск
 
-1. Клонируйте репозиторий:
-```
-git clone https://github.com/yourusername/construction-calculator.git
-cd construction-calculator
-```
 
-2. Создайте и активируйте виртуальное окружение:
-```
-python -m venv venv
-source venv/bin/activate  # На Windows: venv\Scripts\activate
-```
-
-3. Установите зависимости:
+ Установите зависимости:
 ```
 pip install -r requirements.txt
 ```
 
-4. Создайте файл .env в корневой директории и добавьте в него:
-```
-OPENAI_API_KEY=ваш_ключ_api
-```
-
-5. Запустите сервер:
-```
-python main.py
-```
-
-6. Откройте в браузере: http://localhost:8000
+ Откройте в браузере: http://localhost:8000
 
 ## API Endpoints
 
