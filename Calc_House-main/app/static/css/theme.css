@@ -1,0 +1,351 @@
+/* theme.css - Стили светлой и темной темы */
+
+/* Светлая тема (по умолчанию) */
+.light-theme {
+    --primary-bg: #edf2f7;
+    --secondary-bg: #f7fafc;
+    --card-bg: #ffffff;
+    --header-bg: #f7fafc;
+    --header-text: #2d3748;
+    --primary-text: #1a202c;
+    --secondary-text: #4a5568;
+    --muted-text: #718096;
+    --border-color: #e2e8f0;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --input-bg: #ffffff;
+    --form-bg: #ffffff;
+    --animation-bg: rgba(0, 0, 0, 0.85);
+    --label-color: #4a5568;
+    --form-text: #1a202c;
+    --hero-overlay: rgba(255, 255, 255, 0);
+    --results-bg: #ffffff;
+    --results-text: #4a5568;
+    --results-value: #1a202c;
+    --footer-text: #2d3748;
+    --footer-title: #1a202c;
+}
+
+/* Темная тема */
+.dark-theme {
+    --primary-bg: #1a202c;
+    --secondary-bg: #2d3748;
+    --card-bg: #2d3748;
+    --header-bg: #1a202c;
+    --header-text: #ffffff;
+    --primary-text: #ffffff;
+    --secondary-text: #e2e8f0;
+    --muted-text: #cbd5e0;
+    --border-color: #4a5568;
+    --shadow-color: rgba(0, 0, 0, 0.3);
+    --input-bg: #3a4a63;
+    --form-bg: #2a3849;
+    --animation-bg: rgba(0, 0, 0, 0.95);
+    --label-color: #e2e8f0;
+    --form-text: #ffffff;
+    --hero-overlay: rgba(0, 0, 0, 0.7);
+    --results-bg: #232c3d;
+    --results-text: #e2e8f0;
+    --results-value: #ffffff;
+    --footer-text: #e2e8f0;
+    --footer-title: #ffffff;
+}
+
+/* Применение темы к элементам */
+body {
+    background-color: var(--primary-bg);
+    color: var(--primary-text);
+}
+
+body::before {
+    background-color: var(--primary-bg);
+}
+
+header,
+footer {
+    background-color: var(--header-bg);
+    color: var(--header-text);
+}
+
+.text-primary {
+    color: var(--primary-text);
+}
+
+.text-secondary {
+    color: var(--secondary-text);
+}
+
+.text-muted {
+    color: var(--muted-text);
+}
+
+.section {
+    background-color: var(--secondary-bg);
+}
+
+.card {
+    background-color: var(--card-bg);
+    box-shadow: 0 4px 12px var(--shadow-color);
+}
+
+.hero-content {
+    background-color: var(--card-bg);
+    box-shadow: 0 10px 25px var(--shadow-color);
+}
+
+.calculator-form {
+    background-color: var(--form-bg);
+    box-shadow: 0 4px 12px var(--shadow-color);
+    color: var(--form-text);
+}
+
+.form-subtitle {
+    color: var(--primary-text);
+}
+
+label {
+    color: var(--label-color);
+}
+
+input,
+select {
+    color: var(--primary-text);
+    background-color: var(--input-bg);
+    border-color: var(--border-color);
+}
+
+/* Специфические стили для светлой темы */
+.light-theme .text-lg,
+.light-theme .text-xl,
+.light-theme .text-2xl,
+.light-theme .text-3xl,
+.light-theme .text-4xl,
+.light-theme .font-bold,
+.light-theme .font-semibold {
+    font-weight: 700 !important;
+    -webkit-text-stroke: 0.3px rgba(0, 0, 0, 0.3);
+}
+
+.light-theme body,
+.light-theme label,
+.light-theme input,
+.light-theme select,
+.light-theme p,
+.light-theme span,
+.light-theme div {
+    font-weight: 500 !important;
+    -webkit-text-stroke: 0.2px rgba(0, 0, 0, 0.2);
+    letter-spacing: -0.01em;
+}
+
+.light-theme .calculator-form label {
+    font-weight: 800 !important;
+    -webkit-text-stroke: 0.4px rgba(0, 0, 0, 0.4);
+    font-size: 1.1rem;
+    color: #1a202c;
+}
+
+.light-theme .form-subtitle {
+    font-weight: 700 !important;
+    color: #1a202c;
+    -webkit-text-stroke: 0.3px rgba(0, 0, 0, 0.3);
+    letter-spacing: 0 !important;
+}
+
+.light-theme {
+    text-shadow: 0 0 1px rgba(0, 0, 0, 0.01);
+}
+
+/* Специфические стили для темной темы */
+.dark-theme {
+    text-shadow: 0 0 1px rgba(255, 255, 255, 0.01);
+}
+
+.dark-theme .calculator-form label {
+    color: var(--primary-text);
+    font-weight: 600;
+    text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.dark-theme input,
+.dark-theme select,
+.dark-theme textarea {
+    color: white;
+    font-weight: 500;
+    background-color: var(--input-bg);
+    border: 1px solid var(--border-color);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.dark-theme select option {
+    background-color: var(--input-bg);
+    color: white;
+    font-weight: 500;
+}
+
+.dark-theme .form-subtitle {
+    font-weight: 800 !important;
+    letter-spacing: 0 !important;
+    -webkit-text-stroke: 0.4px rgba(255, 255, 255, 0.3);
+    font-size: 2rem;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    color: white;
+}
+
+.dark-theme input::placeholder,
+.dark-theme select::placeholder,
+.dark-theme textarea::placeholder {
+    color: var(--muted-text);
+}
+
+header a,
+footer a {
+    color: var(--header-text);
+    opacity: 0.8;
+    transition: color var(--transition-speed) ease, opacity var(--transition-speed) ease;
+}
+
+header a:hover,
+footer a:hover {
+    color: var(--header-text);
+    opacity: 1;
+}
+
+footer {
+    background-color: var(--card-bg);
+    color: var(--footer-text);
+    border-top: 1px solid var(--border-color);
+}
+
+footer h3,
+footer h4 {
+    color: var(--footer-title);
+}
+
+footer p,
+footer a,
+footer li {
+    color: var(--footer-text);
+}
+
+/* Стили для результатов */
+.note-container {
+    background-color: var(--results-bg);
+    border-color: var(--border-color);
+    color: var(--results-text);
+}
+
+.note-container strong {
+    color: var(--results-value);
+}
+
+/* Стили переключателя темы */
+.theme-toggle {
+    position: relative;
+    width: 42px;
+    height: 42px;
+    perspective: 100px;
+    cursor: pointer;
+    margin-left: auto;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+}
+
+.theme-toggle-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
+    transform-style: preserve-3d;
+}
+
+.light-theme .theme-toggle-inner {
+    transform: rotateY(0deg);
+}
+
+.dark-theme .theme-toggle-inner {
+    transform: rotateY(180deg);
+}
+
+.theme-toggle:hover .theme-toggle-inner {
+    filter: brightness(1.1);
+}
+
+.theme-toggle:active .theme-toggle-inner {
+    filter: brightness(0.95);
+}
+
+.theme-side {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.theme-side-light {
+    background: linear-gradient(135deg, #ffcc33, #ff9933);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    z-index: 2;
+}
+
+.theme-side-dark {
+    background: linear-gradient(135deg, #2d3748, #1a202c);
+    transform: rotateY(180deg);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+    z-index: 1;
+}
+
+.theme-icon {
+    width: 24px;
+    height: 24px;
+    fill: white;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+}
+
+.theme-toggle.switching {
+    animation: glow 0.8s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.theme-toggle.switching .theme-toggle-inner {
+    animation: flip3d 0.8s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes glow {
+    0% {
+        filter: brightness(1) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        transform: scale(1);
+    }
+
+    25% {
+        filter: brightness(1.2) drop-shadow(0 0 8px var(--accent-color));
+        transform: scale(1.1);
+    }
+
+    50% {
+        filter: brightness(1.4) drop-shadow(0 0 15px var(--accent-color));
+        transform: scale(1.15);
+    }
+
+    75% {
+        filter: brightness(1.2) drop-shadow(0 0 8px var(--accent-color));
+        transform: scale(1.1);
+    }
+
+    100% {
+        filter: brightness(1) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        transform: scale(1);
+    }
+}
+
+@keyframes flip3d {
+    0% {
+        transform: rotateY(0deg) scale(1);
+    }
+
+    100% {
+        transform: rotateY(360deg) scale(1);
+    }
+}

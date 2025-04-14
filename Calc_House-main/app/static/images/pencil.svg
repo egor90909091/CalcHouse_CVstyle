@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 100" width="20" height="100">
+  <!-- Грифель карандаша -->
+  <polygon points="10,0 7,10 13,10" fill="#333"/>
+  
+  <!-- Тело карандаша -->
+  <rect x="7" y="10" width="6" height="70" fill="#F4D03F"/>
+  
+  <!-- Полоски на карандаше -->
+  <rect x="7" y="20" width="6" height="2" fill="#E67E22"/>
+  <rect x="7" y="30" width="6" height="2" fill="#E67E22"/>
+  <rect x="7" y="40" width="6" height="2" fill="#E67E22"/>
+  <rect x="7" y="50" width="6" height="2" fill="#E67E22"/>
+  <rect x="7" y="60" width="6" height="2" fill="#E67E22"/>
+  
+  <!-- Ластик -->
+  <rect x="7" y="80" width="6" height="10" fill="#E74C3C"/>
+  <rect x="7" y="90" width="6" height="2" fill="#C0392B"/>
+  
+  <!-- Контур карандаша -->
+  <polygon points="10,0 7,10 7,90 13,90 13,10" fill="none" stroke="#555" stroke-width="0.5"/>
+</svg> 

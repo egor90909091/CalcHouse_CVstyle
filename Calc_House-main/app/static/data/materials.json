@@ -1,0 +1,118 @@
+{
+    "foundation": {
+        "strip": {
+            "name": "Ленточный фундамент",
+            "price_per_sqm": 5000,
+            "unit": "м²"
+        },
+        "pile": {
+            "name": "Свайный фундамент",
+            "price_per_sqm": 4000,
+            "unit": "м²"
+        },
+        "slab": {
+            "name": "Плитный фундамент",
+            "price_per_sqm": 6000,
+            "unit": "м²"
+        },
+        "column": {
+            "name": "Столбчатый фундамент",
+            "price_per_sqm": 3500,
+            "unit": "м²"
+        }
+    },
+    "walls": {
+        "brick": {
+            "name": "Кирпич",
+            "price_per_sqm": 8000,
+            "unit": "м²"
+        },
+        "wood": {
+            "name": "Дерево",
+            "price_per_sqm": 6000,
+            "unit": "м²"
+        },
+        "block": {
+            "name": "Блоки",
+            "price_per_sqm": 5000,
+            "unit": "м²"
+        },
+        "concrete": {
+            "name": "Монолитный бетон",
+            "price_per_sqm": 7000,
+            "unit": "м²"
+        },
+        "panel": {
+            "name": "Панели",
+            "price_per_sqm": 4500,
+            "unit": "м²"
+        }
+    },
+    "roof": {
+        "metal": {
+            "name": "Металлочерепица",
+            "price_per_sqm": 2000,
+            "unit": "м²"
+        },
+        "tile": {
+            "name": "Керамическая черепица",
+            "price_per_sqm": 3500,
+            "unit": "м²"
+        },
+        "shingle": {
+            "name": "Гибкая черепица",
+            "price_per_sqm": 1800,
+            "unit": "м²"
+        },
+        "slate": {
+            "name": "Шифер",
+            "price_per_sqm": 1200,
+            "unit": "м²"
+        },
+        "flat": {
+            "name": "Плоская кровля",
+            "price_per_sqm": 2500,
+            "unit": "м²"
+        }
+    },
+    "options": {
+        "garage": {
+            "name": "Гараж",
+            "price": 350000,
+            "unit": "шт"
+        },
+        "basement": {
+            "name": "Подвал",
+            "price_per_sqm": 7000,
+            "unit": "м²"
+        },
+        "terrace": {
+            "name": "Терраса",
+            "price_per_sqm": 5000,
+            "unit": "м²"
+        },
+        "balcony": {
+            "name": "Балкон",
+            "price_per_sqm": 15000,
+            "unit": "м²"
+        },
+        "warm_floor": {
+            "name": "Теплый пол",
+            "price_per_sqm": 2000,
+            "unit": "м²"
+        },
+        "smart_home": {
+            "name": "Умный дом",
+            "price": 250000,
+            "unit": "шт"
+        }
+    },
+    "work": {
+        "base_rate": 5000,
+        "floor_coefficient": {
+            "1": 1.0,
+            "2": 1.2,
+            "3": 1.5
+        }
+    }
+}

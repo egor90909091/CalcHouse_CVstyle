@@ -1,0 +1,160 @@
+/* print.css - Стили для печати результатов */
+
+@media print {
+
+    /* Общие настройки страницы */
+    @page {
+        size: A4;
+        margin: 1.5cm;
+    }
+
+    body {
+        background-color: white !important;
+        color: black !important;
+        font-size: 12pt;
+        font-family: 'Arial', sans-serif;
+        line-height: 1.5;
+    }
+
+    /* Скрываем элементы, не нужные для печати */
+    .no-print {
+        display: none !important;
+    }
+
+    /* Показываем только элементы для печати */
+    .print-only {
+        display: block !important;
+    }
+
+    /* Стилизация шапки для печати */
+    .print-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-bottom: 2cm;
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 0.5cm;
+    }
+
+    .print-logo {
+        font-size: 24pt;
+        font-weight: bold;
+        color: #3182ce;
+        margin-bottom: 0.5cm;
+    }
+
+    .print-header h2 {
+        font-size: 18pt;
+        margin: 0;
+    }
+
+    /* Мета-информация для печати */
+    .print-meta {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1cm;
+        font-size: 9pt;
+        color: #666;
+    }
+
+    .print-date,
+    .print-number {
+        margin: 0;
+    }
+
+    /* Схема дома для печати */
+    .print-house-schema {
+        text-align: center;
+        margin-bottom: 1cm;
+        page-break-inside: avoid;
+    }
+
+    /* Информация о расчете */
+    .print-info {
+        display: none;
+        /* Скрыта по умолчанию */
+    }
+
+    @media print {
+        .print-info {
+            display: block;
+            /* Показываем только при печати */
+        }
+    }
+
+    /* Водяной знак */
+    .print-watermark {
+        display: none;
+        /* Скрыт по умолчанию */
+    }
+
+    @media print {
+        .print-watermark {
+            display: block;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 60pt;
+            opacity: 0.1;
+            color: #3182ce;
+            font-weight: bold;
+            text-transform: uppercase;
+            z-index: -1;
+            pointer-events: none;
+        }
+    }
+
+    /* Стили для результатов расчета */
+    #results {
+        padding: 0;
+        margin: 0;
+    }
+
+    #results h4 {
+        font-size: 14pt;
+        margin-top: 0.5cm;
+        margin-bottom: 0.3cm;
+        color: #3182ce;
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 0.2cm;
+        opacity: 1 !important;
+    }
+
+    #foundationMaterials,
+    #wallMaterials,
+    #roofMaterials {
+        margin-bottom: 0.5cm;
+        padding-left: 0.5cm;
+    }
+
+    .material-item {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.3cm;
+    }
+
+    /* Избегаем разрывов внутри блоков */
+    .mb-6 {
+        page-break-inside: avoid;
+    }
+
+    /* Стиль для примечания */
+    .note-container {
+        margin-top: 1cm;
+        padding: 0.5cm;
+        border: 1px solid #ccc;
+        border-radius: 0.2cm;
+        font-size: 9pt;
+        background-color: #f9f9f9;
+    }
+
+    .note-container strong {
+        font-weight: bold;
+    }
+
+    /* Математическая доска не нужна для печати */
+    #loading-animation {
+        display: none !important;
+    }
+}

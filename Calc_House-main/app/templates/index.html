@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ru" class="light-theme">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BuildMate - Калькулятор строительства дома</title>
+
+    <!-- CSS стили -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <link rel="stylesheet" href="/static/css/calculator.css">
+    <link rel="stylesheet" href="/static/css/animations.css">
+    <link rel="stylesheet" href="/static/css/responsive.css">
+    <link rel="stylesheet" href="/static/css/print.css">
+
+    <!-- Удаляем ненужные React-зависимости -->
+</head>
+
+<body class="bg-gray-100">
+    <!-- Шапка сайта -->
+    <header class="shadow-md print-header">
+        <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center">
+            <h1 class="text-2xl font-bold mb-4 md:mb-0">BuildMate</h1>
+            <nav class="flex items-center w-full md:w-auto justify-end no-print">
+                <ul class="flex flex-wrap space-x-3 md:space-x-6 mr-4">
+                    <li><a href="#" class="hover:opacity-100">Главная</a></li>
+                    <li><a href="#calculator" class="hover:opacity-100">Калькулятор</a></li>
+                    <li><a href="#features" class="hover:opacity-100">Подбор мебели</a></li>
+                    <li><a href="#" class="hover:opacity-100">Контакты</a></li>
+                </ul>
+                <div class="theme-toggle" id="themeToggle">
+                    <div class="theme-toggle-inner">
+                        <div class="theme-side theme-side-light">
+                            <svg class="theme-icon" viewBox="0 0 24 24">
+                                <path
+                                    d="M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,2L14.39,5.42C13.65,5.15 12.84,5 12,5C11.16,5 10.35,5.15 9.61,5.42L12,2M3.34,7L7.5,6.65C6.9,7.16 6.36,7.78 5.94,8.5C5.5,9.24 5.25,10 5.11,10.79L3.34,7M3.36,17L5.12,13.23C5.26,14 5.53,14.78 5.95,15.5C6.37,16.24 6.91,16.86 7.5,17.37L3.36,17M20.65,7L18.88,10.79C18.74,10 18.47,9.23 18.05,8.5C17.63,7.78 17.1,7.15 16.5,6.64L20.65,7M20.64,17L16.5,17.36C17.09,16.85 17.62,16.22 18.04,15.5C18.46,14.77 18.73,14 18.87,13.21L20.64,17M12,22L9.59,18.56C10.33,18.83 11.14,19 12,19C12.82,19 13.63,18.83 14.37,18.56L12,22Z">
+                                </path>
+                            </svg>
+                        </div>
+                        <div class="theme-side theme-side-dark">
+                            <svg class="theme-icon" viewBox="0 0 24 24">
+                                <path
+                                    d="M17.75,4.09L15.22,6.03L16.13,9.09L13.5,7.28L10.87,9.09L11.78,6.03L9.25,4.09L12.44,4L13.5,1L14.56,4L17.75,4.09M21.25,11L19.61,12.25L20.2,14.23L18.5,13.06L16.8,14.23L17.39,12.25L15.75,11L17.81,10.95L18.5,9L19.19,10.95L21.25,11M18.97,15.95C19.8,15.87 20.69,17.05 20.16,17.8C19.84,18.25 19.5,18.67 19.08,19.07C15.17,23 8.84,23 4.94,19.07C1.03,15.17 1.03,8.83 4.94,4.93C5.34,4.53 5.76,4.17 6.21,3.85C6.96,3.32 8.14,4.21 8.06,5.04C7.79,7.9 8.75,10.87 10.95,13.06C13.14,15.26 16.1,16.22 18.97,15.95M17.33,17.97C14.5,17.81 11.7,16.64 9.53,14.5C7.36,12.31 6.2,9.5 6.04,6.68C3.23,9.82 3.34,14.64 6.35,17.66C9.37,20.67 14.19,20.78 17.33,17.97Z">
+                                </path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero секция -->
+    <section class="hero-section no-print">
+        <div class="container mx-auto px-4">
+            <div class="hero-content p-8 rounded-lg shadow-lg">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4 text-primary">Рассчитайте материалы для строительства
+                    дома</h2>
+                <p class="text-lg md:text-xl mb-6 text-secondary">Калькулятор поможет определить количество необходимых
+                    строительных материалов</p>
+                <a href="#calculator"
+                    class="btn-primary font-bold py-3 px-6 rounded-lg inline-block text-center w-full md:w-auto">Начать
+                    расчет</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Секция калькулятора -->
+    <section id="calculator" class="py-12 section">
+        <div class="container mx-auto px-4">
+            <h2 class="text-2xl md:text-3xl font-bold mb-8 md:mb-10 text-center text-primary no-print">Калькулятор
+                строительных материалов</h2>
+
+            <div class="max-w-4xl mx-auto transition-container">
+                <!-- Форма калькулятора -->
+                <div class="calculator-panel active">
+                    <form id="calculatorForm" class="calculator-form space-y-6">
+                        <!-- Заголовок формы -->
+                        <h3 class="form-subtitle">Введите параметры дома</h3>
+
+                        <!-- Базовые размеры дома -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="form-block area-block">
+                                <label class="block text-gray-700 mb-2">Площадь дома (м²)</label>
+                                <input type="number" name="area"
+                                    class="w-full p-2 md:p-3 border border-gray-300 rounded-lg" min="10" max="1000"
+                                    required>
+                            </div>
+                            <div class="form-block floors-block">
+                                <label class="block text-gray-700 mb-2">Высота этажа (м)</label>
+                                <input type="number" name="floorHeight"
+                                    class="w-full p-2 md:p-3 border border-gray-300 rounded-lg" min="2.5" max="4"
+                                    step="0.1" value="2.7" required>
+                            </div>
+                        </div>
+
+                        <!-- Тип фундамента -->
+                        <div class="form-block foundation-block">
+                            <label class="block text-gray-700 mb-2">Тип фундамента</label>
+                            <select name="foundationType" id="foundationType"
+                                class="w-full p-2 md:p-3 border border-gray-300 rounded-lg" required>
+                                <option value="strip">Ленточный</option>
+                                <option value="pile">Свайный</option>
+                                <option value="slab">Плитный</option>
+                                <option value="column">Столбчатый</option>
+                            </select>
+                        </div>
+
+                        <!-- Параметры фундамента (появляются в зависимости от выбранного типа) -->
+                        <div id="foundationParams">
+                            <!-- Ленточный фундамент -->
+                            <div class="foundation-params strip-params">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Ширина ленты (м)</label>
+                                        <input type="number" name="stripWidth"
+                                            class="w-full p-3 border border-gray-300 rounded-lg" min="0.3" max="1"
+                                            step="0.1" value="0.4">
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Глубина заложения (м)</label>
+                                        <input type="number" name="stripDepth"
+                                            class="w-full p-3 border border-gray-300 rounded-lg" min="0.5" max="2"
+                                            step="0.1" value="1.2">
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Высота ленты (м)</label>
+                                        <input type="number" name="stripHeight"
+                                            class="w-full p-3 border border-gray-300 rounded-lg" min="0.3" max="1.5"
+                                            step="0.1" value="0.5">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Плитный фундамент -->
+                            <div class="foundation-params slab-params hidden">
+                                <!-- Содержимое для плитного фундамента -->
+                                <!-- (оставлено для краткости) -->
+                            </div>
+
+                            <!-- Свайный фундамент -->
+                            <div class="foundation-params pile-params hidden">
+                                <!-- Содержимое для свайного фундамента -->
+                                <!-- (оставлено для краткости) -->
+                            </div>
+
+                            <!-- Столбчатый фундамент -->
+                            <div class="foundation-params column-params hidden">
+                                <!-- Содержимое для столбчатого фундамента -->
+                                <!-- (оставлено для краткости) -->
+                            </div>
+                        </div>
+
+                        <!-- Материал стен -->
+                        <div class="form-block wall-block">
+                            <label class="block text-gray-700 mb-2">Материал стен</label>
+                            <select name="wallMaterial" id="wallMaterial"
+                                class="w-full p-2 md:p-3 border border-gray-300 rounded-lg" required>
+                                <option value="brick">Кирпич</option>
+                                <option value="wood">Дерево</option>
+                                <option value="block">Газоблок</option>
+                                <option value="concrete">Монолит</option>
+                                <option value="panel">Панели</option>
+                            </select>
+                        </div>
+
+                        <!-- Параметры стен (появляются в зависимости от выбранного типа) -->
+                        <div id="wallParams">
+                            <!-- Содержимое параметров для разных типов стен -->
+                            <!-- (оставлено для краткости) -->
+                        </div>
+
+                        <!-- Количество этажей -->
+                        <div>
+                            <label class="block text-gray-700 mb-2">Количество этажей</label>
+                            <select name="floors" class="w-full p-3 border border-gray-300 rounded-lg" required>
+                                <option value="1">1 этаж</option>
+                                <option value="2">2 этажа</option>
+                                <option value="3">3 этажа</option>
+                            </select>
+                        </div>
+
+                        <!-- Тип кровли -->
+                        <div>
+                            <label class="block text-gray-700 mb-2">Тип кровли</label>
+                            <select name="roofType" id="roofType" class="w-full p-3 border border-gray-300 rounded-lg"
+                                required>
+                                <option value="metal">Металлочерепица</option>
+                                <option value="tile">Керамическая черепица</option>
+                                <option value="shingle">Гибкая черепица</option>
+                                <option value="slate">Шифер</option>
+                                <option value="flat">Плоская кровля</option>
+                            </select>
+                        </div>
+
+                        <!-- Параметры кровли -->
+                        <div id="roofParams">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-gray-700 mb-2">Тип конструкции</label>
+                                    <select name="roofConstruction"
+                                        class="w-full p-3 border border-gray-300 rounded-lg">
+                                        <option value="gable" selected>Двускатная</option>
+                                        <option value="hip">Вальмовая</option>
+                                        <option value="mono">Односкатная</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-gray-700 mb-2">Угол наклона (°)</label>
+                                    <input type="number" name="roofAngle"
+                                        class="w-full p-3 border border-gray-300 rounded-lg" min="15" max="60" step="1"
+                                        value="30">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Кнопка отправки формы -->
+                        <div class="mt-8">
+                            <button type="submit" id="calculateButton"
+                                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg w-full">
+                                Рассчитать материалы
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Результаты расчета -->
+                <div class="results-panel hidden">
+                    <div id="results" class="space-y-6">
+                        <!-- Анимация загрузки -->
+                        <div id="loading-animation" class="text-center py-8">
+                            <div class="math-board-container" id="mathBoardContainer"></div>
+                        </div>
+
+                        <!-- Информация о расчете (для печати) -->
+                        <div class="print-info">
+                            <div class="print-header">
+                                <div class="print-logo">BuildMate</div>
+                                <h2>Расчет строительных материалов</h2>
+                            </div>
+                            <div class="print-meta">
+                                <p class="print-date">Дата расчета: <span id="print-date"></span></p>
+                                <p class="print-number">Расчет #<span id="print-number"></span></p>
+                            </div>
+                        </div>
+
+                        <!-- Схема дома для печати -->
+                        <div class="print-house-schema">
+                            <svg width="100%" height="200" viewBox="0 0 400 200" class="print-only">
+                                <defs>
+                                    <filter id="paperTexture" x="0%" y="0%" width="100%" height="100%">
+                                        <feTurbulence baseFrequency="0.03" numOctaves="2" result="noise" seed="1" />
+                                        <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" />
+                                    </filter>
+                                </defs>
+                                <g filter="url(#paperTexture)">
+                                    <!-- Фундамент -->
+                                    <rect x="90" y="165" width="220" height="25" stroke="#444" stroke-width="0.8"
+                                        stroke-dasharray="5,3" fill="none" />
+                                    <text x="200" y="160" text-anchor="middle" fill="#444" font-size="10"
+                                        font-family="sans-serif">Фундамент</text>
+
+                                    <!-- Стены -->
+                                    <rect x="110" y="90" width="180" height="75" stroke="#444" stroke-width="0.8"
+                                        fill="none" />
+                                    <text x="200" y="85" text-anchor="middle" fill="#444" font-size="10"
+                                        font-family="sans-serif">Стены</text>
+
+                                    <!-- Крыша -->
+                                    <path d="M 110 90 L 200 50 L 290 90" stroke="#444" stroke-width="0.8" fill="none" />
+                                    <text x="200" y="45" text-anchor="middle" fill="#444" font-size="10"
+                                        font-family="sans-serif">Крыша</text>
+                                </g>
+                            </svg>
+                        </div>
+
+                        <!-- Секции результатов -->
+                        <div class="mt-8 space-y-6">
+                            <!-- Фундамент -->
+                            <div class="mb-6">
+                                <h4 class="text-lg font-semibold mb-3 opacity-0" id="foundation-title">Фундамент:</h4>
+                                <div id="foundationMaterials" class="space-y-2 pl-4"></div>
+                            </div>
+
+                            <!-- Стены -->
+                            <div class="mb-6">
+                                <h4 class="text-lg font-semibold mb-3 opacity-0" id="walls-title">Стены:</h4>
+                                <div id="wallMaterials" class="space-y-2 pl-4"></div>
+                            </div>
+
+                            <!-- Кровля -->
+                            <div class="mb-6">
+                                <h4 class="text-lg font-semibold mb-3 opacity-0" id="roof-title">Кровля:</h4>
+                                <div id="roofMaterials" class="space-y-2 pl-4"></div>
+                            </div>
+                        </div>
+
+                        <!-- Примечания -->
+                        <div class="mt-6 p-4 rounded-lg border note-container">
+                            <p class="text-sm">
+                                <strong>Примечание:</strong> Расчет является приблизительным и может отличаться от
+                                фактического
+                                количества материалов в зависимости от особенностей проекта, климатических условий и
+                                методов строительства.
+                                Рекомендуется добавить 10-15% запаса на отходы и технологические потери.
+                            </p>
+                        </div>
+
+                        <!-- Водяной знак для печати -->
+                        <div class="print-watermark">BuildMate</div>
+
+                        <div class="flex flex-col sm:flex-row gap-4 mt-6 no-print">
+                            <button id="recalcButton"
+                                class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg w-full sm:w-auto">
+                                Изменить параметры
+                            </button>
+                            <button id="printButton"
+                                class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg w-full sm:w-auto">
+                                Распечатать результаты
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Секция преимуществ -->
+    <section id="features" class="py-16 section no-print">
+        <div class="container mx-auto px-4">
+            <h2 class="text-2xl md:text-3xl font-bold mb-10 text-center text-primary">Наши преимущества</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="card p-6">
+                    <div class="text-accent mb-4" style="font-size: 2rem;">🧮</div>
+                    <h3 class="text-xl font-bold mb-2 text-primary">Точный расчет материалов</h3>
+                    <p class="text-secondary">Калькулятор учитывает все параметры строительства и выдает точное
+                        количество необходимых материалов.</p>
+                </div>
+
+                <div class="card p-6">
+                    <div class="text-accent mb-4" style="font-size: 2rem;">📋</div>
+                    <h3 class="text-xl font-bold mb-2 text-primary">Детальная спецификация</h3>
+                    <p class="text-secondary">Получите подробную спецификацию всех необходимых материалов для вашего
+                        проекта.</p>
+                </div>
+
+                <div class="card p-6">
+                    <div class="text-accent mb-4" style="font-size: 2rem;">💡</div>
+                    <h3 class="text-xl font-bold mb-2 text-primary">Профессиональный подход</h3>
+                    <p class="text-secondary">Алгоритмы калькулятора основаны на опыте профессиональных строителей и
+                        актуальных строительных нормах.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Футер сайта -->
+    <footer class="no-print">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Брендинг -->
+                <div>
+                    <div class="footer-brand">BuildMate</div>
+                    <p class="footer-description">Калькулятор материалов для строительства дома - точно знайте, что и
+                        сколько вам нужно.</p>
+                </div>
+
+                <!-- Навигация -->
+                <div>
+                    <h3 class="footer-nav-title">Навигация</h3>
+                    <ul class="footer-nav-links">
+                        <li><a href="#">Главная</a></li>
+                        <li><a href="#calculator">Калькулятор</a></li>
+                        <li><a href="#features">Подбор мебели</a></li>
+                        <li><a href="#">Контакты</a></li>
+                    </ul>
+                </div>
+
+                <!-- Контакты -->
+                <div>
+                    <h3 class="footer-contact-title">Связаться с нами</h3>
+                    <div class="footer-contact-info">
+                        <p class="footer-contact-item">
+                            <svg class="w-5 h-5 footer-contact-icon" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
+                                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path>
+                            </svg>
+                            <span>info@buildmate.ru</span>
+                        </p>
+                        <p class="footer-contact-item">
+                            <svg class="w-5 h-5 footer-contact-icon" fill="currentColor" viewBox="0 0 20 20">
+                                <path
+                                    d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z">
+                                </path>
+                            </svg>
+                            <span>+7 (967) 777-77-77</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 pt-4 border-t border-gray-200 text-center text-sm text-gray-400">
+                <p class="text-sm text-muted">© 2024 BuildMate. Все права защищены.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript файлы -->
+    <script src="/static/js/utils.js"></script>
+    <script src="/static/js/theme-switcher.js"></script>
+    <script src="/static/js/calculator.js"></script>
+    <script src="/static/js/animations.js"></script>
+</body>
+
+</html>
