@@ -5,6 +5,9 @@
     --accent-color: #3182ce;
     --accent-hover: #2c5282;
     --transition-speed: 0.3s;
+    --primary-color: #3b82f6;
+    --primary-dark: #2563eb;
+    --secondary-color: #6b7280;
 
     /* Шрифты */
     --font-weight-normal: 400;
@@ -189,4 +192,74 @@ footer a:hover {
 .footer-contact-icon {
     margin-right: 0.5rem;
     color: var(--accent-color);
+}
+
+/* Стили для страницы подбора мебели */
+.upload-section {
+    transition: all 0.3s ease;
+}
+
+.drop-zone {
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.drop-zone.dragover {
+    background-color: rgba(59, 130, 246, 0.1);
+    border-color: var(--primary-color);
+}
+
+.preview-section {
+    transition: all 0.3s ease;
+}
+
+.preview-section img {
+    max-height: 400px;
+    object-fit: contain;
+}
+
+.analyze-btn {
+    transition: all 0.3s ease;
+}
+
+.analyze-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.result-section {
+    transition: all 0.3s ease;
+}
+
+/* Анимации */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease forwards;
+}
+
+/* Адаптивные стили */
+@media (max-width: 640px) {
+    .drop-zone {
+        min-height: 150px;
+        padding: 1rem;
+    }
+
+    .preview-section img {
+        max-height: 300px;
+    }
 }

@@ -25,10 +25,8 @@
             <h1 class="text-2xl font-bold mb-4 md:mb-0">BuildMate</h1>
             <nav class="flex items-center w-full md:w-auto justify-end no-print">
                 <ul class="flex flex-wrap space-x-3 md:space-x-6 mr-4">
-                    <li><a href="#" class="hover:opacity-100">Главная</a></li>
-                    <li><a href="#calculator" class="hover:opacity-100">Калькулятор</a></li>
-                    <li><a href="#features" class="hover:opacity-100">Подбор мебели</a></li>
-                    <li><a href="#" class="hover:opacity-100">Контакты</a></li>
+                    <li><a href="/" class="hover:opacity-100">Калькулятор</a></li>
+                    <li><a href="/furniture" class="hover:opacity-100">Подбор мебели</a></li>
                 </ul>
                 <div class="theme-toggle" id="themeToggle">
                     <div class="theme-toggle-inner">
@@ -248,32 +246,7 @@
 
                         <!-- Схема дома для печати -->
                         <div class="print-house-schema">
-                            <svg width="100%" height="200" viewBox="0 0 400 200" class="print-only">
-                                <defs>
-                                    <filter id="paperTexture" x="0%" y="0%" width="100%" height="100%">
-                                        <feTurbulence baseFrequency="0.03" numOctaves="2" result="noise" seed="1" />
-                                        <feDisplacementMap in="SourceGraphic" in2="noise" scale="3" />
-                                    </filter>
-                                </defs>
-                                <g filter="url(#paperTexture)">
-                                    <!-- Фундамент -->
-                                    <rect x="90" y="165" width="220" height="25" stroke="#444" stroke-width="0.8"
-                                        stroke-dasharray="5,3" fill="none" />
-                                    <text x="200" y="160" text-anchor="middle" fill="#444" font-size="10"
-                                        font-family="sans-serif">Фундамент</text>
-
-                                    <!-- Стены -->
-                                    <rect x="110" y="90" width="180" height="75" stroke="#444" stroke-width="0.8"
-                                        fill="none" />
-                                    <text x="200" y="85" text-anchor="middle" fill="#444" font-size="10"
-                                        font-family="sans-serif">Стены</text>
-
-                                    <!-- Крыша -->
-                                    <path d="M 110 90 L 200 50 L 290 90" stroke="#444" stroke-width="0.8" fill="none" />
-                                    <text x="200" y="45" text-anchor="middle" fill="#444" font-size="10"
-                                        font-family="sans-serif">Крыша</text>
-                                </g>
-                            </svg>
+                            <!-- SVG схема удалена по запросу пользователя -->
                         </div>
 
                         <!-- Секции результатов -->
@@ -358,7 +331,7 @@
     </section>
 
     <!-- Футер сайта -->
-    <footer class="no-print">
+    <footer class="no-print -mt-1">
         <div class="container mx-auto px-4">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 <!-- Брендинг -->
@@ -372,10 +345,9 @@
                 <div>
                     <h3 class="footer-nav-title">Навигация</h3>
                     <ul class="footer-nav-links">
-                        <li><a href="#">Главная</a></li>
-                        <li><a href="#calculator">Калькулятор</a></li>
-                        <li><a href="#features">Подбор мебели</a></li>
-                        <li><a href="#">Контакты</a></li>
+                        <li><a href="/">Калькулятор</a></li>
+                        <li><a href="/furniture">Подбор мебели</a></li>
+
                     </ul>
                 </div>
 
@@ -403,7 +375,7 @@
             </div>
 
             <div class="mt-8 pt-4 border-t border-gray-200 text-center text-sm text-gray-400">
-                <p class="text-sm text-muted">© 2024 BuildMate. Все права защищены.</p>
+                <p class="text-sm text-muted">© 2025 BuildMate. Все права защищены.</p>
             </div>
         </div>
     </footer>

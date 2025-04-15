@@ -4,7 +4,7 @@ from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 
-from app.api import calculator, materials, recommendations
+from app.api import calculator, materials, recommendations, image_recognition
 
 app = FastAPI(
     title="Строительный калькулятор",
@@ -34,10 +34,16 @@ async def root(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
 
+@app.get("/furniture", response_class=HTMLResponse)
+async def furniture(request: Request):
+    return templates.TemplateResponse("furniture.html", {"request": request})
+
+
 # Подключение маршрутов API
 app.include_router(calculator.router, prefix="/api", tags=["calculator"])
 app.include_router(materials.router, prefix="/api", tags=["materials"])
 app.include_router(recommendations.router, prefix="/api", tags=["recommendations"])
+app.include_router(image_recognition.router, prefix="/api", tags=["image_recognition"])
 
 if __name__ == "__main__":
     import uvicorn
