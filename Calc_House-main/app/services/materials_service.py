@@ -236,12 +236,29 @@ class MaterialsService:
 
         # Расчет материалов для фундамента
         foundation_materials = self._calculate_foundation_materials(data, house_params)
+        # Расчет стоимости материалов фундамента
+        foundation_materials = self._calculate_materials_cost(
+            foundation_materials, "foundation", data.foundation_type.value
+        )
 
         # Расчет материалов для стен
         wall_materials = self._calculate_wall_materials(data, house_params)
+        # Расчет стоимости материалов стен
+        wall_materials = self._calculate_materials_cost(
+            wall_materials, "walls", data.wall_material.value
+        )
 
         # Расчет материалов для кровли
         roof_materials = self._calculate_roof_materials(data, house_params)
+        # Расчет стоимости материалов кровли
+        roof_materials = self._calculate_materials_cost(
+            roof_materials, "roof", data.roof_type.value
+        )
+
+        # Общая стоимость всех материалов
+        total_cost = self._calculate_total_cost(
+            foundation_materials, wall_materials, roof_materials
+        )
 
         # Формирование итогового результата
         result = MaterialsCalculationResult(
@@ -249,7 +266,8 @@ class MaterialsService:
                 foundation=foundation_materials,
                 walls=wall_materials,
                 roof=roof_materials,
-            )
+            ),
+            total_cost=total_cost,
         )
 
         return result
@@ -932,3 +950,159 @@ class MaterialsService:
             )
 
         return materials
+
+    def _calculate_materials_cost(
+        self, materials: List[MaterialItem], category: str, type_key: str
+    ) -> List[MaterialItem]:
+        """
+        Расчет стоимости материалов на основе их количества и цены.
+
+        Args:
+            materials: Список материалов
+            category: Категория материалов (foundation, walls, roof)
+            type_key: Ключ типа материала (например, strip, brick, metal)
+
+        Returns:
+            List[MaterialItem]: Обновленный список материалов с добавленной стоимостью
+        """
+        try:
+            # Загружаем данные о материалах
+            with open(self.materials_data_path, "r", encoding="utf-8") as f:
+                materials_data = json.load(f)
+
+            # Получаем детализированные материалы для данной категории и типа
+            if category in materials_data and type_key in materials_data[category]:
+                detailed_materials = materials_data[category][type_key].get(
+                    "materials", {}
+                )
+
+                # Обновляем каждый элемент материала, добавляя стоимость
+                updated_materials = []
+                for material in materials:
+                    # Ищем соответствующий материал в детализированных материалах
+                    material_price = None
+                    for key, details in detailed_materials.items():
+                        if details["name"] == material.name:
+                            material_price = details["price"]
+                            break
+
+                    # Если цена найдена, добавляем стоимость к материалу
+                    if material_price is not None:
+                        updated_material = MaterialItem(
+                            name=material.name,
+                            quantity=material.quantity,
+                            unit=material.unit,
+                            price=material_price,
+                            total_cost=round(material.quantity * material_price, 2),
+                        )
+                    else:
+                        # Если цена не найдена, используем приблизительную цену
+                        estimated_price = self._get_estimated_price(
+                            material.name, material.unit
+                        )
+                        updated_material = MaterialItem(
+                            name=material.name,
+                            quantity=material.quantity,
+                            unit=material.unit,
+                            price=estimated_price,
+                            total_cost=round(material.quantity * estimated_price, 2),
+                        )
+
+                    updated_materials.append(updated_material)
+
+                return updated_materials
+            else:
+                # Если категория или тип не найдены, возвращаем исходный список с приблизительными ценами
+                return self._add_estimated_costs(materials)
+
+        except Exception as e:
+            print(f"Ошибка при расчете стоимости материалов: {e}")
+            # В случае ошибки возвращаем исходный список с приблизительными ценами
+            return self._add_estimated_costs(materials)
+
+    def _add_estimated_costs(self, materials: List[MaterialItem]) -> List[MaterialItem]:
+        """
+        Добавляет оценочные стоимости материалам, если точные цены недоступны.
+
+        Args:
+            materials: Список материалов
+
+        Returns:
+            List[MaterialItem]: Обновленный список материалов с добавленной стоимостью
+        """
+        updated_materials = []
+        for material in materials:
+            estimated_price = self._get_estimated_price(material.name, material.unit)
+            updated_material = MaterialItem(
+                name=material.name,
+                quantity=material.quantity,
+                unit=material.unit,
+                price=estimated_price,
+                total_cost=round(material.quantity * estimated_price, 2),
+            )
+            updated_materials.append(updated_material)
+
+        return updated_materials
+
+    def _get_estimated_price(self, material_name: str, unit: str) -> float:
+        """
+        Получает оценочную цену для материала на основе его названия и единицы измерения.
+
+        Args:
+            material_name: Название материала
+            unit: Единица измерения
+
+        Returns:
+            float: Оценочная цена
+        """
+        # Примерные цены для различных единиц измерения
+        default_prices = {
+            "м³": 5000,  # кубический метр
+            "м²": 1000,  # квадратный метр
+            "м.п.": 500,  # погонный метр
+            "шт": 100,  # штука
+            "кг": 75,  # килограмм
+            "т": 7500,  # тонна
+            "л": 500,  # литр
+            "компл.": 5000,  # комплект
+            "лист": 750,  # лист
+        }
+
+        # Возвращаем примерную цену для данной единицы измерения
+        return default_prices.get(unit, 500)  # если единица не найдена, возвращаем 500
+
+    def _calculate_total_cost(
+        self,
+        foundation_materials: List[MaterialItem],
+        wall_materials: List[MaterialItem],
+        roof_materials: List[MaterialItem],
+    ) -> float:
+        """
+        Расчет общей стоимости всех материалов.
+
+        Args:
+            foundation_materials: Материалы фундамента
+            wall_materials: Материалы стен
+            roof_materials: Материалы кровли
+
+        Returns:
+            float: Общая стоимость всех материалов
+        """
+        total_cost = 0.0
+
+        # Суммируем стоимость материалов фундамента
+        for material in foundation_materials:
+            if hasattr(material, "total_cost"):
+                total_cost += material.total_cost
+
+        # Суммируем стоимость материалов стен
+        for material in wall_materials:
+            if hasattr(material, "total_cost"):
+                total_cost += material.total_cost
+
+        # Суммируем стоимость материалов кровли
+        for material in roof_materials:
+            if hasattr(material, "total_cost"):
+                total_cost += material.total_cost
+
+        return round(total_cost, 2)

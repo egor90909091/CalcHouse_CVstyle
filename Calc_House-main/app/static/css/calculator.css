@@ -57,14 +57,14 @@
 
 /* Анимация появления материалов */
 .material-item {
-    transform: translateY(20px);
     opacity: 0;
-    transition: all 0.4s ease;
+    transform: translateY(10px);
+    transition: opacity 0.5s ease, transform 0.5s ease, color var(--transition-speed) ease;
 }
 
 .material-item.visible {
-    transform: translateY(0);
     opacity: 1;
+    transform: translateY(0);
 }
 
 /* Анимация математической доски */
@@ -74,7 +74,7 @@
     height: 350px;
     background-color: #1a2635;
     border-radius: 16px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
     overflow: hidden;
     perspective: 1000px;
 }
@@ -164,8 +164,17 @@
 }
 
 @keyframes formula-pulsate {
-    0%, 100% { opacity: 1; background-color: rgba(100, 180, 160, 0.15); }
-    50% { opacity: 0.8; background-color: rgba(100, 180, 160, 0.2); }
+
+    0%,
+    100% {
+        opacity: 1;
+        background-color: rgba(100, 180, 160, 0.15);
+    }
+
+    50% {
+        opacity: 0.8;
+        background-color: rgba(100, 180, 160, 0.2);
+    }
 }
 
 /* Кнопки действий */
@@ -177,4 +186,124 @@
 #recalcButton:hover,
 #printButton:hover {
     transform: translateY(-2px);
+}
+
+/* Стили для таблицы материалов */
+.material-header {
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-color);
+    transition: color var(--transition-speed) ease;
+}
+
+.total-row {
+    margin-top: 16px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+/* Стили для блока с итоговой суммой */
+.total-cost-container {
+    background-color: var(--surface-accent);
+    border-color: var(--accent-color);
+    border-width: 2px;
+    transition: background-color var(--transition-speed) ease,
+        border-color var(--transition-speed) ease,
+        color var(--transition-speed) ease;
+}
+
+.total-cost-container h3 {
+    color: var(--text-primary);
+    transition: color var(--transition-speed) ease;
+}
+
+.total-cost-container span {
+    color: var(--accent-color);
+    transition: color var(--transition-speed) ease;
+}
+
+/* Адаптация для печати */
+@media print {
+
+    .material-header,
+    .material-item {
+        color: #000 !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
+
+    .total-cost-container {
+        border: 2px solid #000 !important;
+        background-color: #f8f8f8 !important;
+        break-inside: avoid;
+    }
+
+    .total-cost-container h3,
+    .total-cost-container span {
+        color: #000 !important;
+    }
+}
+
+/* Стили для блока рекомендаций ИИ */
+.ai-recommendations {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    border: 1px solid #3182ce;
+    border-radius: 0.5rem;
+    background-color: rgba(235, 245, 255, 0.5);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+.ai-recommendations:hover {
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+    background-color: rgba(235, 245, 255, 0.7);
+}
+
+.ai-recommendations-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #2c5282;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+}
+
+.ai-recommendations-title:before {
+    content: '💡';
+    margin-right: 0.5rem;
+    font-size: 1.5rem;
+}
+
+.ai-recommendation-item {
+    margin-bottom: 0.75rem;
+    padding-left: 1.5rem;
+    position: relative;
+    line-height: 1.5;
+}
+
+.ai-recommendation-item:before {
+    content: '•';
+    position: absolute;
+    left: 0.5rem;
+    color: #3182ce;
+    font-weight: bold;
+}
+
+.ai-recommendation-item:last-child {
+    margin-bottom: 0;
+}
+
+/* Темная тема для блока рекомендаций */
+.dark-theme .ai-recommendations {
+    background-color: rgba(44, 82, 130, 0.15);
+    border-color: #2c5282;
+}
+
+.dark-theme .ai-recommendations-title {
+    color: #63b3ed;
+}
+
+.dark-theme .ai-recommendation-item:before {
+    color: #63b3ed;
 }

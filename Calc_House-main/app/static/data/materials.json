@@ -3,76 +3,434 @@
         "strip": {
             "name": "Ленточный фундамент",
             "price_per_sqm": 5000,
-            "unit": "м²"
+            "unit": "м²",
+            "materials": {
+                "concrete": {
+                    "name": "Бетон B20",
+                    "price": 5100,
+                    "unit": "м³"
+                },
+                "rebar": {
+                    "name": "Арматура A400",
+                    "price": 75,
+                    "unit": "кг"
+                },
+                "formwork": {
+                    "name": "Опалубка",
+                    "price": 225,
+                    "unit": "м²"
+                },
+                "waterproofing": {
+                    "name": "Гидроизоляция фундамента",
+                    "price": 450,
+                    "unit": "м²"
+                }
+            }
         },
         "pile": {
             "name": "Свайный фундамент",
             "price_per_sqm": 4000,
-            "unit": "м²"
+            "unit": "м²",
+            "materials": {
+                "piles": {
+                    "name": "Сваи",
+                    "price": 5500,
+                    "unit": "шт"
+                },
+                "grillage_concrete": {
+                    "name": "Бетон для ростверка",
+                    "price": 5000,
+                    "unit": "м³"
+                },
+                "rebar": {
+                    "name": "Арматура",
+                    "price": 75,
+                    "unit": "кг"
+                }
+            }
         },
         "slab": {
             "name": "Плитный фундамент",
             "price_per_sqm": 6000,
-            "unit": "м²"
+            "unit": "м²",
+            "materials": {
+                "concrete": {
+                    "name": "Бетон B25",
+                    "price": 5500,
+                    "unit": "м³"
+                },
+                "rebar": {
+                    "name": "Арматура",
+                    "price": 75,
+                    "unit": "кг"
+                },
+                "sand": {
+                    "name": "Песок для подушки",
+                    "price": 1000,
+                    "unit": "м³"
+                },
+                "waterproofing": {
+                    "name": "Гидроизоляция",
+                    "price": 450,
+                    "unit": "м²"
+                }
+            }
         },
         "column": {
             "name": "Столбчатый фундамент",
             "price_per_sqm": 3500,
-            "unit": "м²"
+            "unit": "м²",
+            "materials": {
+                "concrete_columns": {
+                    "name": "Бетонные столбы",
+                    "price": 3500,
+                    "unit": "шт"
+                },
+                "concrete": {
+                    "name": "Бетон B20",
+                    "price": 5100,
+                    "unit": "м³"
+                },
+                "rebar": {
+                    "name": "Арматура",
+                    "price": 75,
+                    "unit": "кг"
+                }
+            }
         }
     },
     "walls": {
         "brick": {
             "name": "Кирпич",
             "price_per_sqm": 8000,
-            "unit": "м²"
+            "unit": "м²",
+            "materials": {
+                "brick_solid": {
+                    "name": "Кирпич керамический полнотелый",
+                    "price": 30,
+                    "unit": "шт"
+                },
+                "brick_hollow": {
+                    "name": "Кирпич керамический пустотелый",
+                    "price": 25,
+                    "unit": "шт"
+                },
+                "silicate_brick": {
+                    "name": "Кирпич силикатный",
+                    "price": 21.5,
+                    "unit": "шт"
+                },
+                "porous_block": {
+                    "name": "Поризованный керамический блок",
+                    "price": 150,
+                    "unit": "шт"
+                },
+                "mortar": {
+                    "name": "Раствор для кладки",
+                    "price": 4150,
+                    "unit": "м³"
+                },
+                "insulation": {
+                    "name": "Утеплитель",
+                    "price": 350,
+                    "unit": "м²"
+                }
+            }
         },
         "wood": {
             "name": "Дерево",
             "price_per_sqm": 6000,
-            "unit": "м²"
+            "unit": "м²",
+            "materials": {
+                "timber": {
+                    "name": "Брус",
+                    "price": 27500,
+                    "unit": "м³"
+                },
+                "round_log": {
+                    "name": "Оцилиндрованное бревно",
+                    "price": 31500,
+                    "unit": "м³"
+                },
+                "glued_beam": {
+                    "name": "Клееный брус",
+                    "price": 57500,
+                    "unit": "м³"
+                },
+                "wall_insulation": {
+                    "name": "Утеплитель для стен",
+                    "price": 350,
+                    "unit": "м²"
+                },
+                "interlayer_insulation": {
+                    "name": "Межвенцовый утеплитель",
+                    "price": 100,
+                    "unit": "м.п."
+                }
+            }
         },
         "block": {
             "name": "Блоки",
             "price_per_sqm": 5000,
-            "unit": "м²"
+            "unit": "м²",
+            "materials": {
+                "aerated_concrete": {
+                    "name": "Газобетонные блоки",
+                    "price": 215,
+                    "unit": "шт"
+                },
+                "foam_concrete": {
+                    "name": "Пенобетонные блоки",
+                    "price": 185,
+                    "unit": "шт"
+                },
+                "expanded_clay": {
+                    "name": "Керамзитобетонные блоки",
+                    "price": 165,
+                    "unit": "шт"
+                },
+                "adhesive": {
+                    "name": "Клей для блоков",
+                    "price": 7.5,
+                    "unit": "кг"
+                },
+                "insulation": {
+                    "name": "Утеплитель",
+                    "price": 350,
+                    "unit": "м²"
+                }
+            }
         },
         "concrete": {
             "name": "Монолитный бетон",
             "price_per_sqm": 7000,
-            "unit": "м²"
+            "unit": "м²",
+            "materials": {
+                "concrete_b25": {
+                    "name": "Бетон B25 для стен",
+                    "price": 5500,
+                    "unit": "м³"
+                },
+                "rebar": {
+                    "name": "Арматура для стен",
+                    "price": 75,
+                    "unit": "кг"
+                },
+                "formwork": {
+                    "name": "Опалубка для стен",
+                    "price": 300,
+                    "unit": "м²"
+                },
+                "insulation": {
+                    "name": "Утеплитель",
+                    "price": 350,
+                    "unit": "м²"
+                }
+            }
         },
         "panel": {
             "name": "Панели",
             "price_per_sqm": 4500,
-            "unit": "м²"
+            "unit": "м²",
+            "materials": {
+                "sip_panels": {
+                    "name": "SIP-панели",
+                    "price": 4750,
+                    "unit": "шт"
+                },
+                "concrete_panels": {
+                    "name": "Железобетонные панели",
+                    "price": 11500,
+                    "unit": "шт"
+                },
+                "sandwich_panels": {
+                    "name": "Сэндвич-панели",
+                    "price": 7000,
+                    "unit": "шт"
+                },
+                "mounting_kit": {
+                    "name": "Монтажный комплект",
+                    "price": 20000,
+                    "unit": "компл."
+                },
+                "sealant": {
+                    "name": "Герметик для швов",
+                    "price": 850,
+                    "unit": "л"
+                }
+            }
         }
     },
     "roof": {
         "metal": {
             "name": "Металлочерепица",
             "price_per_sqm": 2000,
-            "unit": "м²"
+            "unit": "м²",
+            "materials": {
+                "rafters": {
+                    "name": "Стропила 50x150 мм",
+                    "price": 750,
+                    "unit": "м.п."
+                },
+                "batten": {
+                    "name": "Обрешетка 25x100 мм",
+                    "price": 400,
+                    "unit": "м.п."
+                },
+                "waterproofing": {
+                    "name": "Гидроизоляция",
+                    "price": 200,
+                    "unit": "м²"
+                },
+                "metal_tile_standard": {
+                    "name": "Металлочерепица стандартная",
+                    "price": 650,
+                    "unit": "м²"
+                },
+                "metal_tile_premium": {
+                    "name": "Металлочерепица премиум",
+                    "price": 1200,
+                    "unit": "м²"
+                },
+                "ridge_elements": {
+                    "name": "Коньковые элементы",
+                    "price": 450,
+                    "unit": "м.п."
+                },
+                "screws": {
+                    "name": "Саморезы кровельные",
+                    "price": 7.5,
+                    "unit": "шт"
+                }
+            }
         },
         "tile": {
             "name": "Керамическая черепица",
             "price_per_sqm": 3500,
-            "unit": "м²"
+            "unit": "м²",
+            "materials": {
+                "rafters": {
+                    "name": "Стропила 50x150 мм",
+                    "price": 750,
+                    "unit": "м.п."
+                },
+                "batten": {
+                    "name": "Обрешетка 25x100 мм",
+                    "price": 400,
+                    "unit": "м.п."
+                },
+                "waterproofing": {
+                    "name": "Гидроизоляция",
+                    "price": 200,
+                    "unit": "м²"
+                },
+                "ceramic_tile": {
+                    "name": "Керамическая черепица",
+                    "price": 300,
+                    "unit": "шт"
+                },
+                "ridge_elements": {
+                    "name": "Коньковые элементы",
+                    "price": 750,
+                    "unit": "м.п."
+                },
+                "fasteners": {
+                    "name": "Крепления для черепицы",
+                    "price": 5.5,
+                    "unit": "шт"
+                }
+            }
         },
         "shingle": {
             "name": "Гибкая черепица",
             "price_per_sqm": 1800,
-            "unit": "м²"
+            "unit": "м²",
+            "materials": {
+                "rafters": {
+                    "name": "Стропила 50x150 мм",
+                    "price": 750,
+                    "unit": "м.п."
+                },
+                "batten": {
+                    "name": "Обрешетка 25x100 мм",
+                    "price": 400,
+                    "unit": "м.п."
+                },
+                "flexible_tile": {
+                    "name": "Гибкая черепица",
+                    "price": 550,
+                    "unit": "м²"
+                },
+                "underlay": {
+                    "name": "Подкладочный ковер",
+                    "price": 175,
+                    "unit": "м²"
+                },
+                "osb": {
+                    "name": "OSB плиты",
+                    "price": 450,
+                    "unit": "м²"
+                }
+            }
         },
         "slate": {
             "name": "Шифер",
             "price_per_sqm": 1200,
-            "unit": "м²"
+            "unit": "м²",
+            "materials": {
+                "rafters": {
+                    "name": "Стропила 50x150 мм",
+                    "price": 750,
+                    "unit": "м.п."
+                },
+                "batten": {
+                    "name": "Обрешетка 25x100 мм",
+                    "price": 400,
+                    "unit": "м.п."
+                },
+                "slate": {
+                    "name": "Шифер",
+                    "price": 750,
+                    "unit": "лист"
+                },
+                "nails": {
+                    "name": "Гвозди шиферные",
+                    "price": 7.5,
+                    "unit": "шт"
+                },
+                "sealant": {
+                    "name": "Уплотнитель для шифера",
+                    "price": 100,
+                    "unit": "м.п."
+                }
+            }
         },
         "flat": {
             "name": "Плоская кровля",
             "price_per_sqm": 2500,
-            "unit": "м²"
+            "unit": "м²",
+            "materials": {
+                "waterproofing": {
+                    "name": "Рулонная гидроизоляция",
+                    "price": 450,
+                    "unit": "м²"
+                },
+                "insulation": {
+                    "name": "Утеплитель для плоской кровли",
+                    "price": 550,
+                    "unit": "м²"
+                },
+                "screed": {
+                    "name": "Цементно-песчаная стяжка",
+                    "price": 4500,
+                    "unit": "м³"
+                },
+                "vapor_barrier": {
+                    "name": "Пароизоляция",
+                    "price": 100,
+                    "unit": "м²"
+                }
+            }
         }
     },
     "options": {

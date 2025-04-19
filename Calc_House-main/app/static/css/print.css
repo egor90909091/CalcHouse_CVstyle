@@ -21,31 +21,23 @@
         display: none !important;
     }
 
+    /* Скрываем верхнюю полоску и надпись BuildMate */
+    .print-logo,
+    .print-header {
+        display: none !important;
+    }
+
     /* Показываем только элементы для печати */
     .print-only {
         display: block !important;
     }
 
-    /* Стилизация шапки для печати */
-    .print-header {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        margin-bottom: 2cm;
-        border-bottom: 1px solid #ccc;
-        padding-bottom: 0.5cm;
-    }
-
-    .print-logo {
-        font-size: 24pt;
-        font-weight: bold;
-        color: #3182ce;
-        margin-bottom: 0.5cm;
-    }
-
+    /* Стилизация шапки для печати - оставляем только заголовок расчета */
     .print-header h2 {
         font-size: 18pt;
         margin: 0;
+        text-align: center;
+        padding-top: 1cm;
     }
 
     /* Мета-информация для печати */
@@ -55,6 +47,7 @@
         margin-bottom: 1cm;
         font-size: 9pt;
         color: #666;
+        margin-top: 0.5cm;
     }
 
     .print-date,
@@ -71,38 +64,12 @@
 
     /* Информация о расчете */
     .print-info {
-        display: none;
-        /* Скрыта по умолчанию */
+        display: none !important;
     }
 
-    @media print {
-        .print-info {
-            display: block;
-            /* Показываем только при печати */
-        }
-    }
-
-    /* Водяной знак */
+    /* Убираем водяной знак BuildMate */
     .print-watermark {
-        display: none;
-        /* Скрыт по умолчанию */
-    }
-
-    @media print {
-        .print-watermark {
-            display: block;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%) rotate(-45deg);
-            font-size: 60pt;
-            opacity: 0.1;
-            color: #3182ce;
-            font-weight: bold;
-            text-transform: uppercase;
-            z-index: -1;
-            pointer-events: none;
-        }
+        display: none !important;
     }
 
     /* Стили для результатов расчета */
@@ -151,6 +118,34 @@
 
     .note-container strong {
         font-weight: bold;
+    }
+
+    /* Стиль для блока рекомендаций ИИ */
+    .ai-recommendations {
+        margin-top: 1.5cm;
+        padding: 0.8cm;
+        border: 1px solid #2d6ca2;
+        border-radius: 0.3cm;
+        background-color: #eef7fd;
+        page-break-inside: avoid;
+    }
+
+    .ai-recommendations-title {
+        font-size: 14pt;
+        font-weight: bold;
+        color: #2d6ca2;
+        margin-bottom: 0.5cm;
+    }
+
+    .ai-recommendation-item {
+        margin-bottom: 0.4cm;
+        display: flex;
+    }
+
+    .ai-recommendation-item:before {
+        content: '•';
+        margin-right: 0.3cm;
+        color: #2d6ca2;
     }
 
     /* Математическая доска не нужна для печати */

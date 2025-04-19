@@ -210,6 +210,8 @@ class MaterialItem(BaseModel):
     name: str = Field(..., description="Наименование материала")
     quantity: float = Field(..., description="Количество")
     unit: str = Field(..., description="Единица измерения")
+    price: Optional[float] = Field(None, description="Цена за единицу")
+    total_cost: Optional[float] = Field(None, description="Общая стоимость")
 
 
 class MaterialsResult(BaseModel):
@@ -224,6 +226,9 @@ class MaterialsCalculationResult(BaseModel):
     """Результат расчета калькулятора материалов"""
 
     materials: MaterialsResult = Field(..., description="Необходимые материалы")
+    total_cost: Optional[float] = Field(
+        None, description="Общая стоимость всех материалов"
+    )
 
 
 class MaterialsCalculatorInput(BaseModel):
