@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from ..models.calculator import (
+from app.models.calculator import (
     CalculatorInput,
     CalculationResult,
     RecommendationRequest,
@@ -8,9 +8,10 @@ from ..models.calculator import (
     MaterialsCalculatorInput,
     MaterialsCalculationResult,
 )
-from ..services.calculator_service import CalculatorService
-from ..services.ai_service import AIService
-from ..services.materials_service import MaterialsService
+from app.services.calculator_service import CalculatorService
+from app.services.ai_service import AIService
+from app.services.materials_service import MaterialsService
+from app.api.recommendations import get_recommendations as ai_recommendations_endpoint
 
 router = APIRouter(prefix="/api")
 
@@ -38,8 +39,8 @@ async def get_recommendations(request: RecommendationRequest):
     Получение рекомендаций по оптимизации проекта
     """
     try:
-        result = await ai_service.get_recommendations(request)
-        return result
+        # Используем функцию из модуля рекомендаций
+        return await ai_recommendations_endpoint(request)
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Ошибка при получении рекомендаций: {str(e)}"

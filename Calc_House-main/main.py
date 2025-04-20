@@ -3,6 +3,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
+import os
 
 from app.api import calculator, materials, recommendations, image_recognition
 
@@ -47,5 +48,50 @@ app.include_router(image_recognition.router, prefix="/api", tags=["image_recogni
 
 if __name__ == "__main__":
     import uvicorn
+    import signal
+    import sys
+    import logging
+    from uvicorn.config import Config
+    from app.services.ai_service import AIService
 
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    # Настройка логирования
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger("main")
+
+    # Обработчик сигнала прерывания
+    def handle_shutdown(signum, frame):
+        logger.info("Получен сигнал прерывания, выполняем корректное завершение...")
+
+        # Закрываем все сессии и ресурсы
+        try:
+            # Закрываем сессию DeepSeek API если есть
+            ai_service = AIService()
+            if hasattr(ai_service, "session") and ai_service.session:
+                logger.info("Закрываем сессию DeepSeek API")
+                ai_service.session.close()
+
+            # Любые другие ресурсы, которые нужно освободить
+            logger.info("Все ресурсы корректно освобождены")
+        except Exception as e:
+            logger.error(f"Ошибка при закрытии ресурсов: {str(e)}")
+
+        sys.exit(0)
+
+    # Регистрируем обработчики сигналов
+    signal.signal(signal.SIGINT, handle_shutdown)  # Ctrl+C
+    signal.signal(signal.SIGTERM, handle_shutdown)  # kill
+
+    # Запускаем сервер с таймаутом для сокетов
+    config = Config(
+        "main:app", host="0.0.0.0", port=8000, reload=True, timeout_keep_alive=5
+    )
+    server = uvicorn.Server(config)
+
+    try:
+        logger.info("Запуск сервера...")
+        server.run()
+    except KeyboardInterrupt:
+        logger.info(
+            "Прерывание с клавиатуры (Ctrl+C), выполняем корректное завершение..."
+        )
+        handle_shutdown(None, None)

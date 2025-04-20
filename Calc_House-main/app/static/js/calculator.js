@@ -10,10 +10,157 @@ window.DEBUG = true;
 let lastCalculationParams = {};
 let calculationCounter = 0;
 let isCalculating = false; // Флаг для отслеживания процесса расчета
+let lastRecommendationParams = null; // Для отслеживания последних параметров запроса рекомендаций
+let isRecommendationRequestInProgress = false; // Флаг для отслеживания текущего запроса
+let recommendationsRequested = false; // Флаг для отслеживания запроса рекомендаций
+let recommendationRequestTimeout = null; // Для хранения таймаута запроса рекомендаций
+
+/**
+ * Вспомогательная функция для правильного возврата к калькулятору
+ */
+function navigateToCalculator() {
+    // Проверяем, на какой странице мы находимся
+    const currentPath = window.location.pathname;
+    const calculatorPanel = document.querySelector('.calculator-panel');
+
+    // Если калькулятор найден на текущей странице
+    if (calculatorPanel) {
+        // Показываем его
+        calculatorPanel.classList.remove('hidden');
+        calculatorPanel.classList.add('active');
+
+        // Скрываем результаты
+        const resultsPanel = document.querySelector('.results-panel');
+        if (resultsPanel) {
+            resultsPanel.classList.remove('active');
+            resultsPanel.classList.add('hidden');
+        }
+
+        // Сбрасываем флаги
+        isCalculating = false;
+        window.animationCompleted = false;
+
+        // Прокручиваем к форме
+        calculatorPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        return true;
+    }
+    // Если мы на главной странице, нужно нажать на кнопку "Начать расчет"
+    else if (currentPath === '/' || currentPath === '') {
+        const startCalculationButton = document.querySelector('a[href="#calculator"], .btn-primary, button.start-calculation');
+        if (startCalculationButton) {
+            startCalculationButton.click();
+            return true;
+        }
+    }
+
+    // Если ни один из вариантов не подходит, перезагружаем страницу
+    logDebug("Не удалось найти калькулятор или кнопку для его запуска. Перезагрузка...");
+
+    // Проверяем, находимся ли мы не на странице с калькулятором
+    if (currentPath !== '/calculator' && currentPath !== '/calculator/') {
+        // Переходим на страницу с калькулятором
+        window.location.href = '/calculator';
+    } else {
+        // Просто перезагружаем текущую страницу
+        location.reload();
+    }
+
+    return false;
+}
 
 // Инициализация после загрузки DOM
 document.addEventListener('DOMContentLoaded', function () {
     logDebug("DOM загружен. Инициализация калькулятора...");
+
+    // Разблокировка F12 и других клавиш для разработки
+    document.addEventListener('keydown', function (e) {
+        // Разрешаем F12 и другие клавиши разработчика
+        if (e.key === 'F12' ||
+            (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+            (e.ctrlKey && e.shiftKey && e.key === 'J') ||
+            (e.ctrlKey && e.key === 'u')) {
+            // Отменяем любые обработчики по умолчанию, которые могут блокировать эти комбинации
+            e.stopImmediatePropagation();
+            return true; // Разрешаем действие по умолчанию
+        }
+    }, true); // Используем capturing режим, чтобы перехватить событие до других обработчиков
+
+    // Если в window есть обработчики, которые могут блокировать F12
+    const originalAddEventListener = window.addEventListener;
+    window.addEventListener = function (type, listener, options) {
+        if (type === 'keydown' || type === 'keyup' || type === 'keypress') {
+            const wrappedListener = function (e) {
+                // Если это F12 или другие клавиши разработчика, не блокируем их
+                if (e.key === 'F12' ||
+                    (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+                    (e.ctrlKey && e.shiftKey && e.key === 'J') ||
+                    (e.ctrlKey && e.key === 'u')) {
+                    return true;
+                }
+                return listener.apply(this, arguments);
+            };
+            return originalAddEventListener.call(this, type, wrappedListener, options);
+        }
+        return originalAddEventListener.call(this, type, listener, options);
+    };
+
+    // Обработчик для кнопок на главной странице
+    const startButtons = document.querySelectorAll('a[href="#calculator"], .btn-primary, button.start-calculation');
+    if (startButtons && startButtons.length > 0) {
+        logDebug(`Найдены кнопки 'Начать расчет': ${startButtons.length} шт.`);
+
+        startButtons.forEach(button => {
+            button.addEventListener('click', function (e) {
+                logDebug("Нажата кнопка 'Начать расчет'");
+
+                // Скрываем главную страницу
+                const homePage = document.querySelector('.home-page, .landing-section, .main-landing');
+                if (homePage) {
+                    homePage.classList.add('hidden');
+                }
+
+                // Показываем калькулятор
+                const calculatorPanel = document.querySelector('.calculator-panel');
+                if (calculatorPanel) {
+                    calculatorPanel.classList.remove('hidden');
+                    calculatorPanel.classList.add('active');
+
+                    // Прокручиваем к форме
+                    calculatorPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    } else {
+        logDebug("Кнопки 'Начать расчет' не найдены");
+    }
+
+    // Обработчик для кнопок отправки формы
+    const submitButtons = document.querySelectorAll('button[type="submit"], input[type="submit"], .calculate-btn');
+    if (submitButtons && submitButtons.length > 0) {
+        logDebug(`Найдены кнопки отправки формы: ${submitButtons.length} шт.`);
+
+        submitButtons.forEach(button => {
+            button.addEventListener('click', function (e) {
+                e.preventDefault();
+                logDebug("Нажата кнопка отправки формы");
+
+                // Находим соответствующую форму
+                const form = this.closest('form') || document.getElementById('calculatorForm');
+                if (form) {
+                    // Имитируем отправку формы
+                    const submitEvent = new Event('submit', { bubbles: true, cancelable: true });
+                    form.dispatchEvent(submitEvent);
+                } else {
+                    logDebug("Не удалось найти форму для кнопки отправки");
+                    // Если форма не найдена, пробуем вызвать функцию напрямую
+                    if (typeof window.showDemoResults === 'function') {
+                        window.showDemoResults();
+                    }
+                }
+            });
+        });
+    }
 
     // Проверка загрузки animations.js
     if (typeof startArchitecturalBoardAnimation !== 'function') {
@@ -50,6 +197,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Обработка отправки формы калькулятора
     calculatorForm.addEventListener('submit', function (e) {
+        // Обязательно останавливаем стандартное поведение формы
         e.preventDefault();
 
         // Проверяем, не выполняется ли уже расчет
@@ -61,15 +209,60 @@ document.addEventListener('DOMContentLoaded', function () {
         // Устанавливаем флаг расчета
         isCalculating = true;
 
+        // Полная очистка предыдущих результатов и анимаций
+        clearAllCalculationResults();
+
+        // Устанавливаем флаг нового расчета
+        window.newCalculationStarted = true;
+
         logDebug("Форма калькулятора отправлена");
 
         try {
             // Получаем текущие параметры из формы
             const currentParams = getFormParams(this);
 
+            // Логгируем параметры для отладки
+            logDebug("Параметры формы: " + JSON.stringify(currentParams));
+
             // Проверяем, изменились ли параметры с предыдущего расчета
             if (areParamsEqual(currentParams, lastCalculationParams)) {
                 logDebug("Параметры не изменились с предыдущего расчета");
+
+                // Показываем уведомление пользователю
+                if (resultsPanel && !resultsPanel.classList.contains('hidden')) {
+                    // Если панель результатов уже открыта, просто сообщаем, что параметры не изменились
+                    const notification = document.createElement('div');
+                    notification.className = 'fixed top-4 right-4 z-50 bg-blue-500 text-white px-4 py-2 rounded shadow-lg transition-opacity';
+                    notification.textContent = 'Параметры не изменились. Показаны текущие результаты.';
+                    notification.style.opacity = '0';
+                    document.body.appendChild(notification);
+
+                    // Анимация появления и исчезновения
+                    setTimeout(() => {
+                        notification.style.opacity = '1';
+                        setTimeout(() => {
+                            notification.style.opacity = '0';
+                            setTimeout(() => {
+                                notification.remove();
+                            }, 500);
+                        }, 3000);
+                    }, 10);
+
+                    // Просто переключаемся на панель результатов
+                    calculatorPanel.classList.remove('active');
+                    calculatorPanel.classList.add('hidden');
+                    resultsPanel.classList.remove('hidden');
+                    resultsPanel.classList.add('active');
+
+                    // Обновляем рекомендации с принудительным обновлением
+                    if (lastCalculationParams && Object.keys(lastCalculationParams).length > 0) {
+                        showAIRecommendations(lastCalculationParams, 'cost', true);
+                    }
+
+                    // Сбрасываем флаг расчета
+                    isCalculating = false;
+                    return;
+                }
             }
 
             // Сохраняем текущие параметры
@@ -134,7 +327,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             logDebug("Результаты отображены после анимации");
                             // Сбрасываем флаг расчета
                             isCalculating = false;
-                        }, 6000); // Увеличиваем с 3000 до 6000 мс
+                        }, 6000);
                     } else {
                         // Если нет, используем прямой вызов функции
                         logDebug("Функция анимации недоступна, вызываем непосредственно showDemoResults");
@@ -170,28 +363,28 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Обработчик кнопки "Изменить параметры"
     if (recalcButton) {
-        recalcButton.addEventListener('click', function () {
+        recalcButton.addEventListener('click', function (e) {
+            // Предотвращаем стандартное поведение (например, отправку формы)
+            e.preventDefault();
+
             logDebug("Кнопка 'Изменить параметры' нажата");
 
             // Скрываем панель результатов
-            resultsPanel.classList.remove('active');
-            resultsPanel.classList.add('hidden');
+            const resultsPanel = document.querySelector('.results-panel');
+            if (resultsPanel) {
+                resultsPanel.classList.remove('active');
+                resultsPanel.classList.add('hidden');
+            } else {
+                logDebug("Не найдена панель результатов");
+            }
 
-            // Используем setTimeout для последовательной анимации
+            // Используем новую функцию навигации к калькулятору
             setTimeout(() => {
-                // Показываем панель калькулятора
-                calculatorPanel.classList.remove('hidden');
-                calculatorPanel.classList.add('active');
-
-                // Сбрасываем анимацию и подготавливаем для следующего расчета
-                resetAnimation();
-
-                // Сохраняем прокрутку к форме для удобства
-                calculatorPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-                logDebug("Панель калькулятора активирована для нового расчета");
+                navigateToCalculator();
             }, 50);
         });
+    } else {
+        console.error("Кнопка 'Изменить параметры' не найдена");
     }
 
     // Обработка кнопки "Распечатать результаты"
@@ -421,16 +614,32 @@ function startCalculationAnimation() {
 }
 
 /**
- * Функция для сбора параметров из формы
- * @param {HTMLFormElement} form - Форма с данными
- * @return {Object} - Объект с параметрами формы
+ * Функция для получения параметров формы
+ * @param {HTMLFormElement} form - Форма для получения параметров
+ * @return {Object} - Параметры формы
  */
 function getFormParams(form) {
     const formData = new FormData(form);
     const params = {};
+
+    // Обрабатываем обычные поля формы
     for (let [key, value] of formData.entries()) {
-        params[key] = value;
+        // Если ключ уже существует - значит это множественный выбор (чекбоксы)
+        if (params[key] !== undefined) {
+            // Если значение еще не является массивом, преобразуем его в массив
+            if (!Array.isArray(params[key])) {
+                params[key] = [params[key]];
+            }
+            // Добавляем новое значение в массив
+            params[key].push(value);
+        } else {
+            params[key] = value;
+        }
     }
+
+    // Всегда задаем пустой массив для дополнительных опций
+    params.additionalOptions = [];
+
     return params;
 }
 
@@ -441,90 +650,94 @@ function getFormParams(form) {
  * @return {boolean} - true если параметры идентичны
  */
 function areParamsEqual(params1, params2) {
+    // Если один из объектов null или undefined, они не равны
     if (!params1 || !params2) return false;
-    return JSON.stringify(params1) === JSON.stringify(params2);
+
+    // Получаем все ключи из обоих объектов
+    const keys1 = Object.keys(params1);
+    const keys2 = Object.keys(params2);
+
+    // Если количество ключей разное, объекты не равны
+    if (keys1.length !== keys2.length) return false;
+
+    // Проверяем каждый ключ
+    for (const key of keys1) {
+        // Если ключ отсутствует во втором объекте, они не равны
+        if (!(key in params2)) return false;
+
+        // Особая обработка для массивов
+        if (Array.isArray(params1[key]) && Array.isArray(params2[key])) {
+            if (params1[key].length !== params2[key].length) return false;
+            for (let i = 0; i < params1[key].length; i++) {
+                if (params1[key][i] !== params2[key][i]) return false;
+            }
+        }
+        // Проверка для числовых значений - сравниваем с погрешностью
+        else if (typeof params1[key] === 'number' && typeof params2[key] === 'number') {
+            if (Math.abs(params1[key] - params2[key]) > 0.001) return false;
+        }
+        // Для всех остальных типов - строгое сравнение
+        else if (params1[key] !== params2[key]) {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 /**
- * Функция для сброса анимации
+ * Сброс анимации расчета и очистка всех элементов
  */
 function resetAnimation() {
-    // Сбрасываем стили прогресс-бара и текста статуса
-    const progressTracker = document.getElementById('progress-tracker');
+    logDebug("Сброс анимации расчета");
+
+    // Удаляем старые элементы анимации, если они есть
+    document.querySelectorAll('.formula-element, .math-symbol, .final-glow, .final-text, .formula-container, .svg-arrow, svg.line-animation').forEach(el => {
+        if (el && el.parentNode) {
+            el.parentNode.removeChild(el);
+        }
+    });
+
+    // Очищаем контейнер с формулами
     const formulasArea = document.getElementById('formulas-area');
-    const mathBoardContainer = document.getElementById('mathBoardContainer');
-    const loadingAnimation = document.getElementById('loading-animation');
-
-    // Сначала убедимся, что контейнер анимации загрузки существует и видим
-    if (loadingAnimation) {
-        loadingAnimation.style.display = 'block';
-        loadingAnimation.style.visibility = 'visible';
-        loadingAnimation.style.opacity = '1';
-    } else {
-        // Если контейнер анимации загрузки не существует, создаем его
-        const resultsPanel = document.querySelector('.results-panel');
-        if (resultsPanel) {
-            const newLoadingContainer = document.createElement('div');
-            newLoadingContainer.id = 'loading-animation';
-            newLoadingContainer.className = 'text-center py-8';
-
-            const newMathBoardContainer = document.createElement('div');
-            newMathBoardContainer.id = 'mathBoardContainer';
-            newMathBoardContainer.className = 'math-board-container';
-
-            newLoadingContainer.appendChild(newMathBoardContainer);
-
-            // Вставляем в начало панели результатов
-            resultsPanel.insertBefore(newLoadingContainer, resultsPanel.firstChild);
-
-            logDebug("Создан новый контейнер для анимации загрузки при сбросе");
-        }
-    }
-
-    // Сбрасываем прогресс трекер
-    if (progressTracker) progressTracker.style.width = '0%';
-
-    // Очищаем область формул
     if (formulasArea) {
-        // Очищаем область от предыдущей анимации
-        while (formulasArea.firstChild) {
-            if (formulasArea.firstChild.id === 'progress-tracker') {
-                const progressTracker = formulasArea.firstChild;
-                progressTracker.style.width = '0%';
-            } else {
-                formulasArea.removeChild(formulasArea.firstChild);
-            }
-        }
+        formulasArea.innerHTML = '';
     }
 
-    // Сбрасываем/реинициализируем математическую доску
-    if (mathBoardContainer) {
-        mathBoardContainer.innerHTML = '';
-        // Если доступна функция инициализации доски из animations.js
-        if (typeof initMathBoard === 'function') {
-            initMathBoard();
-        }
+    // Сбрасываем индикатор прогресса
+    const progressTracker = document.getElementById('progress-tracker');
+    if (progressTracker) {
+        progressTracker.style.width = '0%';
     }
 
-    // Сбрасываем заголовки результатов
-    const foundationTitle = document.getElementById('foundation-title');
-    const wallsTitle = document.getElementById('walls-title');
-    const roofTitle = document.getElementById('roof-title');
+    // Скрываем контейнер с анимацией
+    const loadingAnimation = document.getElementById('loading-animation');
+    if (loadingAnimation) {
+        loadingAnimation.style.display = 'none';
+    }
 
-    if (foundationTitle) foundationTitle.classList.add('opacity-0');
-    if (wallsTitle) wallsTitle.classList.add('opacity-0');
-    if (roofTitle) roofTitle.classList.add('opacity-0');
+    // Удаляем все svg элементы
+    document.querySelectorAll('svg.computation-line').forEach(el => {
+        if (el && el.parentNode) {
+            el.parentNode.removeChild(el);
+        }
+    });
 
-    // Очищаем контейнеры с результатами
-    const foundationMaterials = document.getElementById('foundationMaterials');
-    const wallMaterials = document.getElementById('wallMaterials');
-    const roofMaterials = document.getElementById('roofMaterials');
+    // Сбрасываем флаги анимации
+    window.animationCompleted = false;
+    window.useSimpleAnimation = false;
+    if (window.animationTimeout) {
+        clearTimeout(window.animationTimeout);
+        window.animationTimeout = null;
+    }
 
-    if (foundationMaterials) foundationMaterials.innerHTML = '';
-    if (wallMaterials) wallMaterials.innerHTML = '';
-    if (roofMaterials) roofMaterials.innerHTML = '';
+    // Удаляем все пользовательские стили, добавленные для анимации
+    const animationStyles = document.getElementById('animation-styles');
+    if (animationStyles) {
+        animationStyles.parentNode.removeChild(animationStyles);
+    }
 
-    logDebug("Анимация сброшена и подготовлена для следующего расчета");
+    logDebug("Анимация расчета сброшена");
 }
 
 /**
@@ -676,6 +889,13 @@ window.showDemoResults = function () {
         window.logDebug = function (message) {
             console.log('[DEBUG] ' + message);
         };
+    }
+
+    // Сбрасываем флаги для нового расчета
+    if (window.newCalculationStarted) {
+        window.demoResultsShown = false;
+        recommendationsRequested = false;
+        window.newCalculationStarted = false;
     }
 
     // Проверяем флаг завершения анимации
@@ -1381,6 +1601,26 @@ function showBasicResults(params) {
             price: 75,
             total_cost: Math.round(rebarWeight * 75)
         });
+
+        // Опалубка для ленточного фундамента
+        const formworkArea = Math.round(perimeter * 2 * 0.6);
+        foundation.push({
+            name: "Опалубка из фанеры",
+            quantity: formworkArea,
+            unit: "м²",
+            price: 225,
+            total_cost: formworkArea * 225
+        });
+
+        // Гидроизоляция для ленточного фундамента
+        const waterproofingArea = Math.round(perimeter * 1.5);
+        foundation.push({
+            name: "Гидроизоляция рулонная",
+            quantity: waterproofingArea,
+            unit: "м²",
+            price: 120,
+            total_cost: waterproofingArea * 120
+        });
     } else if (params.foundationType === 'slab') {
         // Объем бетона: площадь * толщина
         const concreteVolume = (area * 0.2).toFixed(1);
@@ -1400,6 +1640,96 @@ function showBasicResults(params) {
             unit: "м²",
             price: 350,
             total_cost: Math.round(meshArea * 350)
+        });
+
+        // Гидроизоляция для плитного фундамента
+        const waterproofingArea = Math.round(area * 1.1);
+        foundation.push({
+            name: "Гидроизоляция мембранная",
+            quantity: waterproofingArea,
+            unit: "м²",
+            price: 180,
+            total_cost: waterproofingArea * 180
+        });
+
+        // Подушка песчаная
+        const sandVolume = (area * 0.15).toFixed(1);
+        foundation.push({
+            name: "Песчаная подушка",
+            quantity: sandVolume,
+            unit: "м³",
+            price: 1200,
+            total_cost: Math.round(sandVolume * 1200)
+        });
+    } else if (params.foundationType === 'pile') {
+        // Количество свай: периметр / шаг свай (примерно 1.5м)
+        const pileCount = Math.ceil(perimeter / 1.5);
+        foundation.push({
+            name: "Сваи железобетонные",
+            quantity: pileCount,
+            unit: "шт.",
+            price: 3200,
+            total_cost: pileCount * 3200
+        });
+
+        // Ростверк: периметр * ширина * высота
+        const grillageVolume = (perimeter * 0.3 * 0.4).toFixed(1);
+        foundation.push({
+            name: "Бетон для ростверка",
+            quantity: grillageVolume,
+            unit: "м³",
+            price: 5300,
+            total_cost: Math.round(grillageVolume * 5300)
+        });
+
+        // Арматура для ростверка
+        const grillageRebarWeight = Math.round(perimeter * 5 * 1.2);
+        foundation.push({
+            name: "Арматура для ростверка",
+            quantity: grillageRebarWeight,
+            unit: "кг",
+            price: 75,
+            total_cost: grillageRebarWeight * 75
+        });
+
+        // Гидроизоляция для свайного фундамента
+        const waterproofingArea = Math.round(perimeter * 0.8);
+        foundation.push({
+            name: "Гидроизоляция ростверка",
+            quantity: waterproofingArea,
+            unit: "м²",
+            price: 120,
+            total_cost: waterproofingArea * 120
+        });
+    } else if (params.foundationType === 'column') {
+        // Количество столбов: периметр / шаг столбов (примерно 2м)
+        const columnCount = Math.ceil(perimeter / 2);
+        foundation.push({
+            name: "Бетонные столбы",
+            quantity: columnCount,
+            unit: "шт.",
+            price: 1500,
+            total_cost: columnCount * 1500
+        });
+
+        // Ростверк для столбчатого фундамента
+        const beamVolume = (perimeter * 0.25 * 0.3).toFixed(1);
+        foundation.push({
+            name: "Бетон для ростверка",
+            quantity: beamVolume,
+            unit: "м³",
+            price: 5100,
+            total_cost: Math.round(beamVolume * 5100)
+        });
+
+        // Гидроизоляция для столбчатого фундамента
+        const waterproofingArea = Math.round(perimeter * 0.6);
+        foundation.push({
+            name: "Гидроизоляция ростверка",
+            quantity: waterproofingArea,
+            unit: "м²",
+            price: 120,
+            total_cost: waterproofingArea * 120
         });
     }
 
@@ -1425,25 +1755,15 @@ function showBasicResults(params) {
             price: 4150,
             total_cost: Math.round(mortarVolume * 4150)
         });
-    } else if (params.wallMaterial === 'block') {
-        // Блоки: периметр * высота * количество на м²
-        const blockCount = Math.round(perimeter * wallHeight * 8);
-        walls.push({
-            name: "Газобетонные блоки",
-            quantity: blockCount,
-            unit: "шт.",
-            price: 180,
-            total_cost: blockCount * 180
-        });
 
-        // Клей: мешки на количество блоков
-        const glueCount = Math.ceil(blockCount / 25);
+        // Утеплитель для кирпичных стен
+        const insulationArea = Math.round(perimeter * wallHeight);
         walls.push({
-            name: "Клей для блоков",
-            quantity: glueCount,
-            unit: "мешок",
+            name: "Утеплитель фасадный",
+            quantity: insulationArea,
+            unit: "м²",
             price: 380,
-            total_cost: glueCount * 380
+            total_cost: insulationArea * 380
         });
     } else if (params.wallMaterial === 'wood') {
         // Брус: периметр * высота * количество рядов
@@ -1465,11 +1785,120 @@ function showBasicResults(params) {
             price: 550,
             total_cost: insulationArea * 550
         });
+
+        // Межвенцовый утеплитель
+        const interLayerCount = Math.round(wallHeight / 0.15); // высота стены / высота бруса
+        walls.push({
+            name: "Межвенцовый утеплитель",
+            quantity: perimeter * interLayerCount,
+            unit: "м.п.",
+            price: 45,
+            total_cost: perimeter * interLayerCount * 45
+        });
+    } else if (params.wallMaterial === 'block') {
+        // Блоки: периметр * высота * количество на м²
+        const blockCount = Math.round(perimeter * wallHeight * 8);
+        walls.push({
+            name: "Газобетонные блоки",
+            quantity: blockCount,
+            unit: "шт.",
+            price: 180,
+            total_cost: blockCount * 180
+        });
+
+        // Клей: мешки на количество блоков
+        const glueCount = Math.ceil(blockCount / 25);
+        walls.push({
+            name: "Клей для блоков",
+            quantity: glueCount,
+            unit: "мешок",
+            price: 380,
+            total_cost: glueCount * 380
+        });
+
+        // Утеплитель для блочных стен
+        const insulationArea = Math.round(perimeter * wallHeight);
+        walls.push({
+            name: "Утеплитель фасадный",
+            quantity: insulationArea,
+            unit: "м²",
+            price: 350,
+            total_cost: insulationArea * 350
+        });
+    } else if (params.wallMaterial === 'concrete') {
+        // Бетон для монолитных стен: периметр * толщина * высота
+        const concreteVolume = (perimeter * 0.2 * wallHeight).toFixed(1);
+        walls.push({
+            name: "Бетон B25",
+            quantity: concreteVolume,
+            unit: "м³",
+            price: 5500,
+            total_cost: Math.round(concreteVolume * 5500)
+        });
+
+        // Арматура для стен
+        const wallRebarWeight = Math.round(perimeter * wallHeight * 15);
+        walls.push({
+            name: "Арматура для стен",
+            quantity: wallRebarWeight,
+            unit: "кг",
+            price: 75,
+            total_cost: wallRebarWeight * 75
+        });
+
+        // Опалубка
+        const formworkArea = Math.round(perimeter * wallHeight * 2);
+        walls.push({
+            name: "Опалубка для стен",
+            quantity: formworkArea,
+            unit: "м²",
+            price: 225,
+            total_cost: formworkArea * 225
+        });
+
+        // Утеплитель для монолитных стен
+        const insulationArea = Math.round(perimeter * wallHeight);
+        walls.push({
+            name: "Утеплитель фасадный",
+            quantity: insulationArea,
+            unit: "м²",
+            price: 380,
+            total_cost: insulationArea * 380
+        });
+    } else if (params.wallMaterial === 'panel') {
+        // Панели для стен (количество панелей зависит от размера)
+        const panelCount = Math.ceil(perimeter * wallHeight / 6); // примерно 6м² на панель
+        walls.push({
+            name: "Стеновые панели",
+            quantity: panelCount,
+            unit: "шт.",
+            price: 9500,
+            total_cost: panelCount * 9500
+        });
+
+        // Крепежные элементы для панелей
+        walls.push({
+            name: "Крепежные элементы",
+            quantity: panelCount * 4, // 4 крепления на панель
+            unit: "компл.",
+            price: 350,
+            total_cost: panelCount * 4 * 350
+        });
+
+        // Герметик для швов
+        const jointLength = perimeter * (Math.ceil(wallHeight / 3) + 1); // швы вертикальные и горизонтальные
+        walls.push({
+            name: "Герметик для швов",
+            quantity: Math.ceil(jointLength / 10), // 10 метров на тюбик
+            unit: "тюбик",
+            price: 280,
+            total_cost: Math.ceil(jointLength / 10) * 280
+        });
     }
 
     // Расчет для крыши
     let roof = [];
-    const roofArea = area * 1.2; // примерная площадь крыши с учетом свесов и угла наклона
+    const roofArea = area * 1.2;
 
     if (params.roofType === 'metal') {
         // Металлочерепица: площадь крыши * коэффициент
@@ -1481,15 +1910,35 @@ function showBasicResults(params) {
             price: 650,
             total_cost: metalTileArea * 650
         });
-    } else if (params.roofType === 'soft') {
-        // Мягкая кровля: площадь крыши * коэффициент
-        const softRoofArea = Math.round(roofArea * 1.15);
+    } else if (params.roofType === 'tile') {
+        // Керамическая черепица: площадь крыши * коэффициент
+        const tileArea = Math.round(roofArea * 1.15);
+        roof.push({
+            name: "Керамическая черепица",
+            quantity: tileArea,
+            unit: "м²",
+            price: 1200,
+            total_cost: tileArea * 1200
+        });
+    } else if (params.roofType === 'shingle') {
+        // Гибкая черепица: площадь крыши * коэффициент
+        const shingleArea = Math.round(roofArea * 1.15);
         roof.push({
             name: "Гибкая черепица",
-            quantity: softRoofArea,
+            quantity: shingleArea,
             unit: "м²",
             price: 550,
-            total_cost: softRoofArea * 550
+            total_cost: shingleArea * 550
+        });
+    } else if (params.roofType === 'flat') {
+        // Плоская кровля: площадь крыши * коэффициент
+        const flatRoofArea = Math.round(roofArea * 1.05);
+        roof.push({
+            name: "Рулонная кровля",
+            quantity: flatRoofArea,
+            unit: "м²",
+            price: 350,
+            total_cost: flatRoofArea * 350
         });
     }
 
@@ -1503,11 +1952,84 @@ function showBasicResults(params) {
         total_cost: raftersCount * 750
     });
 
+    // Добавляем гидроизоляцию и обрешетку для скатных крыш
+    if (params.roofType !== 'flat') {
+        // Обрешетка
+        roof.push({
+            name: "Обрешетка",
+            quantity: Math.round(roofArea * 3),
+            unit: "м.п.",
+            price: 35,
+            total_cost: Math.round(roofArea * 3) * 35
+        });
+
+        // Гидроизоляция
+        roof.push({
+            name: "Гидроизоляция",
+            quantity: Math.ceil(roofArea * 1.05),
+            unit: "м²",
+            price: 85,
+            total_cost: Math.ceil(roofArea * 1.05) * 85
+        });
+
+        // Утеплитель для кровли
+        if (params.roofType === 'metal' || params.roofType === 'tile') {
+            roof.push({
+                name: "Утеплитель кровельный",
+                quantity: Math.round(roofArea),
+                unit: "м²",
+                price: 380,
+                total_cost: Math.round(roofArea) * 380
+            });
+        }
+    } else {
+        // Для плоской кровли
+        roof.push({
+            name: "Утеплитель для плоской кровли",
+            quantity: Math.round(roofArea * 1.05),
+            unit: "м²",
+            price: 420,
+            total_cost: Math.round(roofArea * 1.05) * 420
+        });
+
+        roof.push({
+            name: "Пароизоляция",
+            quantity: Math.round(roofArea * 1.1),
+            unit: "м²",
+            price: 65,
+            total_cost: Math.round(roofArea * 1.1) * 65
+        });
+    }
+
     // Возвращаем результаты
     return {
-        foundation: foundation,
-        walls: walls,
-        roof: roof
+        foundation: foundation.length > 0 ? foundation : [
+            {
+                name: "Материалы для выбранного типа фундамента",
+                quantity: 1,
+                unit: "компл.",
+                price: 50000,
+                total_cost: 50000
+            }
+        ],
+        walls: walls.length > 0 ? walls : [
+            {
+                name: "Материалы для выбранного типа стен",
+                quantity: 1,
+                unit: "компл.",
+                price: 70000,
+                total_cost: 70000
+            }
+        ],
+        roof: roof.length > 0 ? roof : [
+            {
+                name: "Материалы для выбранного типа кровли",
+                quantity: 1,
+                unit: "компл.",
+                price: 60000,
+                total_cost: 60000
+            }
+        ]
     };
 }
 
@@ -1570,6 +2092,600 @@ function createResultContainersIfNeeded() {
     // Добавляем HTML в контейнер результатов
     resultsDiv.innerHTML = sectionsHTML;
 
+    // Добавляем обработчики на новые кнопки
+    const newRecalcButton = document.getElementById('recalcButton');
+    if (newRecalcButton) {
+        newRecalcButton.addEventListener('click', function (e) {
+            e.preventDefault();
+
+            logDebug("Кнопка 'Изменить параметры' нажата (новая)");
+
+            // Скрываем панель результатов
+            resultsPanel.classList.remove('active');
+            resultsPanel.classList.add('hidden');
+
+            // Используем новую функцию навигации к калькулятору
+            setTimeout(() => {
+                navigateToCalculator();
+            }, 50);
+        });
+
+        logDebug("Добавлен новый обработчик на кнопку 'Изменить параметры'");
+    }
+
+    const newPrintButton = document.getElementById('printButton');
+    if (newPrintButton) {
+        newPrintButton.addEventListener('click', function () {
+            logDebug("Кнопка 'Распечатать результаты' нажата (новая)");
+            preparePrintView();
+            window.print();
+        });
+    }
+
     // Перезапускаем функцию отображения результатов
     setTimeout(showDemoResults, 100);
+}
+
+/**
+ * Проверяет, находится ли элемент в видимой области окна
+ * @param {Element} el - Элемент для проверки
+ * @returns {Boolean} - true, если элемент виден
+ */
+function isElementInViewport(el) {
+    if (!el) return false;
+
+    const rect = el.getBoundingClientRect();
+
+    return (
+        rect.top >= 0 &&
+        rect.left >= 0 &&
+        rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) &&
+        rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+    );
+}
+
+/**
+ * Функция для отображения ИИ рекомендаций по строительству в существующей рамке
+ * @param {Object} params - Параметры калькулятора
+ * @param {String} priority - Приоритет рекомендаций (cost, quality, speed)
+ * @param {Boolean} forceUpdate - Принудительно обновить рекомендации даже если параметры не изменились
+ */
+async function showAIRecommendations(params, focusPriority = 'cost', forceUpdate = false) {
+    try {
+        // Если запрос уже выполняется, не начинаем новый
+        if (isRecommendationRequestInProgress) {
+            logDebug("Запрос рекомендаций уже выполняется, новый запрос отменен");
+            return;
+        }
+
+        // Проверяем, изменились ли параметры с последнего запроса
+        const paramsKey = JSON.stringify(params) + focusPriority;
+        if (!forceUpdate && lastRecommendationParams === paramsKey) {
+            logDebug("Параметры не изменились, пропускаем запрос рекомендаций");
+            return;
+        }
+
+        logDebug(`Запрос ИИ рекомендаций с приоритетом: ${focusPriority}`);
+        isRecommendationRequestInProgress = true;
+
+        // Находим существующий контейнер с рекомендациями
+        const recommendationsContainer = document.querySelector('.ai-recommendations');
+        if (!recommendationsContainer) {
+            logDebug("Контейнер с рекомендациями не найден");
+            isRecommendationRequestInProgress = false;
+            return;
+        }
+
+        // Находим или создаем контейнер для контента рекомендаций
+        let contentContainer = document.getElementById('ai-recommendations-content');
+        if (!contentContainer) {
+            logDebug("Контейнер для контента рекомендаций не найден, создаем новый");
+            contentContainer = document.createElement('div');
+            contentContainer.id = 'ai-recommendations-content';
+            contentContainer.className = 'space-y-3';
+            recommendationsContainer.appendChild(contentContainer);
+        }
+
+        // Очищаем контейнер перед запросом, чтобы там не было предыдущих рекомендаций
+        contentContainer.innerHTML = '';
+
+        // Показываем контейнер рекомендаций всегда, даже если он пустой
+        recommendationsContainer.classList.remove('hidden');
+
+        // Добавляем индикатор загрузки
+        const heading = recommendationsContainer.querySelector('.ai-recommendations-title, h4, h3, h2');
+        if (heading) {
+            heading.innerHTML = `
+                <div class="flex items-center justify-center">
+                    <span>Подготовка персональных рекомендаций...</span>
+                    <div class="loader ml-2"></div>
+                </div>
+            `;
+        }
+
+        // Готовим параметры для запроса
+        const requestBody = {
+            calculator_data: {
+                area: parseFloat(params.area) || 0,
+                foundation_type: params.foundationType || "strip",
+                wall_material: params.wallMaterial || "brick",
+                floors: parseInt(params.floors) || 1,
+                roof_type: params.roofType || "metal",
+                additional_options: [] // Всегда пустой массив, так как дополнительные опции убраны
+            },
+            budget: params.budget ? parseFloat(params.budget) : null,
+            priority: focusPriority
+        };
+
+        logDebug("Подготовленные параметры для AI: " + JSON.stringify(requestBody));
+
+        // Отображаем индикатор загрузки
+        showLoadingState(true);
+
+        // Отменяем предыдущий таймаут, если он существует
+        if (recommendationRequestTimeout) {
+            clearTimeout(recommendationRequestTimeout);
+        }
+
+        // Устанавливаем таймаут для запроса (30 секунд вместо 15)
+        recommendationRequestTimeout = setTimeout(() => {
+            logDebug("Превышено время ожидания ответа от сервера");
+            isRecommendationRequestInProgress = false;
+
+            // Обрабатываем ошибку таймаута
+            handleRecommendationError(contentContainer, heading, "Превышено время ожидания ответа от сервера");
+        }, 30000); // 30 секунд таймаут
+
+        // Отправляем запрос
+        let response;
+        try {
+            response = await fetch('/api/recommendations', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody),
+                timeout: 25000 // Увеличиваем таймаут до 25 секунд
+            });
+        } catch (error) {
+            clearTimeout(recommendationRequestTimeout);
+            recommendationRequestTimeout = null;
+            isRecommendationRequestInProgress = false;
+
+            // Обрабатываем ошибку сети
+            handleRecommendationError(contentContainer, heading, `Ошибка соединения: ${error.message}`);
+            return;
+        }
+
+        // Очищаем таймаут, так как запрос завершен
+        clearTimeout(recommendationRequestTimeout);
+        recommendationRequestTimeout = null;
+
+        if (!response.ok) {
+            isRecommendationRequestInProgress = false;
+
+            // Обрабатываем ошибку API
+            handleRecommendationError(contentContainer, heading, `Ошибка API: ${response.status} ${response.statusText}`);
+            return;
+        }
+
+        const data = await response.json();
+        logDebug(`Получены рекомендации: ${data.recommendations ? data.recommendations.length : 0}`);
+
+        // Сохраняем параметры этого запроса как последние успешные
+        lastRecommendationParams = paramsKey;
+
+        // Обновляем заголовок
+        if (heading) {
+            heading.textContent = 'Рекомендации ИИ-ассистента по строительству';
+        }
+
+        // Очищаем индикатор загрузки
+        showLoadingState(false);
+
+        // Добавляем рекомендации
+        if (data.recommendations && data.recommendations.length > 0) {
+            // Берем только первую рекомендацию, независимо от количества полученных
+            const recommendation = data.recommendations[0];
+
+            // Создаем параграф для лайфхака
+            const paragraph = document.createElement('p');
+            paragraph.className = 'text-indent-paragraph';
+
+            // Получаем текст рекомендации
+            let recommendationText = '';
+            if (typeof recommendation === 'object' && recommendation !== null) {
+                if (recommendation.text) {
+                    recommendationText = recommendation.text;
+                } else if (recommendation.description) {
+                    recommendationText = recommendation.description;
+                } else if (recommendation.content) {
+                    recommendationText = recommendation.content;
+                } else if (recommendation.message) {
+                    recommendationText = recommendation.message;
+                } else {
+                    recommendationText = JSON.stringify(recommendation);
+                }
+            } else {
+                recommendationText = String(recommendation);
+            }
+
+            paragraph.textContent = recommendationText;
+            contentContainer.appendChild(paragraph);
+        } else {
+            contentContainer.innerHTML = '<p class="text-center text-gray-500">Нет доступных рекомендаций для текущих параметров.</p>';
+        }
+
+        // Прокручиваем к рекомендациям, если они не видны
+        if (!isElementInViewport(recommendationsContainer)) {
+            recommendationsContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    } catch (error) {
+        console.error('Ошибка при загрузке лайфхака:', error);
+
+        // Находим контейнеры снова, на случай, если они не были доступны в блоке try
+        const recommendationsContainer = document.querySelector('.ai-recommendations');
+        const contentContainer = document.getElementById('ai-recommendations-content');
+        const heading = recommendationsContainer?.querySelector('.ai-recommendations-title, h4, h3, h2');
+
+        // Обрабатываем общую ошибку
+        handleRecommendationError(contentContainer, heading, error.message);
+    } finally {
+        showLoadingState(false);
+        isRecommendationRequestInProgress = false;
+    }
+}
+
+/**
+ * Функция для обработки ошибок при загрузке рекомендаций
+ * @param {Element} contentContainer - Контейнер для контента рекомендаций
+ * @param {Element} heading - Заголовок блока рекомендаций
+ * @param {String} errorMessage - Сообщение об ошибке
+ */
+function handleRecommendationError(contentContainer, heading, errorMessage) {
+    console.error('Ошибка при получении рекомендаций:', errorMessage);
+
+    // Сбрасываем флаг запроса рекомендаций, чтобы можно было повторить запрос
+    recommendationsRequested = false;
+
+    // Восстанавливаем заголовок
+    if (heading) {
+        heading.textContent = 'Рекомендации ИИ-ассистента по строительству';
+    }
+
+    // Проверяем, что контейнер существует
+    if (!contentContainer) return;
+
+    // Очищаем контейнер полностью
+    contentContainer.innerHTML = '';
+
+    // Создаем параграф для стандартного лайфхака при ошибке
+    const fallbackRecommendation = document.createElement('p');
+    fallbackRecommendation.className = 'text-indent-paragraph';
+
+    // Выбираем один из заготовленных лайфхаков
+    const fallbackTexts = [
+        'Для получения наилучших результатов при строительстве, фотографируйте каждый этап работы. Это поможет отследить скрытые коммуникации и избежать проблем при последующих ремонтах.',
+        'Используйте качественную гидроизоляцию фундамента с двойным слоем защиты. Экономия на этом этапе может привести к серьезным проблемам и дорогостоящим ремонтам в будущем.',
+        'При планировании электропроводки предусмотрите на 30% больше розеток, чем кажется необходимым сейчас. Это избавит от необходимости использовать удлинители и снизит риск перегрузки сети.'
+    ];
+
+    // Выбираем случайный лайфхак
+    const randomIndex = Math.floor(Math.random() * fallbackTexts.length);
+    fallbackRecommendation.textContent = fallbackTexts[randomIndex];
+
+    // Добавляем лайфхак в контейнер
+    contentContainer.appendChild(fallbackRecommendation);
+}
+
+// Модифицируем showDemoResults, чтобы добавить вызов ИИ рекомендаций
+const originalShowDemoResults = window.showDemoResults || function () { };
+window.showDemoResults = function () {
+    // Проверяем, завершена ли анимация
+    if (window.animationCompleted !== true) {
+        logDebug("Анимация ещё не завершена, ожидаем...");
+        // Повторяем через 500 мс, если анимация не завершена
+        setTimeout(window.showDemoResults, 500);
+        return;
+    }
+
+    // Вызываем оригинальную функцию только если не было вызовов ранее
+    if (!window.demoResultsShown) {
+        originalShowDemoResults.apply(this, arguments);
+        window.demoResultsShown = true;
+    }
+
+    // Запрашиваем рекомендации только один раз для этого расчета
+    if (!recommendationsRequested && lastCalculationParams && Object.keys(lastCalculationParams).length > 0) {
+        // Отмечаем, что рекомендации уже запрошены
+        recommendationsRequested = true;
+
+        // Сбрасываем кеш рекомендаций для гарантированного получения новой рекомендации
+        lastRecommendationParams = null;
+
+        // Ждем завершения анимации или показа результатов
+        setTimeout(() => {
+            // Запрашиваем новые рекомендации с принудительным обновлением
+            showAIRecommendations(lastCalculationParams, 'cost', true);
+        }, 1500);
+    }
+};
+
+// Добавляем стили для лоадера
+const styleTag = document.createElement('style');
+styleTag.textContent = `
+    .loader {
+        border: 3px solid rgba(130, 180, 230, 0.3);
+        border-radius: 50%;
+        border-top: 3px solid #3498db;
+        width: 16px;
+        height: 16px;
+        display: inline-block;
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+`;
+document.head.appendChild(styleTag);
+
+/**
+ * Функция для восстановления интерфейса в случае ошибок
+ */
+function recoverInterface() {
+    try {
+        console.log("Запуск восстановления интерфейса...");
+
+        // Очищаем все потенциальные таймеры
+        if (window.animationTimeout) {
+            clearTimeout(window.animationTimeout);
+            console.log("Очищен таймаут анимации");
+        }
+
+        // Остановка всех анимаций
+        document.querySelectorAll('.formula-element, svg, .final-glow, .final-text').forEach(el => {
+            if (el && el.parentNode) {
+                el.parentNode.removeChild(el);
+            }
+        });
+
+        // Сброс флагов анимации
+        window.animationCompleted = true;
+
+        // Восстановление видимости UI-элементов
+        const mainElements = [
+            'header',
+            '.main-header',
+            '.container',
+            '.calculator-container',
+            '#calculator-form',
+            '.results-panel'
+        ];
+
+        mainElements.forEach(selector => {
+            const elements = document.querySelectorAll(selector);
+            elements.forEach(el => {
+                if (el) {
+                    el.style.display = '';
+                    el.style.visibility = '';
+                    el.style.opacity = '1';
+                }
+            });
+        });
+
+        // Восстановление прокрутки страницы
+        document.body.style.overflow = '';
+
+        console.log("Восстановление интерфейса завершено");
+    } catch (e) {
+        console.error("Ошибка при восстановлении интерфейса:", e);
+    }
+}
+
+/**
+ * Функция для мониторинга возможных зависаний интерфейса
+ */
+function setupInterfaceMonitor() {
+    // Проверка состояния интерфейса каждые 10 секунд
+    const monitorInterval = setInterval(() => {
+        try {
+            const header = document.querySelector('header') || document.querySelector('.main-header');
+            const calculatorForm = document.querySelector('#calculator-form');
+            const loadingContainer = document.getElementById('loading-animation');
+
+            // Проверяем признаки зависания: скрытый хедер при активном лоадере
+            if (header && calculatorForm && loadingContainer) {
+                const headerHidden = (
+                    header.style.display === 'none' ||
+                    header.style.visibility === 'hidden' ||
+                    parseFloat(header.style.opacity) === 0
+                );
+
+                const loaderVisible = (
+                    loadingContainer.style.display !== 'none' &&
+                    loadingContainer.style.visibility !== 'hidden'
+                );
+
+                const animationStuck = window.animationStartTime &&
+                    (Date.now() - window.animationStartTime > 8000) &&
+                    !window.animationCompleted;
+
+                if ((headerHidden && loaderVisible) || animationStuck) {
+                    console.warn("Обнаружено потенциальное зависание интерфейса. Запуск восстановления...");
+                    recoverInterface();
+                }
+            }
+        } catch (e) {
+            console.error("Ошибка в мониторе интерфейса:", e);
+        }
+    }, 10000);
+
+    // Добавляем специальную обработку для кнопки эскейп (аварийное восстановление)
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            console.log("Нажата клавиша Escape - запуск восстановления интерфейса");
+            recoverInterface();
+        }
+    });
+
+    return monitorInterval;
+}
+
+// Запускаем монитор интерфейса при загрузке страницы
+document.addEventListener('DOMContentLoaded', function () {
+    const interfaceMonitor = setupInterfaceMonitor();
+    console.log("Монитор интерфейса активирован");
+
+    // Отслеживаем начало анимации
+    const originalStartCalculationAnimation = window.startCalculationAnimation || function () { };
+    window.startCalculationAnimation = function () {
+        window.animationStartTime = Date.now();
+        window.animationCompleted = false;
+        originalStartCalculationAnimation.apply(this, arguments);
+    };
+
+    // Добавляем отслеживание изменений в форме калькулятора
+    setupFormChangeTracking();
+});
+
+/**
+ * Функция для отслеживания изменений в форме калькулятора
+ */
+function setupFormChangeTracking() {
+    const calculatorForm = document.getElementById('calculatorForm');
+    if (!calculatorForm) {
+        console.error("Форма калькулятора не найдена");
+        return;
+    }
+
+    // Получаем все поля ввода в форме
+    const formInputs = calculatorForm.querySelectorAll('input, select, textarea');
+
+    // Добавляем обработчик для каждого поля
+    formInputs.forEach(input => {
+        input.addEventListener('change', function () {
+            // При изменении любого поля сбрасываем кеш рекомендаций и флаги
+            lastRecommendationParams = null;
+            recommendationsRequested = false;
+            window.demoResultsShown = false;
+
+            // Проверяем, является ли изменяемое поле одним из основных параметров
+            const isKeyParam = ['foundationType', 'wallMaterial', 'roofType', 'floors', 'area'].includes(input.name);
+
+            // Если изменяется один из ключевых параметров, полностью очищаем результаты
+            if (isKeyParam) {
+                logDebug("Изменен ключевой параметр расчета: " + input.name + ", полная очистка результатов");
+                clearAllCalculationResults();
+            }
+
+            logDebug("Поле изменено, кеш рекомендаций и флаги сброшены: " + input.name);
+        });
+    });
+
+    logDebug(`Отслеживание изменений настроено для ${formInputs.length} полей формы`);
+}
+
+/**
+ * Отображает или скрывает индикатор загрузки рекомендаций
+ * @param {Boolean} isLoading - Флаг загрузки
+ */
+function showLoadingState(isLoading) {
+    const recommendationsContainer = document.querySelector('.ai-recommendations');
+    const contentContainer = document.getElementById('ai-recommendations-content');
+
+    if (!recommendationsContainer || !contentContainer) return;
+
+    if (isLoading) {
+        // Создаем и показываем индикатор загрузки
+        const loader = document.createElement('div');
+        loader.id = 'ai-recommendations-loader';
+        loader.className = 'flex justify-center items-center py-6';
+        loader.innerHTML = `
+            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-900"></div>
+            <span class="ml-3 text-gray-700">Загружаем рекомендации...</span>
+        `;
+
+        // Сохраняем существующий контент, если он есть
+        const existingContent = contentContainer.innerHTML;
+        if (existingContent && !contentContainer.dataset.savedContent) {
+            contentContainer.dataset.savedContent = existingContent;
+        }
+
+        contentContainer.innerHTML = '';
+        contentContainer.appendChild(loader);
+        recommendationsContainer.classList.remove('hidden');
+    } else {
+        // Удаляем индикатор загрузки если он есть
+        const loader = document.getElementById('ai-recommendations-loader');
+        if (loader) {
+            loader.remove();
+        }
+
+        // Восстанавливаем контент только если нет нового контента
+        if (contentContainer.children.length === 0 && contentContainer.dataset.savedContent) {
+            contentContainer.innerHTML = contentContainer.dataset.savedContent;
+            delete contentContainer.dataset.savedContent;
+        }
+    }
+}
+
+/**
+ * Функция для полной очистки всех результатов и анимаций
+ */
+function clearAllCalculationResults() {
+    // Сброс всех флагов
+    lastRecommendationParams = null;
+    recommendationsRequested = false;
+    window.demoResultsShown = false;
+    window.animationCompleted = false;
+    window.newCalculationStarted = true;
+
+    // Очистка контейнера с рекомендациями
+    const recommendationsContainer = document.querySelector('.ai-recommendations');
+    const contentContainer = document.getElementById('ai-recommendations-content');
+
+    if (contentContainer) {
+        contentContainer.innerHTML = '';
+    }
+
+    if (recommendationsContainer) {
+        // Скрываем контейнер с рекомендациями до получения новых
+        recommendationsContainer.classList.add('hidden');
+
+        const heading = recommendationsContainer.querySelector('.ai-recommendations-title, h4, h3, h2');
+        if (heading) {
+            heading.textContent = 'Рекомендации ИИ-ассистента по строительству';
+        }
+    }
+
+    // Сброс анимаций
+    resetAnimation();
+
+    // Очистка результатов расчета
+    const foundationMaterials = document.getElementById('foundationMaterials');
+    const wallMaterials = document.getElementById('wallMaterials');
+    const roofMaterials = document.getElementById('roofMaterials');
+
+    if (foundationMaterials) foundationMaterials.innerHTML = '';
+    if (wallMaterials) wallMaterials.innerHTML = '';
+    if (roofMaterials) roofMaterials.innerHTML = '';
+
+    // Сброс заголовков результатов
+    const foundationTitle = document.getElementById('foundation-title');
+    const wallsTitle = document.getElementById('walls-title');
+    const roofTitle = document.getElementById('roof-title');
+
+    if (foundationTitle) foundationTitle.classList.add('opacity-0');
+    if (wallsTitle) wallsTitle.classList.add('opacity-0');
+    if (roofTitle) roofTitle.classList.add('opacity-0');
+
+    // Сброс таймаутов
+    if (recommendationRequestTimeout) {
+        clearTimeout(recommendationRequestTimeout);
+        recommendationRequestTimeout = null;
+    }
+
+    logDebug("Все результаты расчета и анимации очищены");
 }

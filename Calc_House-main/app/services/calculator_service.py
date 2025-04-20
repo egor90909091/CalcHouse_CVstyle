@@ -1,8 +1,13 @@
 import json
 import os
-from typing import Dict, List
+from typing import Dict, List, Optional
 from pathlib import Path
-from ..models.calculator import CalculatorRequest, CalculatorResponse, CalculationDetail
+from random import randint
+from app.models.calculator import (
+    CalculatorRequest,
+    CalculatorResponse,
+    CalculationDetail,
+)
 
 
 class CalculatorService:
@@ -140,9 +145,11 @@ class CalculatorService:
         # Расчет стоимости за м²
         price_per_sqm = total_price / request.area
 
-        # Оценка времени строительства в днях (упрощенная формула)
+        # Расчет примерного времени строительства в днях
         estimated_time = int(request.area * 0.5 * request.floors)
-        if "basement" in request.additional_options:
+
+        # Проверяем наличие дополнительных опций безопасным способом
+        if request.additional_options and "basement" in request.additional_options:
             estimated_time += 30
 
         # Формирование детализации расчетов
@@ -258,6 +265,10 @@ class CalculatorService:
 
     def _calculate_options_price(self, request: CalculatorRequest) -> tuple:
         """Расчет стоимости дополнительных опций"""
+        # Если дополнительных опций нет, сразу возвращаем 0 и пустой список
+        if not request.additional_options:
+            return 0, []
+
         total_options_price = 0
         options_details = []
 

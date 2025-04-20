@@ -51,14 +51,14 @@ document.addEventListener('DOMContentLoaded', function () {
         formulasArea.appendChild(element);
 
         // Добавляем случайную задержку для более естественного эффекта появления
-        const delay = animation.delay || 0;
+        const delay = animation && typeof animation.delay === 'number' ? animation.delay : 0;
 
         setTimeout(() => {
             element.style.opacity = '1';
             element.style.transform = 'scale(1)';
 
             // Применяем анимацию пульсации при необходимости
-            if (animation.pulse) {
+            if (animation && animation.pulse) {
                 element.classList.add('formula-pulse');
             }
         }, delay);
@@ -69,48 +69,75 @@ document.addEventListener('DOMContentLoaded', function () {
     // Функция для создания линии связи между формулами
     createConnection = function (startElement, endElement, delay = 0, options = {}) {
         setTimeout(() => {
-            // Создаем SVG элемент для линии
-            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-            svg.style.position = 'absolute';
-            svg.style.top = '0';
-            svg.style.left = '0';
-            svg.style.width = '100%';
-            svg.style.height = '100%';
-            svg.style.pointerEvents = 'none';
-            svg.style.zIndex = '15';
+            try {
+                // Проверяем, что элементы существуют
+                if (!startElement || !endElement) {
+                    logDebug("Ошибка: отсутствуют элементы для создания соединения");
+                    return;
+                }
 
-            // Получаем координаты элементов
-            const startRect = startElement.getBoundingClientRect();
-            const endRect = endElement.getBoundingClientRect();
-            const formulasRect = formulasArea.getBoundingClientRect();
+                // Создаем SVG элемент для линии
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.style.position = 'absolute';
+                svg.style.top = '0';
+                svg.style.left = '0';
+                svg.style.width = '100%';
+                svg.style.height = '100%';
+                svg.style.pointerEvents = 'none';
+                svg.style.zIndex = '15';
 
-            // Вычисляем относительные координаты
-            const x1 = startRect.left + startRect.width / 2 - formulasRect.left;
-            const y1 = startRect.top + startRect.height / 2 - formulasRect.top;
-            const x2 = endRect.left + endRect.width / 2 - formulasRect.left;
-            const y2 = endRect.top + endRect.height / 2 - formulasRect.top;
+                // Получаем координаты элементов
+                const startRect = startElement.getBoundingClientRect();
+                const endRect = endElement.getBoundingClientRect();
+                const formulasRect = formulasArea.getBoundingClientRect();
 
-            // Создаем линию с небольшим смещением для эффекта кривой
-            const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            const dx = (x2 - x1) * 0.5;
-            const pathData = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
+                // Вычисляем относительные координаты
+                const x1 = startRect.left + startRect.width / 2 - formulasRect.left;
+                const y1 = startRect.top + startRect.height / 2 - formulasRect.top;
+                const x2 = endRect.left + endRect.width / 2 - formulasRect.left;
+                const y2 = endRect.top + endRect.height / 2 - formulasRect.top;
 
-            line.setAttribute('d', pathData);
-            line.setAttribute('stroke', options.color || 'rgba(140, 230, 210, 0.6)');
-            line.setAttribute('stroke-width', options.width || '1');
-            line.setAttribute('fill', 'none');
-            line.setAttribute('stroke-dasharray', options.dasharray || '1, 2');
+                // Проверяем, что координаты корректны
+                if (isNaN(x1) || isNaN(y1) || isNaN(x2) || isNaN(y2)) {
+                    logDebug(`Некорректные координаты для создания соединения: x1=${x1}, y1=${y1}, x2=${x2}, y2=${y2}`);
+                    return;
+                }
 
-            // Анимация рисования
-            const length = line.getTotalLength();
-            line.style.strokeDasharray = length;
-            line.style.strokeDashoffset = length;
-            line.style.animation = `drawLine 1.5s ease-out forwards`;
+                // Создаем линию с небольшим смещением для эффекта кривой
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                const dx = (x2 - x1) * 0.5;
+                const pathData = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
 
-            svg.appendChild(line);
-            formulasArea.appendChild(svg);
+                line.setAttribute('d', pathData);
+                line.setAttribute('stroke', options.color || 'rgba(140, 230, 210, 0.6)');
+                line.setAttribute('stroke-width', options.width || '1');
+                line.setAttribute('fill', 'none');
+                line.setAttribute('stroke-dasharray', options.dasharray || '1, 2');
 
-            return svg;
+                // Анимация рисования
+                let length = 100; // Значение по умолчанию
+                try {
+                    // В некоторых браузерах getTotalLength может вернуть NaN или бросить исключение
+                    const calculatedLength = line.getTotalLength();
+                    if (!isNaN(calculatedLength) && calculatedLength > 0) {
+                        length = calculatedLength;
+                    }
+                } catch (e) {
+                    logDebug("Ошибка при вычислении длины пути: " + e.message);
+                }
+
+                line.style.strokeDasharray = length;
+                line.style.strokeDashoffset = length;
+                line.style.animation = `drawLine 1.5s ease-out forwards`;
+
+                svg.appendChild(line);
+                formulasArea.appendChild(svg);
+
+                return svg;
+            } catch (e) {
+                logDebug("Ошибка при создании соединения: " + e.message);
+                return null;
+            }
         }, delay);
     };
 
@@ -613,8 +640,17 @@ document.addEventListener('DOMContentLoaded', function () {
             50% { opacity: 0.8; background-color: rgba(100, 180, 160, 0.2); }
         }
         
+        @keyframes glowEffect {
+            0%, 100% { filter: drop-shadow(0 0 3px rgba(140, 255, 220, 0.3)); }
+            50% { filter: drop-shadow(0 0 8px rgba(140, 255, 220, 0.6)); }
+        }
+        
         .formula-pulse {
             animation: formula-pulsate 2s ease-in-out infinite;
+        }
+        
+        .house-lines {
+            animation: glowEffect 4s infinite ease-in-out;
         }
         
         @font-face {
@@ -779,6 +815,43 @@ document.addEventListener('DOMContentLoaded', function () {
             const createLine = function (x1, y1, x2, y2, delay) {
                 setTimeout(() => {
                     try {
+                        // Проверяем, что значения определены
+                        if (x1 === undefined || y1 === undefined || x2 === undefined || y2 === undefined) {
+                            logDebug(`Пропущены обязательные параметры для SVG линии. Проверьте вызов createLine.`);
+                            return;
+                        }
+
+                        // Преобразуем все значения в строки
+                        const x1String = String(x1 || 0);
+                        const y1String = String(y1 || 0);
+                        const x2String = String(x2 || 0);
+                        const y2String = String(y2 || 0);
+
+                        // Определяем, содержит ли координата символ %
+                        const x1HasPercent = x1String.includes('%');
+                        const y1HasPercent = y1String.includes('%');
+                        const x2HasPercent = x2String.includes('%');
+                        const y2HasPercent = y2String.includes('%');
+
+                        // Удаляем символы % и преобразуем в числа
+                        const numX1 = parseFloat(x1String.replace('%', ''));
+                        const numY1 = parseFloat(y1String.replace('%', ''));
+                        const numX2 = parseFloat(x2String.replace('%', ''));
+                        const numY2 = parseFloat(y2String.replace('%', ''));
+
+                        // Проверяем, что все значения корректны
+                        if (isNaN(numX1) || isNaN(numY1) || isNaN(numX2) || isNaN(numY2)) {
+                            logDebug(`Некорректные координаты для SVG линии: x1=${x1}, y1=${y1}, x2=${x2}, y2=${y2}`);
+                            return; // Прекращаем выполнение, если координаты некорректны
+                        }
+
+                        // Проверяем, что формула еще видима
+                        const formulasArea = document.getElementById('formulas-area');
+                        if (!formulasArea || !formulasArea.isConnected) {
+                            logDebug('Область формул уже не существует, не создаем SVG линию');
+                            return;
+                        }
+
                         const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
                         svg.style.position = 'absolute';
                         svg.style.top = '0';
@@ -788,11 +861,19 @@ document.addEventListener('DOMContentLoaded', function () {
                         svg.style.pointerEvents = 'none';
                         svg.style.zIndex = '15';
 
-                        const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                         // Создаем кривую вместо прямой линии
-                        const dx = (x2 - x1) * 0.5;
-                        const pathData = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
+                        const dx = (numX2 - numX1) * 0.5;
 
+                        // Добавляем процентные символы, если они были в исходных значениях
+                        const x1Suffix = x1HasPercent ? '%' : '';
+                        const y1Suffix = y1HasPercent ? '%' : '';
+                        const x2Suffix = x2HasPercent ? '%' : '';
+                        const y2Suffix = y2HasPercent ? '%' : '';
+
+                        // Формируем безопасную строку пути с правильными суффиксами
+                        const pathData = `M ${numX1}${x1Suffix} ${numY1}${y1Suffix} C ${numX1 + dx}${x1Suffix} ${numY1}${y1Suffix}, ${numX2 - dx}${x2Suffix} ${numY2}${y2Suffix}, ${numX2}${x2Suffix} ${numY2}${y2Suffix}`;
+
+                        const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                         line.setAttribute('d', pathData);
                         line.setAttribute('stroke', 'rgba(140, 230, 210, 0.6)');
                         line.setAttribute('stroke-width', '1');
@@ -807,14 +888,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
                         svg.appendChild(line);
                         formulasArea.appendChild(svg);
+
+                        logDebug(`SVG линия создана успешно: ${pathData}`);
                     } catch (e) {
                         logDebug("Ошибка при создании SVG линии: " + e.message);
+                        // Устанавливаем флаг завершения анимации, чтобы не блокировать расчет
+                        if (typeof window.animationCompleted === 'boolean' && !window.animationCompleted) {
+                            window.animationCompleted = true;
+                            logDebug("Анимация принудительно помечена как завершенная из-за ошибки в SVG");
+                        }
                     }
-                }, delay);
+                }, delay || 0);
             };
 
             // Функция для создания элемента формулы
             const createFormulaElement = function (content, position, style, delay) {
+                // Обработка параметра delay, который может быть числом или объектом
+                let delayTime = 0;
+                if (typeof delay === 'number') {
+                    delayTime = delay;
+                } else if (delay && typeof delay === 'object' && typeof delay.delay === 'number') {
+                    delayTime = delay.delay;
+                }
+
                 setTimeout(() => {
                     try {
                         const element = document.createElement('div');
@@ -852,7 +948,7 @@ document.addEventListener('DOMContentLoaded', function () {
                         logDebug("Ошибка при создании элемента формулы: " + e.message);
                         return null;
                     }
-                }, delay);
+                }, delayTime);
             };
 
             // Начинаем анимацию
@@ -954,15 +1050,6 @@ document.addEventListener('DOMContentLoaded', function () {
                             houseDiv.style.height = '150px';
                             houseDiv.style.zIndex = '25';
                             houseDiv.innerHTML = `<svg width="200" height="150" viewBox="0 0 200 150">
-                                <style>
-                                    @keyframes glowEffect {
-                                        0%, 100% { filter: drop-shadow(0 0 3px rgba(140, 255, 220, 0.3)); }
-                                        50% { filter: drop-shadow(0 0 8px rgba(140, 255, 220, 0.6)); }
-                                    }
-                                    .house-lines {
-                                        animation: glowEffect 4s infinite ease-in-out;
-                                    }
-                                </style>
                                 <g class="house-lines">
                                     <polygon points="100,10 190,60 190,140 10,140 10,60" 
                                              fill="rgba(100, 180, 160, 0.1)" 

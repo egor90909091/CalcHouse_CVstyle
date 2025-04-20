@@ -5,7 +5,7 @@ from typing import Dict, List, Optional
 from pathlib import Path
 import requests
 from dotenv import load_dotenv
-from ..models.calculator import (
+from app.models.calculator import (
     RecommendationRequest,
     RecommendationResponse,
     Recommendation,
@@ -36,6 +36,10 @@ class AIService:
         )
         self.ensure_fallback_data()
 
+        # Создаем сессию requests с настройками таймаута
+        self.session = requests.Session()
+        self.session.timeout = (5, 30)  # (connect timeout, read timeout)
+
         # Проверка наличия API ключа при инициализации
         if not DEEPSEEK_API_KEY:
             logger.warning(
@@ -43,6 +47,15 @@ class AIService:
             )
         else:
             logger.info("Сервис AI инициализирован с DeepSeek API")
+
+    def __del__(self):
+        """Деструктор для корректного закрытия сессии при завершении работы сервиса."""
+        try:
+            if hasattr(self, "session") and self.session:
+                self.session.close()
+                logger.debug("Сессия AIService закрыта")
+        except Exception as e:
+            logger.error(f"Ошибка при закрытии сессии AIService: {str(e)}")
 
     def ensure_fallback_data(self):
         """Создание файла с заглушками рекомендаций"""
@@ -251,59 +264,83 @@ class AIService:
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
             }
-
             payload = {
                 "model": "deepseek-chat",
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": "Вы - эксперт по строительству домов, который дает оптимальные рекомендации по строительству на основе введенных параметров.",
-                    },
-                    {"role": "user", "content": prompt},
-                ],
+                "messages": [{"role": "user", "content": prompt}],
                 "temperature": 0.7,
-                "max_tokens": 1500,
+                "max_tokens": 1000,
+                "stream": False,
             }
 
             logger.info("Отправка запроса к DeepSeek API...")
 
-            # Отправляем запрос к API DeepSeek
-            response = requests.post(
-                DEEPSEEK_API_URL,
-                headers=headers,
-                json=payload,
-                timeout=30,  # Устанавливаем таймаут
-            )
-
-            # Проверяем статус ответа
-            if response.status_code != 200:
-                logger.error(
-                    f"Ошибка API DeepSeek: статус {response.status_code}, ответ: {response.text}"
+            try:
+                response = self.session.post(
+                    DEEPSEEK_API_URL,
+                    headers=headers,
+                    json=payload,
+                    timeout=(
+                        5,
+                        60,
+                    ),  # Явно указываем таймаут: (connect timeout, read timeout)
                 )
-                raise Exception(f"Ошибка API: {response.status_code} - {response.text}")
 
-            # Парсим ответ
+                # Обработка HTTP ошибок
+                response.raise_for_status()
+
+            except requests.exceptions.Timeout:
+                logger.error("Таймаут при запросе к DeepSeek API, используем заглушки.")
+                return await self._get_fallback_recommendations(
+                    request, optimization_focus
+                )
+
+            except requests.exceptions.ConnectionError:
+                logger.error("Ошибка соединения с DeepSeek API, используем заглушки.")
+                return await self._get_fallback_recommendations(
+                    request, optimization_focus
+                )
+
+            except requests.exceptions.HTTPError as e:
+                logger.error(f"HTTP ошибка при запросе к DeepSeek API: {str(e)}")
+                return await self._get_fallback_recommendations(
+                    request, optimization_focus
+                )
+
+            except Exception as e:
+                logger.error(f"Неизвестная ошибка при запросе к DeepSeek API: {str(e)}")
+                return await self._get_fallback_recommendations(
+                    request, optimization_focus
+                )
+
+            # Получаем и обрабатываем ответ
             response_data = response.json()
-            logger.info(f"Получен ответ от API: {str(response_data)[:100]}...")
 
-            # Обрабатываем ответ от API
-            if "choices" in response_data and len(response_data["choices"]) > 0:
-                content = response_data["choices"][0]["message"]["content"]
-                ai_recommendations = self._parse_ai_response(content)
-                logger.info(f"Получено {len(ai_recommendations)} рекомендаций")
-            else:
-                logger.error(f"Неожиданный формат ответа: {response_data}")
-                raise ValueError("Неожиданный формат ответа от DeepSeek API")
+            # Проверка на наличие необходимых данных в ответе
+            if "choices" not in response_data or not response_data["choices"]:
+                logger.error("Некорректный ответ от DeepSeek API")
+                return await self._get_fallback_recommendations(
+                    request, optimization_focus
+                )
 
-            # Формируем ответ
+            ai_response = response_data["choices"][0]["message"]["content"]
+            logger.info(f"Получен ответ от DeepSeek API: {ai_response[:100]}...")
+
+            # Преобразуем ответ в структурированные рекомендации
+            recommendations = self._parse_ai_response(ai_response)
+
+            # Формируем сводку рекомендаций
+            summary = self._generate_summary(recommendations)
+
+            # Возвращаем структурированный ответ с рекомендациями
             return RecommendationResponse(
-                recommendations=ai_recommendations,
-                summary=self._generate_summary(ai_recommendations),
+                success=True,
+                recommendations=recommendations,
+                summary=summary,
             )
 
         except Exception as e:
-            logger.exception(f"Ошибка при получении ИИ-рекомендаций: {str(e)}")
-            # В случае ошибки используем заглушки
+            logger.error(f"Ошибка при получении рекомендаций: {str(e)}")
+            # В случае любой ошибки возвращаем заглушки
             return await self._get_fallback_recommendations(request, optimization_focus)
 
     def _create_recommendation_prompt(
@@ -315,6 +352,7 @@ class AIService:
         # Базовая информация о доме
         calculator_data = request.calculator_data
 
+        # Определение приоритета
         priority = request.priority or "общие рекомендации"
         if optimization_focus:
             if optimization_focus == "cost":
@@ -324,37 +362,67 @@ class AIService:
             elif optimization_focus == "speed":
                 priority = "скорость"
 
+        # Получаем информацию о дополнительных опциях
+        additional_options = calculator_data.additional_options or []
+        additional_options_str = (
+            ", ".join([opt.value for opt in additional_options])
+            if additional_options
+            else "нет"
+        )
+
+        # Преобразование значения в человекочитаемый формат
+        foundation_type_display = {
+            "strip": "ленточный фундамент",
+            "pile": "свайный фундамент",
+            "slab": "плитный фундамент",
+            "column": "столбчатый фундамент",
+        }.get(
+            calculator_data.foundation_type.value, calculator_data.foundation_type.value
+        )
+
+        wall_material_display = {
+            "brick": "кирпич",
+            "wood": "дерево",
+            "block": "блоки",
+            "concrete": "монолитный бетон",
+            "panel": "панели",
+        }.get(calculator_data.wall_material.value, calculator_data.wall_material.value)
+
+        roof_type_display = {
+            "metal": "металлочерепица",
+            "tile": "керамическая черепица",
+            "shingle": "гибкая черепица",
+            "slate": "шифер",
+            "flat": "плоская кровля",
+        }.get(calculator_data.roof_type.value, calculator_data.roof_type.value)
+
         prompt = f"""
-        Дайте 3-5 практических рекомендаций по строительству дома со следующими параметрами:
+        Дайте ТОЛЬКО ОДИН практичный, уникальный и персонализированный лайфхак по строительству дома, учитывая ТОЧНО указанные параметры.
         
+        Ваш ответ должен быть кратким (350-500 символов) и состоять из одного абзаца.
+        НЕ РЕКОМЕНДУЙТЕ то, что уже выбрано в параметрах. Например, если выбран кирпич, не советуйте использовать кирпич.
+        НЕ предлагайте заменить выбранные материалы на другие.
+        Учитывайте ВСЕ параметры, включая дополнительные опции.
+        
+        Параметры дома:
         - Площадь: {calculator_data.area} м²
-        - Фундамент: {calculator_data.foundation_type.value}
-        - Материал стен: {calculator_data.wall_material.value}
+        - Фундамент: {foundation_type_display}
+        - Материал стен: {wall_material_display}
         - Количество этажей: {calculator_data.floors}
-        - Тип кровли: {calculator_data.roof_type.value}
-        - Дополнительные опции: {', '.join([opt.value for opt in calculator_data.additional_options]) if calculator_data.additional_options else 'нет'}
+        - Тип кровли: {roof_type_display}
+        - Дополнительные опции: {additional_options_str}
         
         Приоритет заказчика: {priority}
         
-        {f'Бюджет: {request.budget} рублей' if request.budget else ''}
+        Предложите конкретный лайфхак, который учитывает именно эту комбинацию параметров и улучшит результат.
+        Лайфхак должен быть практичным, основанным на реальном опыте строительства, и применимым к данному типу дома.
         
-        Для каждой рекомендации укажите:
-        1. Заголовок (краткое описание рекомендации)
-        2. Подробное описание (что конкретно делать)
-        3. Ожидаемый эффект от внедрения рекомендации
-        4. Примерный процент экономии (если применимо)
+        Дайте ответ в формате JSON:
+        {{
+            "lifehack": "Ваш лайфхак в одном абзаце (350-500 символов)"
+        }}
         
-        Все рекомендации должны быть конкретными, практичными и применимыми именно к этому типу дома.
-        Дайте ответ в формате JSON со следующей структурой:
-        [
-            {
-                "title": "Заголовок рекомендации",
-                "description": "Подробное описание",
-                "impact": "Ожидаемый эффект",
-                "estimated_savings": процент_экономии (число или null, если неприменимо)
-            },
-            ...
-        ]
+        НЕ ДОБАВЛЯЙТЕ НИКАКИХ ДОПОЛНИТЕЛЬНЫХ КОММЕНТАРИЕВ, ТОЛЬКО JSON С ЛАЙФХАКОМ.
         """
 
         return prompt
@@ -367,8 +435,8 @@ class AIService:
             logger.info(f"Начат парсинг ответа AI длиной {len(response_text)} символов")
 
             # Извлекаем JSON из ответа (может быть окружен дополнительным текстом)
-            json_start = response_text.find("[")
-            json_end = response_text.rfind("]") + 1
+            json_start = response_text.find("{")
+            json_end = response_text.rfind("}") + 1
 
             if json_start == -1 or json_end == 0:
                 logger.error(f"JSON не найден в ответе: {response_text[:200]}...")
@@ -378,37 +446,40 @@ class AIService:
             logger.debug(f"Извлеченные JSON данные: {json_data[:200]}...")
 
             try:
-                recommendations_data = json.loads(json_data)
-                logger.info(
-                    f"Успешно десериализовано {len(recommendations_data)} рекомендаций"
-                )
+                lifehack_data = json.loads(json_data)
+                logger.info(f"Успешно десериализован лайфхак")
             except json.JSONDecodeError as e:
                 logger.error(
                     f"Ошибка парсинга JSON: {e}. Содержимое: {json_data[:200]}..."
                 )
                 raise ValueError(f"Ошибка парсинга JSON: {e}")
 
-            # Преобразуем данные в список объектов Recommendation
+            # Создаем один объект Recommendation из полученного лайфхака
             recommendations = []
-            for i, rec_data in enumerate(recommendations_data):
-                try:
-                    recommendations.append(
-                        Recommendation(
-                            title=rec_data.get("title", "Рекомендация"),
-                            description=rec_data.get("description", ""),
-                            impact=rec_data.get("impact", ""),
-                            estimated_savings=rec_data.get("estimated_savings"),
-                        )
+            if "lifehack" in lifehack_data:
+                recommendations.append(
+                    Recommendation(
+                        title="Лайфхак дня",
+                        description=lifehack_data.get("lifehack", ""),
+                        impact="",
+                        estimated_savings=None,
                     )
-                    logger.debug(
-                        f"Добавлена рекомендация {i+1}: {rec_data.get('title')}"
+                )
+                logger.debug(
+                    f"Добавлен лайфхак: {lifehack_data.get('lifehack')[:50]}..."
+                )
+            else:
+                logger.error("Поле 'lifehack' не найдено в ответе")
+                recommendations.append(
+                    Recommendation(
+                        title="Лайфхак дня",
+                        description="Используйте современные строительные материалы и технологии, они могут значительно сократить затраты на строительство и эксплуатацию дома.",
+                        impact="",
+                        estimated_savings=None,
                     )
-                except Exception as e:
-                    logger.error(f"Ошибка обработки рекомендации {i}: {e}")
+                )
 
-            logger.info(
-                f"Успешно создано {len(recommendations)} объектов Recommendation"
-            )
+            logger.info(f"Успешно создан объект Recommendation с лайфхаком")
             return recommendations
 
         except Exception as e:
@@ -416,9 +487,9 @@ class AIService:
             # В случае ошибки возвращаем базовую рекомендацию
             return [
                 Recommendation(
-                    title="Общая рекомендация",
-                    description="Для получения детальных рекомендаций обратитесь к профессиональному архитектору или строителю.",
-                    impact="Профессиональная консультация поможет оптимизировать проект",
+                    title="Лайфхак дня",
+                    description="Для получения наилучших результатов при строительстве, фотографируйте каждый этап работы. Это поможет отследить скрытые коммуникации и избежать проблем при последующих ремонтах.",
+                    impact="",
                     estimated_savings=None,
                 )
             ]
@@ -454,88 +525,95 @@ class AIService:
         self, request: RecommendationRequest, optimization_focus: Optional[str]
     ) -> RecommendationResponse:
         """
-        Получение заглушек рекомендаций из локального файла
+        Получение заглушек лайфхаков из локального файла или предопределенного списка
         """
         try:
-            logger.info(f"Загрузка заглушек рекомендаций из {self.fallback_data_path}")
+            logger.info("Подготовка заглушки лайфхака")
 
-            if not self.fallback_data_path.exists():
-                logger.error(
-                    f"Файл заглушек рекомендаций не найден: {self.fallback_data_path}"
-                )
-                # Создаем заглушки заново если файл не найден
-                self.ensure_fallback_data()
+            # Предопределенные лайфхаки для разных типов домов
+            fallback_lifehacks = {
+                "general": [
+                    "Используйте магниты, приклеенные к внутренней стороне вентиляционных решеток, чтобы собирать металлическую пыль и улучшить качество воздуха в доме. Это особенно полезно для новостроек, где металлическая пыль от систем вентиляции является распространенной проблемой. Позаботьтесь о здоровье жильцов и продлите срок службы систем вентиляции с минимальными затратами.",
+                    "При прокладке труб отопления, сделайте фото с привязкой к ориентирам (двери, окна) перед закрытием стен. Сохраните эти фото в облаке с метками комнат - это сэкономит кучу времени при будущих ремонтах и поможет избежать случайного повреждения труб. Создайте отдельную цифровую папку для каждой комнаты и шкафы в ней для каждого типа коммуникаций.",
+                    "Добавьте цветную эпоксидную смолу в затирку для плитки в ванной - это не только выглядит эффектно, но и создает водонепроницаемую поверхность, предотвращая рост плесени. Секрет строителей, о котором редко говорят. Выбирайте эпоксидную смолу с бактерицидными добавками для дополнительной защиты от микроорганизмов в помещениях с повышенной влажностью.",
+                ],
+                "foundation": {
+                    "strip": "Перед заливкой ленточного фундамента разместите пластиковые трубы для будущей прокладки коммуникаций. Это избавит от необходимости сверлить фундамент позже и сохранит его целостность. Маленький шаг, экономящий большие деньги и нервы. Разработайте детальную схему расположения этих технологических отверстий и сохраните её вместе с проектной документацией дома для будущих владельцев или подрядчиков.",
+                    "pile": "При установке свайного фундамента используйте трубы разного диаметра с просверленными отверстиями в шахматном порядке - так вы создадите систему пассивной вентиляции подпола, которая будет автоматически регулировать влажность и предотвращать появление плесени. Такая естественная циркуляция воздуха значительно увеличит долговечность деревянных конструкций и создаст более здоровый микроклимат в доме.",
+                    "slab": "Заложите теплый контур из труб в плитный фундамент, даже если не планируете теплые полы сейчас. Это будет вашим «запасным аэродромом» для модернизации отопления в будущем, причем без разрушения конструкций. Расположите трубы с учетом возможной перепланировки помещений и обязательно сделайте точную схему их расположения с привязкой к постоянным ориентирам.",
+                    "column": "При строительстве столбчатого фундамента добавьте металлические трубки рядом с каждым столбом, соединенные между собой. Это создаст необходимую вентиляцию под домом и позволит снизить уровень радона в помещениях до 85% без дополнительных затрат. Кроме того, такая система будет отводить избыточную влагу из-под дома, что существенно продлит срок службы всей конструкции.",
+                },
+                "walls": {
+                    "brick": "При кладке кирпичных стен используйте ледяные кубики для очистки излишков раствора, а не мокрую губку. Они растворяют только свежий раствор, не повреждая затвердевший, и дают идеально чистый кирпич без традиционных белесых разводов. Подготовьте кубики заранее в специальных формах и храните их в термосумке рядом с местом работы для удобства.",
+                    "wood": "Перед сборкой деревянных стен обработайте торцы бревен или бруса горячей смесью пчелиного воска и льняного масла (7:3). Это создаст невидимый водоотталкивающий барьер на самых уязвимых участках дерева, продлевая срок службы стен без химических пропиток. Наносите смесь при температуре около 70°C для лучшего проникновения в древесину и используйте натуральную кисть с жесткой щетиной.",
+                    "block": "При кладке блоков используйте самодельный шаблон из двух деревянных планок для быстрой и ровной кладки. Одна планка должна быть равна длине блока, другая - высоте. Это помогает выдерживать толщину швов и экономит до 15% раствора. Зафиксируйте планки вместе под прямым углом и используйте их как направляющие при нанесении раствора, добиваясь идеально ровных и одинаковых швов.",
+                    "concrete": "Добавляйте кофейный жмых в бетон для стен (около 3% от объема цемента) - это улучшает теплоизоляционные свойства, работает как натуральный пеногаситель и придает бетону интересную текстуру. Метод от финских архитекторов, известный мало кому. Кроме того, органические кислоты кофе взаимодействуют с цементом, ускоряя процесс гидратации и повышая прочность материала на ранних стадиях застывания.",
+                    "panel": "Перед установкой панелей наклейте на внутренние стыки фольгированную ленту с отражающей стороной внутрь. Это создаст воздушную прослойку с эффектом термоса на стыках - самом холодном месте в панельном доме, сократив теплопотери до 30%. Используйте ленту высокого качества с клеящим составом на основе акрила для максимальной долговечности даже при температурных перепадах.",
+                },
+                "roof": {
+                    "metal": "При монтаже металлической кровли нанесите слой автомобильного антигравия под коньковые и ендовные элементы. Это устраняет вибрацию и стук металла во время дождя, создавая тихий и комфортный дом даже при сильных осадках. Используйте антигравийное покрытие на водной основе, а не на битумной, чтобы избежать коррозии в местах контакта с металлом кровли.",
+                    "tile": "Перед укладкой черепицы обработайте её пчелиным воском с добавлением льняного масла - такая крыша будет отталкивать мох и лишайники десятилетиями, сохраняя первоначальный вид без регулярной обработки химическими средствами. Наносите состав на полностью просушенную черепицу в сухую погоду и дайте ей полностью впитаться в течение нескольких дней перед монтажом.",
+                    "shingle": "При монтаже гибкой черепицы добавьте между слоями основания и черепицы отрезки медной проволоки, выступающие на 2-3 см по краям. Дождевая вода, стекая по меди, создаст естественную защиту от мха и лишайников на всей поверхности крыши. Для максимальной эффективности используйте проволоку из чистой меди без покрытия и размещайте её по всему периметру крыши и вдоль ендов.",
+                    "slate": "Перед монтажом шифера окуните края листов в жидкий прозрачный силикон. После высыхания это предотвратит раскол краёв при сильном ветре и в 3 раза продлит срок службы покрытия. Старый приём профессиональных кровельщиков. Обрабатывайте также все отверстия для крепежа, чтобы предотвратить попадание воды и разрушение шифера при циклах замерзания-оттаивания.",
+                    "flat": "На плоской кровле разместите сетку из тонких медных проводов поверх гидроизоляции. В течение года на поверхности образуется тончайший слой оксида меди, препятствующий появлению корней растений и проникновению их через мембрану. Это решение стоит дешевле специальных противокорневых добавок и работает более эффективно в долгосрочной перспективе.",
+                },
+                "floors": {
+                    "1": "В одноэтажном доме установите на крыше солнечный коллектор для нагрева воды и соедините его с теплым полом через рекуператор. Это даст вам практически бесплатное отопление весной и осенью, когда солнечно, но еще прохладно. Дополните систему автоматикой с погодозависимым управлением для оптимального использования солнечной энергии и экономии на отоплении до 40% в переходные сезоны.",
+                    "2": "В двухэтажном доме проложите дополнительный воздуховод от кухонной вытяжки к подвальному помещению через теплообменник. Теплый воздух с кухни будет подогревать холодный подвал, предотвращая образование конденсата и экономя на отоплении. Установите фильтры с активированным углем для очистки воздуха от запахов и регулируемые заслонки для контроля потока в зависимости от сезона.",
+                    "3": "В трехэтажном доме устройте центральный световой колодец с зеркальными стенами от крыши до первого этажа. Он не только обеспечит естественное освещение центральных комнат, но и создаст естественную вентиляцию за счет разницы температур. Дополните систему автоматическими заслонками в верхней части для регулирования воздушного потока и защиты от осадков.",
+                },
+            }
 
-            with open(self.fallback_data_path, "r", encoding="utf-8") as f:
-                fallback_data = json.load(f)
-
-            logger.info(f"Заглушки загружены успешно")
-            recommendations = []
-
-            # Добавляем общие рекомендации
-            if "general" in fallback_data:
-                logger.info(f"Добавление общих рекомендаций")
-                for rec_data in fallback_data.get("general", [])[:2]:
-                    recommendations.append(
-                        Recommendation(
-                            title=rec_data.get("title", ""),
-                            description=rec_data.get("description", ""),
-                            impact=rec_data.get("impact", ""),
-                            estimated_savings=rec_data.get("estimated_savings"),
-                        )
-                    )
-
-            # Добавляем рекомендации по фундаменту
+            # Определяем, какой лайфхак показать
+            lifehack = ""
             foundation_type = request.calculator_data.foundation_type.value
-            if foundation_type in fallback_data.get("foundation", {}):
-                logger.info(
-                    f"Добавление рекомендаций по фундаменту типа '{foundation_type}'"
-                )
-                for rec_data in fallback_data["foundation"][foundation_type]:
-                    recommendations.append(
-                        Recommendation(
-                            title=rec_data.get("title", ""),
-                            description=rec_data.get("description", ""),
-                            impact=rec_data.get("impact", ""),
-                            estimated_savings=rec_data.get("estimated_savings"),
-                        )
-                    )
-
-            # Добавляем рекомендации по стенам
             wall_material = request.calculator_data.wall_material.value
-            if wall_material in fallback_data.get("walls", {}):
-                logger.info(
-                    f"Добавление рекомендаций по стенам из материала '{wall_material}'"
-                )
-                for rec_data in fallback_data["walls"][wall_material]:
-                    recommendations.append(
-                        Recommendation(
-                            title=rec_data.get("title", ""),
-                            description=rec_data.get("description", ""),
-                            impact=rec_data.get("impact", ""),
-                            estimated_savings=rec_data.get("estimated_savings"),
-                        )
-                    )
+            roof_type = request.calculator_data.roof_type.value
+            floors = str(request.calculator_data.floors)
 
-            # Ограничиваем количество рекомендаций
-            recommendations = recommendations[:5]
-            logger.info(f"Выбрано {len(recommendations)} рекомендаций из заглушек")
+            # Попробуем найти лайфхак по типу стен
+            if wall_material in fallback_lifehacks.get("walls", {}):
+                lifehack = fallback_lifehacks["walls"][wall_material]
+            # Если не найден, попробуем по типу фундамента
+            elif foundation_type in fallback_lifehacks.get("foundation", {}):
+                lifehack = fallback_lifehacks["foundation"][foundation_type]
+            # Если не найден, попробуем по типу крыши
+            elif roof_type in fallback_lifehacks.get("roof", {}):
+                lifehack = fallback_lifehacks["roof"][roof_type]
+            # Если не найден, попробуем по количеству этажей
+            elif floors in fallback_lifehacks.get("floors", {}):
+                lifehack = fallback_lifehacks["floors"][floors]
+            # Если ничего не подошло, берем случайный общий лайфхак
+            else:
+                import random
+
+                lifehack = random.choice(fallback_lifehacks["general"])
+
+            # Создаем рекомендацию с лайфхаком
+            recommendation = Recommendation(
+                title="Лайфхак дня",
+                description=lifehack,
+                impact="",
+                estimated_savings=None,
+            )
+
+            logger.info(f"Подготовлен лайфхак: {lifehack[:50]}...")
 
             return RecommendationResponse(
-                recommendations=recommendations,
-                summary=self._generate_summary(recommendations),
+                recommendations=[recommendation],
+                summary="Лайфхак для вашего строительства",
             )
 
         except Exception as e:
-            logger.exception(f"Ошибка при получении заглушек рекомендаций: {e}")
+            logger.exception(f"Ошибка при получении лайфхака: {e}")
             return RecommendationResponse(
                 recommendations=[
                     Recommendation(
-                        title="Базовая рекомендация",
-                        description="Проконсультируйтесь с профессионалами для оптимизации вашего проекта.",
-                        impact="Профессиональный подход к строительству",
+                        title="Лайфхак дня",
+                        description="Сделайте фотографии каждого этапа строительства перед закрытием стен и полов. Это бесценная информация при последующих ремонтах, когда нужно найти скрытые коммуникации.",
+                        impact="",
                         estimated_savings=None,
                     )
                 ],
-                summary="Рекомендуется профессиональная консультация.",
+                summary="Полезный совет для строительства",
             )

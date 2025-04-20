@@ -10,6 +10,9 @@
         content="калькулятор строительных материалов, расчет материалов для дома, строительный калькулятор">
     <title>Калькулятор строительных материалов для дома</title>
 
+    <!-- Предотвращает запрос favicon.ico -->
+    <link rel="icon" href="data:image/x-icon;base64,">
+
     <!-- CSS стили -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/main.css">
@@ -622,17 +625,6 @@
                                         value="30">
                                 </div>
                             </div>
-
-                            <!-- Упрощенные материалы для кровли -->
-                            <div class="mt-4">
-                                <label class="block text-gray-700 mb-2">Комплектация кровли</label>
-                                <select name="roof_package" class="w-full p-3 border border-gray-300 rounded-lg">
-                                    <option value="basic">Базовая (только кровельное покрытие)</option>
-                                    <option value="standard" selected>Стандартная (покрытие, обрешетка, гидроизоляция)
-                                    </option>
-                                    <option value="premium">Премиум (полный комплект с доборными элементами)</option>
-                                </select>
-                            </div>
                         </div>
 
                         <!-- Кнопка отправки формы -->
@@ -704,22 +696,10 @@
 
                         <!-- Блок рекомендаций от ИИ -->
                         <div class="mt-8 p-6 rounded-lg border border-blue-600 bg-blue-50 ai-recommendations">
-                            <h4 class="text-xl font-bold mb-4 text-blue-700 ai-recommendations-title">Рекомендации по
-                                строительству</h4>
-                            <div id="ai-recommendations-content" class="space-y-3">
+                            <h4 class="text-xl font-bold mb-4 text-blue-700 ai-recommendations-title">Рекомендации
+                                ИИ-ассистента по строительству</h4>
+                            <div id="ai-recommendations-content" class="space-y-3 ai-recommendations-content">
                                 <!-- Здесь будут загружены рекомендации от ИИ -->
-                                <div class="ai-recommendation-item">При заливке фундамента рекомендуется использовать
-                                    вибратор для бетона, чтобы избежать воздушных пузырей и обеспечить равномерное
-                                    распределение смеси.</div>
-                                <div class="ai-recommendation-item">Перед укладкой кирпича необходимо замочить его в
-                                    воде для снижения водопоглощения и лучшего сцепления с раствором.</div>
-                                <div class="ai-recommendation-item">Для увеличения срока службы кровли рекомендуется
-                                    установить снегозадержатели и мембрану, отводящую конденсат.</div>
-                                <div class="ai-recommendation-item">При выборе утеплителя обратите внимание на его
-                                    паропроницаемость и совместимость с основным материалом стен.</div>
-                                <div class="ai-recommendation-item">Для экономии на отоплении рекомендуется увеличить
-                                    толщину утеплителя на 20-30% по сравнению с минимальными требованиями для вашего
-                                    региона.</div>
                             </div>
                         </div>
 
