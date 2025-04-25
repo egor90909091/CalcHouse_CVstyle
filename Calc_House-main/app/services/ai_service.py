@@ -511,7 +511,6 @@ class AIService:
                 savings_count += 1
 
         avg_savings = total_savings / savings_count if savings_count > 0 else 0
-        logger.info(f"Среднее значение экономии: {avg_savings:.1f}%")
 
         summary = f"Предложено {len(recommendations)} рекомендаций"
 

@@ -584,7 +584,18 @@ class MaterialsService:
         if wall_material == WallMaterial.BRICK:
             # Кирпичные стены
             thickness = float(wall_params.get("thickness", 0.38))  # м
-            brick_type = wall_params.get("type", "обычный")
+            brick_type_key = wall_params.get("type", "solid")
+
+            # Словарь для перевода типов кирпича на русский
+            brick_types = {
+                "solid": "керамический полнотелый",
+                "hollow": "керамический пустотелый",
+                "silicate": "силикатный",
+                "porous": "поризованный",
+            }
+
+            # Получаем русское название типа кирпича
+            brick_type = brick_types.get(brick_type_key, "обычный")
 
             # Количество кирпичей на 1 м²
             if thickness <= 0.12:

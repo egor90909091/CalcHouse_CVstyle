@@ -8,6 +8,10 @@ from app.models.calculator import (
     CalculatorRequest,
     CalculatorResponse,
     MaterialsCalculatorInput,
+    FoundationType,
+    WallMaterial,
+    RoofType,
+    RoofConstruction,
 )
 from app.services.calculator_service import CalculatorService
 from app.services.materials_service import MaterialsService
@@ -946,3 +950,163 @@ async def calculate_simple_materials(request: Request):
         raise HTTPException(
             status_code=500, detail=f"Произошла ошибка при расчете: {str(e)}"
         )
+
+
+@router.post("/form-calculate-materials")
+async def form_calculate_materials(
+    request: Request,
+    service: MaterialsService = Depends(lambda: MaterialsService()),
+):
+    """
+    Обработка данных из формы калькулятора и расчет необходимых материалов
+
+    Этот эндпоинт принимает данные из формы на главной странице и преобразует их
+    в формат для расчета материалов.
+    """
+    try:
+        # Получаем данные формы
+        form_data = await request.json()
+
+        # Преобразуем данные формы в формат для расчета
+        calculator_input = await _convert_form_data_to_calculator_input(form_data)
+
+        # Вызываем сервис для расчета материалов
+        result = await service.calculate_materials(calculator_input)
+
+        # Преобразуем результат для отображения на клиенте
+        response = {
+            "foundation": [
+                {
+                    "name": item.name,
+                    "quantity": item.quantity,
+                    "unit": item.unit,
+                    "price": item.price,
+                    "total_cost": item.total_cost,
+                }
+                for item in result.materials.foundation
+            ],
+            "walls": [
+                {
+                    "name": item.name,
+                    "quantity": item.quantity,
+                    "unit": item.unit,
+                    "price": item.price,
+                    "total_cost": item.total_cost,
+                }
+                for item in result.materials.walls
+            ],
+            "roof": [
+                {
+                    "name": item.name,
+                    "quantity": item.quantity,
+                    "unit": item.unit,
+                    "price": item.price,
+                    "total_cost": item.total_cost,
+                }
+                for item in result.materials.roof
+            ],
+            "total_cost": result.total_cost,
+        }
+
+        return response
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка расчета: {str(e)}")
+
+
+async def _convert_form_data_to_calculator_input(
+    form_data: Dict,
+) -> MaterialsCalculatorInput:
+    """
+    Преобразует данные из формы в формат для расчета материалов
+    """
+    # Базовые параметры
+    area = float(form_data.get("area", 100))
+    floor_height = float(form_data.get("floorHeight", 2.7))
+    floors = int(form_data.get("floors", 1))
+
+    # Фундамент
+    foundation_type = form_data.get("foundationType", "strip")
+    foundation_params = {}
+
+    if foundation_type == "strip":
+        foundation_params = {
+            "width": float(form_data.get("stripWidth", 0.4)),
+            "height": float(form_data.get("stripHeight", 0.5)),
+            "depth": float(form_data.get("stripDepth", 1.2)),
+            "concrete": form_data.get("foundation_concrete", "concrete_b20"),
+        }
+    elif foundation_type == "slab":
+        foundation_params = {
+            "thickness": float(form_data.get("slabThickness", 0.2)),
+            "cushion": float(form_data.get("slabCushion", 0.15)),
+            "concrete": form_data.get("slab_concrete", "concrete_b25"),
+        }
+    elif foundation_type == "pile":
+        foundation_params = {
+            "step": float(form_data.get("pileStep", 1.5)),
+            "diameter": float(form_data.get("pileDiameter", 0.2)),
+            "depth": float(form_data.get("pileDepth", 2.5)),
+            "type": form_data.get("pile_type", "piles_concrete"),
+        }
+    elif foundation_type == "column":
+        foundation_params = {
+            "step": float(form_data.get("columnStep", 1.5)),
+            "size": float(form_data.get("columnSize", 0.3)),
+            "depth": float(form_data.get("columnDepth", 1.5)),
+            "type": form_data.get("column_type", "columns_concrete"),
+        }
+
+    # Стены
+    wall_material = form_data.get("wallMaterial", "brick")
+    wall_params = {}
+
+    if wall_material == "brick":
+        wall_params = {
+            "thickness": 0.38,  # м
+            "type": form_data.get("brickType", "solid"),
+            "mortar": form_data.get("brick_mortar", "mortar_cement"),
+            "insulation": form_data.get("brick_insulation", "insulation_mineral"),
+        }
+    elif wall_material == "wood":
+        wall_params = {
+            "type": form_data.get("woodType", "timber"),
+            "size": form_data.get("woodSize", "150"),
+            "materials": form_data.get("wood_materials", "wall_insulation"),
+        }
+    elif wall_material == "block":
+        wall_params = {
+            "type": form_data.get("blockType", "aerated_concrete"),
+            "thickness": form_data.get("blockThickness", "300"),
+            "materials": form_data.get("block_materials", "adhesive"),
+        }
+    elif wall_material == "concrete":
+        wall_params = {
+            "thickness": form_data.get("concreteThickness", "200"),
+            "class": form_data.get("concreteClass", "B25"),
+            "materials": form_data.get("concrete_materials", "all"),
+        }
+    elif wall_material == "panel":
+        wall_params = {
+            "type": form_data.get("panelType", "sip_panels"),
+            "thickness": form_data.get("panelThickness", "150"),
+            "materials": form_data.get("panel_materials", "both"),
+        }
+
+    # Крыша
+    roof_type = form_data.get("roofType", "metal")
+    roof_construction = form_data.get("roofConstruction", "gable")
+    roof_angle = float(form_data.get("roofAngle", 30))
+
+    # Создаем экземпляр MaterialsCalculatorInput
+    return MaterialsCalculatorInput(
+        area=area,
+        floorHeight=floor_height,
+        floors=floors,
+        foundation_type=FoundationType(foundation_type),
+        foundation_params=foundation_params,
+        wall_material=WallMaterial(wall_material),
+        wall_params=wall_params,
+        roof_type=RoofType(roof_type),
+        roof_construction=RoofConstruction(roof_construction),
+        roof_angle=roof_angle,
+    )

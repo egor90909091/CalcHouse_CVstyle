@@ -81,8 +81,7 @@
             <div class="max-w-4xl mx-auto transition-container">
                 <!-- Форма калькулятора -->
                 <div class="calculator-panel active">
-                    <form id="calculatorForm" class="calculator-form space-y-6"
-                        onsubmit="event.preventDefault(); if (typeof window.showDemoResults === 'function') { window.showDemoResults(); } else { console.error('Функция showDemoResults не найдена!'); } return false;">
+                    <form id="calculatorForm" class="calculator-form space-y-6">
                         <!-- Заголовок формы -->
                         <h3 class="form-subtitle">Введите параметры дома</h3>
 
@@ -811,26 +810,6 @@
     <!-- Отладочный скрипт -->
     <script>
         console.log("JavaScript загружен");
-
-        // Добавим обработчик напрямую для верности
-        document.addEventListener('DOMContentLoaded', function () {
-            console.log("DOM загружен, добавляем обработчик формы");
-            const form = document.getElementById('calculatorForm');
-            if (form) {
-                form.addEventListener('submit', function (e) {
-                    console.log("Форма отправлена через дополнительный обработчик");
-                    e.preventDefault();
-                    if (typeof window.showDemoResults === 'function') {
-                        window.showDemoResults();
-                    } else {
-                        console.error("Функция showDemoResults не найдена!");
-                        alert("Ошибка: не удалось загрузить калькулятор. Попробуйте обновить страницу.");
-                    }
-                });
-            } else {
-                console.error("Форма не найдена!");
-            }
-        });
     </script>
 </body>
 
