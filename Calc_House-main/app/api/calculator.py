@@ -139,9 +139,25 @@ async def calculate_simple_materials(request: Request):
             # Параметры ленточного фундамента
             strip_width = float(data.get("stripWidth", 0.4))
             strip_height = float(data.get("stripHeight", 0.8))
+            strip_depth = float(data.get("stripDepth", 1.2))
+
+            # Параметры арматуры
+            longitudinal_rebar_diameter = int(data.get("longitudinalRebarDiameter", 12))
+            transverse_rebar_diameter = int(data.get("transverseRebarDiameter", 8))
+
+            # Добавляем параметры в объект foundation_params
+            foundation_params = {
+                "width": strip_width,
+                "height": strip_height,
+                "depth": strip_depth,
+                "longitudinal_rebar_diameter": longitudinal_rebar_diameter,
+                "transverse_rebar_diameter": transverse_rebar_diameter,
+            }
 
             # Объем бетона для ленточного фундамента
-            concrete_volume = wall_perimeter * strip_width * strip_height
+            concrete_volume = (
+                wall_perimeter * strip_width * (strip_depth + strip_height)
+            )
 
             # Добавляем выбранные материалы
             if "concrete_m200" in foundation_selected_materials:
@@ -1033,6 +1049,12 @@ async def _convert_form_data_to_calculator_input(
             "width": float(form_data.get("stripWidth", 0.4)),
             "height": float(form_data.get("stripHeight", 0.5)),
             "depth": float(form_data.get("stripDepth", 1.2)),
+            "longitudinal_rebar_diameter": int(
+                form_data.get("longitudinalRebarDiameter", 12)
+            ),
+            "transverse_rebar_diameter": int(
+                form_data.get("transverseRebarDiameter", 8)
+            ),
             "concrete": form_data.get("foundation_concrete", "concrete_b20"),
         }
     elif foundation_type == "slab":

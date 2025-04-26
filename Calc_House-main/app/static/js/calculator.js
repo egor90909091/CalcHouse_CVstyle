@@ -16,6 +16,59 @@ let recommendationsRequested = false; // Флаг для отслеживани�
 let recommendationRequestTimeout = null; // Для хранения таймаута запроса рекомендаций
 
 /**
+ * Функция для установки значений формы из параметров URL
+ * Позволяет передавать настройки калькулятора через URL
+ */
+function setFormFromQueryString() {
+    try {
+        // Получаем строку параметров URL (все, что после "?")
+        const queryString = window.location.search;
+        if (!queryString) return; // Если параметров нет, выходим
+
+        // Создаем объект URLSearchParams для удобной работы с параметрами
+        const urlParams = new URLSearchParams(queryString);
+        const form = document.getElementById('calculatorForm');
+
+        if (!form) {
+            logDebug("Форма не найдена для установки параметров из URL");
+            return;
+        }
+
+        // Проходим по всем параметрам URL и устанавливаем соответствующие значения в форме
+        for (const [key, value] of urlParams.entries()) {
+            // Находим элемент формы с соответствующим именем
+            const element = form.elements[key];
+            if (element) {
+                logDebug(`Устанавливаем значение из URL: ${key} = ${value}`);
+
+                // Проверяем тип элемента и устанавливаем значение
+                if (element.type === 'checkbox') {
+                    element.checked = value.toLowerCase() === 'true';
+                } else if (element.type === 'radio') {
+                    const radioOptions = form.querySelectorAll(`input[name="${key}"]`);
+                    radioOptions.forEach(radio => {
+                        radio.checked = radio.value === value;
+                    });
+                } else {
+                    element.value = value;
+                }
+
+                // Если это select и у него есть обработчик change, вызываем его
+                if (element.tagName === 'SELECT') {
+                    // Создаем и вызываем событие change
+                    const event = new Event('change', { bubbles: true });
+                    element.dispatchEvent(event);
+                }
+            }
+        }
+        logDebug("Параметры из URL успешно применены к форме");
+    } catch (error) {
+        console.error("Ошибка при установке значений из URL:", error);
+        logDebug("Ошибка при установке значений из URL: " + error.message);
+    }
+}
+
+/**
  * Вспомогательная функция для правильного возврата к калькулятору
  */
 function navigateToCalculator() {
@@ -142,6 +195,154 @@ document.addEventListener('DOMContentLoaded', function () {
         }
         return originalAddEventListener.call(this, type, listener, options);
     };
+
+    // Установка начальных значений из строки запроса
+    setFormFromQueryString();
+
+    // Обработчик для переключения параметров стен в зависимости от выбранного материала
+    const wallMaterialSelect = document.getElementById('wallMaterial');
+    if (wallMaterialSelect) {
+        // Функция для переключения видимых параметров стен
+        function showWallParams() {
+            const selectedValue = wallMaterialSelect.value;
+
+            logDebug(`Переключение параметров стен на: ${selectedValue}`);
+
+            // Скрываем все параметры
+            document.querySelectorAll('.wall-params').forEach(elem => {
+                elem.classList.add('hidden');
+                logDebug(`Скрыт элемент: ${elem.className}`);
+            });
+
+            // Показываем только параметры для выбранного материала
+            const targetClassName = `${selectedValue}-params`;
+            const targetParams = document.querySelector(`.wall-params.${targetClassName}`);
+
+            if (targetParams) {
+                targetParams.classList.remove('hidden');
+                logDebug(`Показан элемент: ${targetParams.className}`);
+            } else {
+                logDebug(`Не найден элемент с классом: wall-params.${targetClassName}`);
+                // Пробуем найти по другому селектору
+                const alternativeParams = document.querySelector(`.${targetClassName}`);
+                if (alternativeParams) {
+                    alternativeParams.classList.remove('hidden');
+                    logDebug(`Показан элемент (альтернативный поиск): ${alternativeParams.className}`);
+                } else {
+                    logDebug(`Не найден элемент даже по упрощенному классу: ${targetClassName}`);
+                }
+            }
+        }
+
+        // Вызываем функцию сразу для установки начального состояния
+        showWallParams();
+
+        // Добавляем обработчик изменения
+        wallMaterialSelect.addEventListener('change', showWallParams);
+
+        logDebug("Добавлен обработчик изменения материала стен");
+    } else {
+        logDebug("Элемент выбора материала стен не найден");
+    }
+
+    // Обработчик для переключения параметров фундамента в зависимости от выбранного типа
+    const foundationTypeSelect = document.getElementById('foundationType');
+    if (foundationTypeSelect) {
+        // Функция для переключения видимых параметров фундамента
+        function showFoundationParams() {
+            const selectedValue = foundationTypeSelect.value;
+
+            logDebug(`Переключение параметров фундамента на: ${selectedValue}`);
+
+            // Скрываем все параметры фундаментов
+            document.querySelectorAll('.foundation-params').forEach(elem => {
+                elem.classList.add('hidden');
+                logDebug(`Скрыт элемент фундамента: ${elem.className}`);
+            });
+
+            // Показываем только параметры для выбранного типа фундамента
+            const targetClassName = `${selectedValue}-params`;
+            const targetParams = document.querySelector(`.foundation-params.${targetClassName}`);
+
+            if (targetParams) {
+                targetParams.classList.remove('hidden');
+                logDebug(`Показан элемент фундамента: ${targetParams.className}`);
+            } else {
+                logDebug(`Не найден элемент с классом: foundation-params.${targetClassName}`);
+                // Пробуем найти по другому селектору
+                const alternativeParams = document.querySelector(`.${targetClassName}`);
+                if (alternativeParams) {
+                    alternativeParams.classList.remove('hidden');
+                    logDebug(`Показан элемент фундамента (альтернативный поиск): ${alternativeParams.className}`);
+                } else {
+                    logDebug(`Не найден элемент даже по упрощенному классу: ${targetClassName}`);
+                }
+            }
+        }
+
+        // Вызываем функцию сразу для установки начального состояния
+        showFoundationParams();
+
+        // Добавляем обработчик изменения
+        foundationTypeSelect.addEventListener('change', showFoundationParams);
+
+        logDebug("Добавлен обработчик изменения типа фундамента");
+    } else {
+        logDebug("Элемент выбора типа фундамента не найден");
+    }
+
+    // Обработчик для переключения параметров кровли в зависимости от выбранного типа
+    const roofTypeSelect = document.getElementById('roofType');
+    if (roofTypeSelect) {
+        // Функция для переключения видимых параметров кровли
+        function showRoofParams() {
+            const selectedValue = roofTypeSelect.value;
+
+            logDebug(`Переключение параметров кровли на: ${selectedValue}`);
+
+            // Скрываем все параметры
+            document.querySelectorAll('.roof-params').forEach(elem => {
+                elem.classList.add('hidden');
+                logDebug(`Скрыт элемент кровли: ${elem.className}`);
+            });
+
+            // Показываем только параметры для выбранного типа кровли
+            const targetClassName = `${selectedValue}-params`;
+            const targetParams = document.querySelector(`.roof-params.${targetClassName}`);
+
+            if (targetParams) {
+                targetParams.classList.remove('hidden');
+                logDebug(`Показан элемент кровли: ${targetParams.className}`);
+            } else {
+                logDebug(`Не найден элемент с классом: roof-params.${targetClassName}`);
+                // Если не найдены специфичные параметры, показываем общие параметры кровли
+                const generalRoofParams = document.getElementById('roofParams');
+                if (generalRoofParams) {
+                    generalRoofParams.classList.remove('hidden');
+                    logDebug(`Показаны общие параметры кровли для типа: ${selectedValue}`);
+                } else {
+                    // Пробуем найти по упрощенному классу
+                    const alternativeParams = document.querySelector(`.${targetClassName}`);
+                    if (alternativeParams) {
+                        alternativeParams.classList.remove('hidden');
+                        logDebug(`Показан элемент кровли (альтернативный поиск): ${alternativeParams.className}`);
+                    } else {
+                        logDebug(`Не найден элемент даже по упрощенному классу: ${targetClassName}`);
+                    }
+                }
+            }
+        }
+
+        // Вызываем функцию сразу для установки начального состояния
+        showRoofParams();
+
+        // Добавляем обработчик изменения
+        roofTypeSelect.addEventListener('change', showRoofParams);
+
+        logDebug("Добавлен обработчик изменения типа кровли");
+    } else {
+        logDebug("Элемент выбора типа кровли не найден");
+    }
 
     // Обработчик для кнопок на главной странице
     const startButtons = document.querySelectorAll('a[href="#calculator"], .btn-primary, button.start-calculation');

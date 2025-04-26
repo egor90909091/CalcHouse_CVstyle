@@ -138,6 +138,31 @@
                                     </div>
                                 </div>
 
+                                <!-- Добавляем выбор диаметра арматуры -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Диаметр продольной арматуры (мм)</label>
+                                        <select name="longitudinalRebarDiameter"
+                                            class="w-full p-3 border border-gray-300 rounded-lg">
+                                            <option value="8">8 мм</option>
+                                            <option value="10">10 мм</option>
+                                            <option value="12" selected>12 мм</option>
+                                            <option value="14">14 мм</option>
+                                            <option value="16">16 мм</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Диаметр поперечной арматуры (мм)</label>
+                                        <select name="transverseRebarDiameter"
+                                            class="w-full p-3 border border-gray-300 rounded-lg">
+                                            <option value="6">6 мм</option>
+                                            <option value="8" selected>8 мм</option>
+                                            <option value="10">10 мм</option>
+                                            <option value="12">12 мм</option>
+                                        </select>
+                                    </div>
+                                </div>
+
                                 <!-- Выбор материалов для ленточного фундамента -->
                                 <div class="mt-4">
                                     <label class="block text-gray-700 mb-2">Материалы фундамента</label>

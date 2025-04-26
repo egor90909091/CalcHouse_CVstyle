@@ -142,9 +142,19 @@
             "price_per_sqm": 6000,
             "unit": "м²",
             "materials": {
-                "timber": {
-                    "name": "Брус",
-                    "price": 27500,
+                "timber_150": {
+                    "name": "Брус 150x150",
+                    "price": 1500,
+                    "unit": "м³"
+                },
+                "timber_200": {
+                    "name": "Брус 200x200",
+                    "price": 4500,
+                    "unit": "м³"
+                },
+                "timber_250": {
+                    "name": "Брус 250x250",
+                    "price": 8000,
                     "unit": "м³"
                 },
                 "round_log": {

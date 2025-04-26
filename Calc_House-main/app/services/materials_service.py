@@ -387,6 +387,30 @@ class MaterialsService:
             depth = float(foundation_params.get("depth", 0.8))  # м
             height = float(foundation_params.get("height", 0.5))  # м
 
+            # Получаем диаметры арматуры или используем стандартные
+            longitudinal_rebar_diameter = int(
+                foundation_params.get("longitudinal_rebar_diameter", 12)
+            )  # мм
+            transverse_rebar_diameter = int(
+                foundation_params.get("transverse_rebar_diameter", 8)
+            )  # мм
+
+            # Вес арматуры за 1 м погонный (кг/м) в зависимости от диаметра
+            rebar_weights = {
+                6: 0.222,
+                8: 0.395,
+                10: 0.617,
+                12: 0.888,
+                14: 1.21,
+                16: 1.58,
+                18: 2.00,
+                20: 2.47,
+                22: 2.98,
+                25: 3.85,
+                28: 4.83,
+                32: 6.31,
+            }
+
             # Объем бетона
             concrete_volume = perimeter * width * (depth + height)
             materials.append(
@@ -397,11 +421,61 @@ class MaterialsService:
                 )
             )
 
-            # Арматура (примерно 70 кг на 1 м³ бетона)
-            rebar_weight = concrete_volume * 70
+            # Расчет арматуры по новой методике
+            # 1. Продольная арматура - 4 стержня (2 сверху, 2 снизу)
+            longitudinal_rebar_count = 4
+            longitudinal_rebar_length = (
+                perimeter * longitudinal_rebar_count
+            )  # общая длина в метрах
+
+            # 2. Поперечная арматура (хомуты)
+            stirrup_step = 0.5  # шаг хомутов в метрах
+            stirrup_count = (
+                math.ceil(perimeter / stirrup_step) + 1
+            )  # количество хомутов
+            stirrup_length = 2 * (width + height)  # длина одного хомута
+            transverse_rebar_length = (
+                stirrup_count * stirrup_length
+            )  # общая длина поперечной арматуры
+
+            # 3. Общая длина арматуры с учетом запаса 10%
+            total_longitudinal_length = longitudinal_rebar_length * 1.1
+            total_transverse_length = transverse_rebar_length * 1.1
+
+            # 4. Перевод в вес с учетом диаметра
+            longitudinal_weight = total_longitudinal_length * rebar_weights.get(
+                longitudinal_rebar_diameter, 0.888
+            )
+            transverse_weight = total_transverse_length * rebar_weights.get(
+                transverse_rebar_diameter, 0.395
+            )
+
+            # Добавляем арматуру в список материалов
             materials.append(
                 MaterialItem(
-                    name="Арматура", quantity=round(rebar_weight, 2), unit="кг"
+                    name=f"Арматура A400 Ø{longitudinal_rebar_diameter} мм (продольная)",
+                    quantity=round(longitudinal_weight, 2),
+                    unit="кг",
+                    detail=f"{round(total_longitudinal_length, 2)} м.п.",
+                )
+            )
+
+            materials.append(
+                MaterialItem(
+                    name=f"Арматура A400 Ø{transverse_rebar_diameter} мм (поперечная/хомуты)",
+                    quantity=round(transverse_weight, 2),
+                    unit="кг",
+                    detail=f"{stirrup_count} шт. ({round(total_transverse_length, 2)} м.п.)",
+                )
+            )
+
+            # Общий вес арматуры (для совместимости с остальным кодом)
+            total_rebar_weight = longitudinal_weight + transverse_weight
+            materials.append(
+                MaterialItem(
+                    name="Арматура A400 (общий вес)",
+                    quantity=round(total_rebar_weight, 2),
+                    unit="кг",
                 )
             )
 
@@ -631,6 +705,10 @@ class MaterialsService:
             # Деревянные стены
             wood_type = wall_params.get("type", "сосна")
             wood_size = int(wall_params.get("size", 150))  # мм
+            waste_percent = float(
+                wall_params.get("waste", 15)
+            )  # % запас на обрезки, по умолчанию 15%
+            standard_length = 6.0  # стандартная длина бруса (м)
 
             # Площадь сечения бруса в м²
             section_area = (wood_size / 1000) * (wood_size / 1000)
@@ -640,24 +718,37 @@ class MaterialsService:
             venets_count = math.ceil(wall_height / (wood_size / 1000))
 
             # Общая длина бруса
-            total_length = house_params["perimeter"] * venets_count
+            total_length = (
+                house_params["perimeter"] * venets_count * house_params.get("floors", 1)
+            )
+
+            # Вычет проемов (примерно 20% от площади стен)
+            adjusted_length = (
+                total_length * 0.8
+            )  # вычитаем площадь проемов (окна, двери)
+
+            # Количество брусьев стандартной длины 6м
+            beams_count = math.ceil(adjusted_length / standard_length)
+
+            # Добавляем запас на отходы
+            beams_count_with_waste = math.ceil(beams_count * (1 + waste_percent / 100))
 
             # Объем материала
             volume = total_length * section_area
 
             materials.append(
                 MaterialItem(
-                    name=f"Брус {wood_type} {wood_size}x{wood_size} мм",
-                    quantity=round(total_length, 2),
-                    unit="м.п.",
+                    name=f"Брус {wood_size}x{wood_size}x{int(standard_length*1000)} мм",
+                    quantity=beams_count_with_waste,
+                    unit="шт.",
                 )
             )
 
             materials.append(
                 MaterialItem(
-                    name=f"Объем пиломатериалов {wood_type}",
-                    quantity=round(volume, 2),
-                    unit="м³",
+                    name=f"Общая длина бруса",
+                    quantity=round(total_length, 2),
+                    unit="м.п.",
                 )
             )
 
@@ -665,7 +756,12 @@ class MaterialsService:
             materials.append(
                 MaterialItem(
                     name="Межвенцовый утеплитель",
-                    quantity=round(house_params["perimeter"] * venets_count, 2),
+                    quantity=round(
+                        house_params["perimeter"]
+                        * venets_count
+                        * house_params.get("floors", 1),
+                        2,
+                    ),
                     unit="м.п.",
                 )
             )

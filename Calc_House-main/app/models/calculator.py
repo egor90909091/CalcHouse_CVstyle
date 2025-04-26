@@ -205,13 +205,16 @@ class MaterialPrice(BaseModel):
 
 
 class MaterialItem(BaseModel):
-    """Элемент материала"""
+    """Модель для представления материала в результатах расчета"""
 
     name: str = Field(..., description="Наименование материала")
     quantity: float = Field(..., description="Количество")
     unit: str = Field(..., description="Единица измерения")
     price: Optional[float] = Field(None, description="Цена за единицу")
     total_cost: Optional[float] = Field(None, description="Общая стоимость")
+    detail: Optional[str] = Field(
+        None, description="Дополнительная информация о материале"
+    )
 
 
 class MaterialsResult(BaseModel):
