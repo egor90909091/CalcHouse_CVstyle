@@ -134,11 +134,21 @@ async function handleFormSubmit(event) {
     const form = event.target;
     const params = getFormParams(form);
 
+    // Сохраняем последние параметры расчета
+    lastCalculationParams = params;
+
+    // Проверяем наличие необходимых параметров
+    if (!params.area) {
+        alert("Пожалуйста, укажите площадь дома");
+        return;
+    }
+
     // Показываем анимацию загрузки
     startCalculationAnimation();
 
     try {
-        // Получаем данные с сервера
+        // Получаем данные с сервера Python через API
+        console.log("Отправляем запрос на Python API");
         const detailedData = await fetchDetailedMaterials(params);
 
         // Показываем результаты расчета
@@ -151,12 +161,22 @@ async function handleFormSubmit(event) {
     } catch (error) {
         console.error("Ошибка при обработке формы:", error);
 
-        // В случае ошибки показываем базовый результат
-        resetAnimation();
-        showBasicResults(params);
+        // Проверяем тип ошибки
+        if (error.message && error.message.includes("Failed to fetch")) {
+            alert("Ошибка соединения с сервером Python. Убедитесь, что сервер запущен (python3 main.py).");
+        } else {
+            // В случае ошибки показываем базовый JS-расчет с предупреждением
+            alert(`Python API недоступен: ${error.message}\nБудет использован упрощенный JavaScript расчет.`);
+        }
 
-        // Показываем уведомление об ошибке
-        alert(`Ошибка при расчете: ${error.message}`);
+        // Сбрасываем анимацию
+        resetAnimation();
+
+        // Используем JavaScript-расчет как запасной вариант
+        const fallbackData = showBasicResults(params);
+
+        // Показываем результаты
+        showDetailedResults(fallbackData, params);
     }
 }
 
@@ -310,6 +330,31 @@ document.addEventListener('DOMContentLoaded', function () {
             const targetClassName = `${selectedValue}-params`;
             const targetParams = document.querySelector(`.roof-params.${targetClassName}`);
 
+            // Устанавливаем значение параметра roofMaterial (если оно не установлено)
+            // Это нужно для совместимости с API, которое ожидает этот параметр
+            let roofMaterialInput = document.querySelector('input[name="roofMaterial"]');
+            if (!roofMaterialInput) {
+                // Если поле не существует, создаем его
+                roofMaterialInput = document.createElement('input');
+                roofMaterialInput.type = 'hidden';
+                roofMaterialInput.name = 'roofMaterial';
+
+                // Добавляем скрытое поле в форму
+                const form = document.getElementById('calculatorForm');
+                if (form) {
+                    form.appendChild(roofMaterialInput);
+                }
+            }
+
+            // Устанавливаем значение материала кровли в зависимости от типа
+            if (selectedValue === 'flat') {
+                roofMaterialInput.value = 'membrane'; // Значение по умолчанию для плоской кровли
+            } else {
+                roofMaterialInput.value = selectedValue; // Для других типов используем сам тип как материал
+            }
+
+            logDebug(`Установлено значение roofMaterial: ${roofMaterialInput.value}`);
+
             if (targetParams) {
                 targetParams.classList.remove('hidden');
                 logDebug(`Показан элемент кровли: ${targetParams.className}`);
@@ -450,6 +495,11 @@ document.addEventListener('DOMContentLoaded', function () {
             window.print();
         });
     }
+
+    // Обработчики для переключения видимости расширенных параметров арматуры
+    setupRebarToggles();
+
+    // Инициализация калькулятора...
 });
 
 /**
@@ -1094,10 +1144,15 @@ async function showDemoResults() {
  */
 async function fetchDetailedMaterials(params) {
     try {
-        logDebug("Запрашиваем детализированные материалы с сервера");
+        logDebug("Запрашиваем детализированные материалы с Python сервера");
 
         // Показываем индикатор загрузки
         showLoadingState(true);
+
+        // Проверяем, что все необходимые параметры заполнены
+        if (!params.area) {
+            throw new Error("Необходимо указать площадь дома");
+        }
 
         // Отправляем запрос на сервер для расчета материалов
         const response = await fetch('/api/form-calculate-materials', {
@@ -1105,35 +1160,37 @@ async function fetchDetailedMaterials(params) {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(params)
+            body: JSON.stringify(params),
+            // Устанавливаем таймаут в 10 секунд
+            timeout: 10000
         });
 
         if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(`Ошибка при расчете: ${errorData.detail || 'Неизвестная ошибка'}`);
+            throw new Error(`Ошибка API: ${errorData.detail || 'Неизвестная ошибка'}`);
         }
 
         // Получаем ответ от сервера
         const data = await response.json();
+
+        // Выводим подробную информацию о полученных данных
+        console.log("Получены данные с Python сервера:", data);
+        logDebug(`Получены данные с сервера: ${JSON.stringify(data).substring(0, 200)}...`);
 
         // Скрываем индикатор загрузки
         showLoadingState(false);
 
         return data;
     } catch (error) {
-        logDebug("Ошибка при получении материалов: " + error.message);
+        // Логируем ошибку
+        logDebug("Ошибка при получении материалов с Python сервера: " + error.message);
         console.error("Ошибка при получении материалов:", error);
 
         // Скрываем индикатор загрузки
         showLoadingState(false);
 
-        // В случае ошибки возвращаем пустой объект с категориями
-        return {
-            foundation: [],
-            walls: [],
-            roof: [],
-            total_cost: 0
-        };
+        // Выбрасываем ошибку вверх, чтобы она была обработана в showDemoResults
+        throw error;
     }
 }
 
@@ -1333,11 +1390,13 @@ function showDetailedResults(detailedData, params) {
 
 /**
  * Выполняет базовые расчеты материалов без обращения к серверу
+ * Это РЕЗЕРВНЫЙ метод, который используется только если Python API недоступен!
  * @param {Object} params - Параметры дома и материалов
  * @returns {Object} - Объект с рассчитанными материалами для фундамента, стен и крыши
  */
 function showBasicResults(params) {
-    logDebug("Выполняем базовые расчеты материалов");
+    logDebug("Выполняем УПРОЩЕННЫЕ базовые расчеты материалов в JavaScript (Python API недоступен)");
+    console.warn("Используется упрощенный JavaScript расчет вместо Python API!");
 
     // Расчет площади и периметра
     const area = parseFloat(params.area) || 100;
@@ -1346,433 +1405,68 @@ function showBasicResults(params) {
     const floorHeight = parseFloat(params.floorHeight) || 2.7;
     const wallHeight = floorHeight * floors;
 
-    // Расчет для фундамента
-    let foundation = [];
-    if (params.foundationType === 'strip') {
-        // Объем бетона: периметр * ширина * глубина
-        const concreteVolume = (perimeter * 0.4 * 0.6).toFixed(1);
-        foundation.push({
-            name: "Бетон B20",
-            quantity: concreteVolume,
-            unit: "м³",
-            price: 5100,
-            total_cost: Math.round(concreteVolume * 5100)
-        });
+    // Инициализируем пустые массивы
+    const foundation = [];
+    const walls = [];
+    const roof = [];
 
-        // Арматура: периметр * количество прутьев * вес 1 метра
-        const rebarWeight = Math.round(perimeter * 7 * 1.5);
-        foundation.push({
-            name: "Арматура A400",
-            quantity: rebarWeight,
-            unit: "кг",
-            price: 75,
-            total_cost: Math.round(rebarWeight * 75)
-        });
-
-        // Опалубка для ленточного фундамента
-        const formworkArea = Math.round(perimeter * 2 * 0.6);
-        foundation.push({
-            name: "Опалубка из фанеры",
-            quantity: formworkArea,
-            unit: "м²",
-            price: 225,
-            total_cost: formworkArea * 225
-        });
-
-        // Гидроизоляция для ленточного фундамента
-        const waterproofingArea = Math.round(perimeter * 1.5);
-        foundation.push({
-            name: "Гидроизоляция рулонная",
-            quantity: waterproofingArea,
-            unit: "м²",
-            price: 120,
-            total_cost: waterproofingArea * 120
-        });
-    } else if (params.foundationType === 'slab') {
-        // Объем бетона: площадь * толщина
-        const concreteVolume = (area * 0.2).toFixed(1);
-        foundation.push({
-            name: "Бетон B25",
-            quantity: concreteVolume,
-            unit: "м³",
-            price: 5500,
-            total_cost: Math.round(concreteVolume * 5500)
-        });
-
-        // Арматурная сетка: площадь * 1.1 (запас)
-        const meshArea = Math.round(area * 1.1);
-        foundation.push({
-            name: "Сетка арматурная",
-            quantity: meshArea,
-            unit: "м²",
-            price: 350,
-            total_cost: Math.round(meshArea * 350)
-        });
-
-        // Гидроизоляция для плитного фундамента
-        const waterproofingArea = Math.round(area * 1.1);
-        foundation.push({
-            name: "Гидроизоляция мембранная",
-            quantity: waterproofingArea,
-            unit: "м²",
-            price: 180,
-            total_cost: waterproofingArea * 180
-        });
-
-        // Подушка песчаная
-        const sandVolume = (area * 0.15).toFixed(1);
-        foundation.push({
-            name: "Песчаная подушка",
-            quantity: sandVolume,
-            unit: "м³",
-            price: 1200,
-            total_cost: Math.round(sandVolume * 1200)
-        });
-    } else if (params.foundationType === 'pile') {
-        // Количество свай: периметр / шаг свай (примерно 1.5м)
-        const pileCount = Math.ceil(perimeter / 1.5);
-        foundation.push({
-            name: "Сваи железобетонные",
-            quantity: pileCount,
-            unit: "шт.",
-            price: 3200,
-            total_cost: pileCount * 3200
-        });
-
-        // Ростверк: периметр * ширина * высота
-        const grillageVolume = (perimeter * 0.3 * 0.4).toFixed(1);
-        foundation.push({
-            name: "Бетон для ростверка",
-            quantity: grillageVolume,
-            unit: "м³",
-            price: 5300,
-            total_cost: Math.round(grillageVolume * 5300)
-        });
-
-        // Арматура для ростверка
-        const grillageRebarWeight = Math.round(perimeter * 5 * 1.2);
-        foundation.push({
-            name: "Арматура для ростверка",
-            quantity: grillageRebarWeight,
-            unit: "кг",
-            price: 75,
-            total_cost: grillageRebarWeight * 75
-        });
-
-        // Гидроизоляция для свайного фундамента
-        const waterproofingArea = Math.round(perimeter * 0.8);
-        foundation.push({
-            name: "Гидроизоляция ростверка",
-            quantity: waterproofingArea,
-            unit: "м²",
-            price: 120,
-            total_cost: waterproofingArea * 120
-        });
-    } else if (params.foundationType === 'column') {
-        // Количество столбов: периметр / шаг столбов (примерно 2м)
-        const columnCount = Math.ceil(perimeter / 2);
-        foundation.push({
-            name: "Бетонные столбы",
-            quantity: columnCount,
-            unit: "шт.",
-            price: 1500,
-            total_cost: columnCount * 1500
-        });
-
-        // Ростверк для столбчатого фундамента
-        const beamVolume = (perimeter * 0.25 * 0.3).toFixed(1);
-        foundation.push({
-            name: "Бетон для ростверка",
-            quantity: beamVolume,
-            unit: "м³",
-            price: 5100,
-            total_cost: Math.round(beamVolume * 5100)
-        });
-
-        // Гидроизоляция для столбчатого фундамента
-        const waterproofingArea = Math.round(perimeter * 0.6);
-        foundation.push({
-            name: "Гидроизоляция ростверка",
-            quantity: waterproofingArea,
-            unit: "м²",
-            price: 120,
-            total_cost: waterproofingArea * 120
-        });
-    }
-
-    // Расчет для стен
-    let walls = [];
-    if (params.wallMaterial === 'brick') {
-        // Кирпичи: периметр * высота * количество на м²
-        const brickCount = Math.round(perimeter * wallHeight * 52);
-        walls.push({
-            name: "Кирпич рядовой",
-            quantity: brickCount,
-            unit: "шт.",
-            price: 30,
-            total_cost: brickCount * 30
-        });
-
-        // Раствор: объем стен * коэффициент
-        const mortarVolume = (perimeter * wallHeight * 0.25 * 0.12).toFixed(1);
-        walls.push({
-            name: "Раствор для кладки",
-            quantity: mortarVolume,
-            unit: "м³",
-            price: 4150,
-            total_cost: Math.round(mortarVolume * 4150)
-        });
-
-        // Утеплитель для кирпичных стен
-        const insulationArea = Math.round(perimeter * wallHeight);
-        walls.push({
-            name: "Утеплитель фасадный",
-            quantity: insulationArea,
-            unit: "м²",
-            price: 380,
-            total_cost: insulationArea * 380
-        });
-    } else if (params.wallMaterial === 'wood') {
-        // Брус: периметр * высота * количество рядов
-        const beamCount = Math.round(perimeter * 0.5 + wallHeight * 2);
-        walls.push({
-            name: "Брус 150x150",
-            quantity: beamCount,
-            unit: "шт.",
-            price: 850,
-            total_cost: beamCount * 850
-        });
-
-        // Утеплитель: площадь стен
-        const insulationArea = Math.round(perimeter * wallHeight);
-        walls.push({
-            name: "Минеральная вата",
-            quantity: insulationArea,
-            unit: "м²",
-            price: 550,
-            total_cost: insulationArea * 550
-        });
-
-        // Межвенцовый утеплитель
-        const interLayerCount = Math.round(wallHeight / 0.15); // высота стены / высота бруса
-        walls.push({
-            name: "Межвенцовый утеплитель",
-            quantity: perimeter * interLayerCount,
-            unit: "м.п.",
-            price: 45,
-            total_cost: perimeter * interLayerCount * 45
-        });
-    } else if (params.wallMaterial === 'block') {
-        // Блоки: периметр * высота * количество на м²
-        const blockCount = Math.round(perimeter * wallHeight * 8);
-        walls.push({
-            name: "Газобетонные блоки",
-            quantity: blockCount,
-            unit: "шт.",
-            price: 180,
-            total_cost: blockCount * 180
-        });
-
-        // Клей: мешки на количество блоков
-        const glueCount = Math.ceil(blockCount / 25);
-        walls.push({
-            name: "Клей для блоков",
-            quantity: glueCount,
-            unit: "мешок",
-            price: 380,
-            total_cost: glueCount * 380
-        });
-
-        // Утеплитель для блочных стен
-        const insulationArea = Math.round(perimeter * wallHeight);
-        walls.push({
-            name: "Утеплитель фасадный",
-            quantity: insulationArea,
-            unit: "м²",
-            price: 350,
-            total_cost: insulationArea * 350
-        });
-    } else if (params.wallMaterial === 'concrete') {
-        // Бетон для монолитных стен: периметр * толщина * высота
-        const concreteVolume = (perimeter * 0.2 * wallHeight).toFixed(1);
-        walls.push({
-            name: "Бетон B25",
-            quantity: concreteVolume,
-            unit: "м³",
-            price: 5500,
-            total_cost: Math.round(concreteVolume * 5500)
-        });
-
-        // Арматура для стен
-        const wallRebarWeight = Math.round(perimeter * wallHeight * 15);
-        walls.push({
-            name: "Арматура для стен",
-            quantity: wallRebarWeight,
-            unit: "кг",
-            price: 75,
-            total_cost: wallRebarWeight * 75
-        });
-
-        // Опалубка
-        const formworkArea = Math.round(perimeter * wallHeight * 2);
-        walls.push({
-            name: "Опалубка для стен",
-            quantity: formworkArea,
-            unit: "м²",
-            price: 225,
-            total_cost: formworkArea * 225
-        });
-
-        // Утеплитель для монолитных стен
-        const insulationArea = Math.round(perimeter * wallHeight);
-        walls.push({
-            name: "Утеплитель фасадный",
-            quantity: insulationArea,
-            unit: "м²",
-            price: 380,
-            total_cost: insulationArea * 380
-        });
-    } else if (params.wallMaterial === 'panel') {
-        // Панели для стен (количество панелей зависит от размера)
-        const panelCount = Math.ceil(perimeter * wallHeight / 6); // примерно 6м² на панель
-        walls.push({
-            name: "Стеновые панели",
-            quantity: panelCount,
-            unit: "шт.",
-            price: 9500,
-            total_cost: panelCount * 9500
-        });
-
-        // Крепежные элементы для панелей
-        walls.push({
-            name: "Крепежные элементы",
-            quantity: panelCount * 4, // 4 крепления на панель
-            unit: "компл.",
-            price: 350,
-            total_cost: panelCount * 4 * 350
-        });
-
-        // Герметик для швов
-        const jointLength = perimeter * (Math.ceil(wallHeight / 3) + 1); // швы вертикальные и горизонтальные
-        walls.push({
-            name: "Герметик для швов",
-            quantity: Math.ceil(jointLength / 10), // 10 метров на тюбик
-            unit: "тюбик",
-            price: 280,
-            total_cost: Math.ceil(jointLength / 10) * 280
-        });
-    }
-
-    // Расчет для крыши
-    let roof = [];
-    const roofArea = area * 1.2;
-
-    if (params.roofType === 'metal') {
-        // Металлочерепица: площадь крыши * коэффициент
-        const metalTileArea = Math.round(roofArea * 1.1);
-        roof.push({
-            name: "Металлочерепица",
-            quantity: metalTileArea,
-            unit: "м²",
-            price: 650,
-            total_cost: metalTileArea * 650
-        });
-    } else if (params.roofType === 'tile') {
-        // Керамическая черепица: площадь крыши * коэффициент
-        const tileArea = Math.round(roofArea * 1.15);
-        roof.push({
-            name: "Керамическая черепица",
-            quantity: tileArea,
-            unit: "м²",
-            price: 1200,
-            total_cost: tileArea * 1200
-        });
-    } else if (params.roofType === 'shingle') {
-        // Гибкая черепица: площадь крыши * коэффициент
-        const shingleArea = Math.round(roofArea * 1.15);
-        roof.push({
-            name: "Гибкая черепица",
-            quantity: shingleArea,
-            unit: "м²",
-            price: 550,
-            total_cost: shingleArea * 550
-        });
-    } else if (params.roofType === 'flat') {
-        // Плоская кровля: площадь крыши * коэффициент
-        const flatRoofArea = Math.round(roofArea * 1.05);
-        roof.push({
-            name: "Рулонная кровля",
-            quantity: flatRoofArea,
-            unit: "м²",
-            price: 350,
-            total_cost: flatRoofArea * 350
-        });
-    }
-
-    // Стропила для всех типов крыш
-    const raftersCount = Math.ceil(Math.sqrt(area) * 1.5);
-    roof.push({
-        name: "Стропила",
-        quantity: raftersCount,
-        unit: "шт.",
-        price: 750,
-        total_cost: raftersCount * 750
+    // Простые тестовые данные (вместо сложных расчетов)
+    // Фундамент
+    foundation.push({
+        name: "Бетон для фундамента",
+        quantity: area * 0.2,
+        unit: "м³",
+        price: 5000,
+        total_cost: area * 0.2 * 5000
     });
 
-    // Добавляем гидроизоляцию и обрешетку для скатных крыш
-    if (params.roofType !== 'flat') {
-        // Обрешетка
-        roof.push({
-            name: "Обрешетка",
-            quantity: Math.round(roofArea * 3),
-            unit: "м.п.",
-            price: 35,
-            total_cost: Math.round(roofArea * 3) * 35
-        });
+    foundation.push({
+        name: "Арматура",
+        quantity: area * 30,
+        unit: "кг",
+        price: 80,
+        total_cost: area * 30 * 80
+    });
 
-        // Гидроизоляция
-        roof.push({
-            name: "Гидроизоляция",
-            quantity: Math.ceil(roofArea * 1.05),
-            unit: "м²",
-            price: 85,
-            total_cost: Math.ceil(roofArea * 1.05) * 85
-        });
+    // Стены
+    walls.push({
+        name: "Кирпич",
+        quantity: area * 100,
+        unit: "шт.",
+        price: 20,
+        total_cost: area * 100 * 20
+    });
 
-        // Утеплитель для кровли
-        if (params.roofType === 'metal' || params.roofType === 'tile') {
-            roof.push({
-                name: "Утеплитель кровельный",
-                quantity: Math.round(roofArea),
-                unit: "м²",
-                price: 380,
-                total_cost: Math.round(roofArea) * 380
-            });
-        }
-    } else {
-        // Для плоской кровли
-        roof.push({
-            name: "Утеплитель для плоской кровли",
-            quantity: Math.round(roofArea * 1.05),
-            unit: "м²",
-            price: 420,
-            total_cost: Math.round(roofArea * 1.05) * 420
-        });
+    walls.push({
+        name: "Раствор",
+        quantity: area * 0.05,
+        unit: "м³",
+        price: 3000,
+        total_cost: area * 0.05 * 3000
+    });
 
-        roof.push({
-            name: "Пароизоляция",
-            quantity: Math.round(roofArea * 1.1),
-            unit: "м²",
-            price: 65,
-            total_cost: Math.round(roofArea * 1.1) * 65
-        });
-    }
+    // Крыша
+    roof.push({
+        name: "Металлочерепица",
+        quantity: area * 1.2,
+        unit: "м²",
+        price: 600,
+        total_cost: area * 1.2 * 600
+    });
+
+    roof.push({
+        name: "Стропильная система",
+        quantity: area * 0.03,
+        unit: "м³",
+        price: 15000,
+        total_cost: area * 0.03 * 15000
+    });
 
     // Возвращаем результаты
     return {
         foundation: foundation.length > 0 ? foundation : [
             {
-                name: "Материалы для выбранного типа фундамента",
+                name: "Материалы для выбранного типа фундамента (JS расчет)",
                 quantity: 1,
                 unit: "компл.",
                 price: 50000,
@@ -2456,3 +2150,138 @@ function clearAllCalculationResults() {
 
     logDebug("Все результаты расчета и анимации очищены");
 }
+
+// Функция для настройки переключателей параметров арматуры
+function setupRebarToggles() {
+    // Массив ID всех переключателей арматуры
+    const toggleIds = ['strip-rebar-toggle', 'slab-rebar-toggle', 'pile-rebar-toggle', 'column-rebar-toggle'];
+
+    // Для каждого переключателя добавляем обработчик события
+    toggleIds.forEach(id => {
+        const toggleElement = document.getElementById(id);
+
+        if (toggleElement) {
+            // Находим соответствующий блок параметров (по аналогичному ID, но с 'params' вместо 'toggle')
+            const paramsId = id.replace('toggle', 'params');
+            const paramsElement = document.getElementById(paramsId);
+
+            if (paramsElement) {
+                // Добавляем обработчик события клика
+                toggleElement.addEventListener('change', function () {
+                    // Переключаем видимость блока параметров
+                    if (this.checked) {
+                        paramsElement.style.display = 'grid';
+                        // Добавляем класс активной иконки
+                        this.closest('.relative').querySelector('svg').classList.add('text-blue-500');
+                        this.closest('.relative').querySelector('svg').classList.remove('text-gray-400');
+                    } else {
+                        paramsElement.style.display = 'none';
+                        // Удаляем класс активной иконки
+                        this.closest('.relative').querySelector('svg').classList.add('text-gray-400');
+                        this.closest('.relative').querySelector('svg').classList.remove('text-blue-500');
+                    }
+                });
+
+                // Также добавляем обработчик клика по SVG иконке
+                const svgIcon = toggleElement.closest('.relative').querySelector('svg');
+                if (svgIcon) {
+                    svgIcon.addEventListener('click', function () {
+                        // Инвертируем состояние чекбокса и вызываем событие change
+                        toggleElement.checked = !toggleElement.checked;
+                        // Вызываем событие изменения для активации обработчика выше
+                        toggleElement.dispatchEvent(new Event('change'));
+                    });
+                }
+            }
+        }
+    });
+
+    // Обработчик изменения типа фундамента для сброса всех параметров арматуры
+    const foundationTypeSelect = document.getElementById('foundationType');
+    if (foundationTypeSelect) {
+        foundationTypeSelect.addEventListener('change', function () {
+            // Скрываем все блоки параметров арматуры
+            document.querySelectorAll('.rebar-params').forEach(element => {
+                element.style.display = 'none';
+            });
+
+            // Сбрасываем все переключатели
+            document.querySelectorAll('.rebar-toggle').forEach(element => {
+                element.checked = false;
+                element.closest('.relative').querySelector('svg').classList.add('text-gray-400');
+                element.closest('.relative').querySelector('svg').classList.remove('text-blue-500');
+            });
+        });
+    }
+}
+
+// ... existing code ...
+document.addEventListener('DOMContentLoaded', function () {
+    // Инициализация выбора типа дома
+    const houseTypeSelect = document.getElementById('houseType');
+    const houseTypeFields = document.querySelectorAll('.house-type-field');
+
+    // Инициализация выбора типа фундамента
+    const foundationTypeSelect = document.getElementById('foundationType');
+    const foundationTypes = document.querySelectorAll('.foundation-type');
+
+    // Инициализация выбора материала стен
+    const wallMaterialSelect = document.getElementById('wallMaterial');
+    const wallMaterialDivs = document.querySelectorAll('.wall-material');
+
+    // Обновление видимости полей в зависимости от выбранного типа дома
+    function updateHouseTypeFields() {
+        const selectedValue = houseTypeSelect.value;
+        houseTypeFields.forEach(field => {
+            field.style.display = field.classList.contains(selectedValue) ? 'block' : 'none';
+        });
+    }
+
+    // Обновление видимости параметров в зависимости от выбранного типа фундамента
+    function updateFoundationTypes() {
+        const selectedValue = foundationTypeSelect.value;
+        foundationTypes.forEach(type => {
+            type.style.display = type.id === `${selectedValue}Foundation` ? 'block' : 'none';
+        });
+    }
+
+    // Обновление видимости полей в зависимости от выбранного материала стен
+    function updateWallMaterialFields() {
+        const selectedValue = wallMaterialSelect.value;
+        wallMaterialDivs.forEach(div => {
+            div.style.display = div.classList.contains(selectedValue) ? 'block' : 'none';
+        });
+    }
+
+    // Инициализация переключателей для параметров арматуры
+    setupRebarToggles();
+
+    // Обработчики событий
+    if (houseTypeSelect) {
+        houseTypeSelect.addEventListener('change', updateHouseTypeFields);
+        updateHouseTypeFields();
+    }
+
+    if (foundationTypeSelect) {
+        foundationTypeSelect.addEventListener('change', function () {
+            updateFoundationTypes();
+        });
+        updateFoundationTypes();
+    }
+
+    if (wallMaterialSelect) {
+        wallMaterialSelect.addEventListener('change', updateWallMaterialFields);
+        updateWallMaterialFields();
+    }
+
+    // Обработка отправки формы расчета
+    const calculatorForm = document.getElementById('calculatorForm');
+    if (calculatorForm) {
+        calculatorForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            // Запускаем обработку формы
+            handleFormSubmit(e);
+        });
+    }
+});

@@ -349,3 +349,22 @@ footer li {
         transform: rotateY(360deg) scale(1);
     }
 }
+
+/* Базовые стили для темной темы - только необходимые */
+.dark-theme input[type="number"],
+.dark-theme input[type="text"],
+.dark-theme select,
+.dark-theme textarea {
+    background-color: var(--input-bg);
+    color: white;
+}
+
+.dark-theme select option {
+    background-color: var(--secondary-bg);
+    color: white;
+}
+
+/* Стиль для иконки шестеренки в темной теме */
+.dark-theme .rebar-toggle+svg {
+    color: var(--primary-text);
+}

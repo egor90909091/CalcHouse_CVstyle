@@ -46,6 +46,14 @@ app.include_router(materials.router, prefix="/api", tags=["materials"])
 app.include_router(recommendations.router, prefix="/api", tags=["recommendations"])
 app.include_router(image_recognition.router, prefix="/api", tags=["image_recognition"])
 
+
+def safe_float(value, default=0):
+    if isinstance(value, list):
+        # Если это список, возьмите первое значение или используйте значение по умолчанию
+        return float(value[0]) if value else default
+    return float(value) if value is not None else default
+
+
 if __name__ == "__main__":
     import uvicorn
     import signal
@@ -83,7 +91,7 @@ if __name__ == "__main__":
 
     # Запускаем сервер с таймаутом для сокетов
     config = Config(
-        "main:app", host="0.0.0.0", port=8000, reload=True, timeout_keep_alive=5
+        "main:app", host="0.0.0.0", port=8001, reload=True, timeout_keep_alive=5
     )
     server = uvicorn.Server(config)
 

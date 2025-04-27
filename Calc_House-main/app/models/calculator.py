@@ -256,6 +256,9 @@ class MaterialsCalculatorInput(BaseModel):
         ..., description="Тип конструкции крыши"
     )
     roof_angle: float = Field(..., description="Угол наклона крыши в градусах")
+    roof_height: float = Field(1.5, description="Высота крыши в метрах")
+    roof_overhang: float = Field(0.6, description="Свес крыши в метрах")
+    roof_material: str = Field("metal", description="Материал кровли")
 
 
 # Классы для совместимости с API

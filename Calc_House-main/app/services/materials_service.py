@@ -16,6 +16,15 @@ from app.models.calculator import (
     RoofType,
     RoofConstruction,
 )
+from decimal import Decimal
+
+
+# Добавляем функцию для безопасного преобразования в float
+def safe_float(value, default=0):
+    if isinstance(value, list):
+        # Если это список, возьмите первое значение или используйте значение по умолчанию
+        return float(value[0]) if value else default
+    return float(value) if value is not None else default
 
 
 class MaterialsService:
@@ -361,6 +370,28 @@ class MaterialsService:
             # Для других типов крыш используем усредненный коэффициент
             return base_area * slope_factor * 1.2 * eaves_factor
 
+    def _get_waterproofing_data(self, waterproofing_type):
+        """
+        Получение данных о гидроизоляции из общего раздела waterproofing_types
+
+        Args:
+            waterproofing_type: Тип гидроизоляции (waterproofing_roll, waterproofing_membrane и т.д.)
+
+        Returns:
+            Dict: Данные о гидроизоляции или None в случае ошибки
+        """
+        waterproofing_key = waterproofing_type.replace("waterproofing_", "")
+
+        try:
+            with open(self.materials_data_path, "r", encoding="utf-8") as f:
+                materials_data = json.load(f)
+                return materials_data.get("waterproofing_types", {}).get(
+                    waterproofing_key, None
+                )
+        except Exception as e:
+            print(f"Ошибка при загрузке данных о гидроизоляции: {e}")
+            return None
+
     def _calculate_foundation_materials(
         self, data: MaterialsCalculatorInput, house_params: Dict[str, float]
     ) -> List[MaterialItem]:
@@ -383,16 +414,16 @@ class MaterialsService:
 
         if foundation_type == FoundationType.STRIP:
             # Ленточный фундамент
-            width = float(foundation_params.get("width", 0.4))  # м
-            depth = float(foundation_params.get("depth", 0.8))  # м
-            height = float(foundation_params.get("height", 0.5))  # м
+            width = safe_float(foundation_params.get("width", [0.4]))  # м
+            depth = safe_float(foundation_params.get("depth", [0.8]))  # м
+            height = safe_float(foundation_params.get("height", [0.5]))  # м
 
             # Получаем диаметры арматуры или используем стандартные
-            longitudinal_rebar_diameter = int(
-                foundation_params.get("longitudinal_rebar_diameter", 12)
+            longitudinal_rebar_diameter = safe_float(
+                foundation_params.get("longitudinal_rebar_diameter", [12])
             )  # мм
-            transverse_rebar_diameter = int(
-                foundation_params.get("transverse_rebar_diameter", 8)
+            transverse_rebar_diameter = safe_float(
+                foundation_params.get("transverse_rebar_diameter", [8])
             )  # мм
 
             # Вес арматуры за 1 м погонный (кг/м) в зависимости от диаметра
@@ -488,10 +519,25 @@ class MaterialsService:
             )
 
             # Гидроизоляция
-            waterproofing_area = perimeter * width * 1.1
+            waterproofing_area = perimeter * width * 1.1  # +10% запас
+
+            # Тип гидроизоляции
+            waterproofing_type = foundation_params.get(
+                "waterproofing", "waterproofing_roll"
+            )
+
+            # Загружаем данные о гидроизоляции из общего раздела
+            waterproofing_data = self._get_waterproofing_data(waterproofing_type)
+
+            # Определяем название гидроизоляции
+            waterproofing_name = "Гидроизоляция"
+            if waterproofing_data:
+                waterproofing_name = waterproofing_data.get("name", "Гидроизоляция")
+
+            # Добавляем гидроизоляцию в список материалов
             materials.append(
                 MaterialItem(
-                    name="Гидроизоляция",
+                    name=waterproofing_name,
                     quantity=round(waterproofing_area, 2),
                     unit="м²",
                 )
@@ -499,8 +545,32 @@ class MaterialsService:
 
         elif foundation_type == FoundationType.SLAB:
             # Плитный фундамент
-            thickness = float(foundation_params.get("thickness", 0.3))  # м
-            cushion = float(foundation_params.get("cushion", 0.1))  # м
+            thickness = safe_float(foundation_params.get("thickness", [0.3]))  # м
+            cushion = safe_float(foundation_params.get("cushion", [0.1]))  # м
+
+            # Получаем диаметры арматуры или используем стандартные
+            main_rebar_diameter = safe_float(
+                foundation_params.get("main_rebar_diameter", [12])
+            )  # мм
+            distribution_rebar_diameter = safe_float(
+                foundation_params.get("distribution_rebar_diameter", [8])
+            )  # мм
+
+            # Вес арматуры за 1 м погонный (кг/м) в зависимости от диаметра
+            rebar_weights = {
+                6: 0.222,
+                8: 0.395,
+                10: 0.617,
+                12: 0.888,
+                14: 1.21,
+                16: 1.58,
+                18: 2.00,
+                20: 2.47,
+                22: 2.98,
+                25: 3.85,
+                28: 4.83,
+                32: 6.31,
+            }
 
             # Объем бетона
             concrete_volume = area * thickness * 1.05  # +5% на запас
@@ -512,11 +582,66 @@ class MaterialsService:
                 )
             )
 
-            # Арматура (примерно 80 кг на 1 м³ бетона)
-            rebar_weight = concrete_volume * 80
+            # Расчет арматуры для плитного фундамента
+            # Шаг арматуры (в метрах)
+            main_rebar_step = 0.2  # шаг основной арматуры
+            distribution_rebar_step = 0.3  # шаг распределительной арматуры
+
+            # Длина арматурных прутков (два слоя: верхний и нижний)
+            side_length = math.sqrt(area)  # примерная длина стороны площади
+
+            # Количество прутков (количество = длина стороны/шаг + 1)
+            main_rebar_count = math.ceil(side_length / main_rebar_step) + 1
+            distribution_rebar_count = (
+                math.ceil(side_length / distribution_rebar_step) + 1
+            )
+
+            # Общая длина арматуры в метрах
+            main_rebar_length = (
+                main_rebar_count * side_length * 2
+            )  # в обоих направлениях для двух слоев
+            distribution_rebar_length = (
+                distribution_rebar_count * side_length * 2
+            )  # в обоих направлениях для двух слоев
+
+            # Учитываем запас 10%
+            main_rebar_length *= 1.1
+            distribution_rebar_length *= 1.1
+
+            # Расчет веса арматуры
+            main_rebar_weight = main_rebar_length * rebar_weights.get(
+                main_rebar_diameter, 0.888
+            )
+            distribution_rebar_weight = distribution_rebar_length * rebar_weights.get(
+                distribution_rebar_diameter, 0.395
+            )
+
+            # Добавляем арматуру в список материалов
             materials.append(
                 MaterialItem(
-                    name="Арматура", quantity=round(rebar_weight, 2), unit="кг"
+                    name=f"Арматура A400 Ø{main_rebar_diameter} мм (основная)",
+                    quantity=round(main_rebar_weight, 2),
+                    unit="кг",
+                    detail=f"{round(main_rebar_length, 2)} м.п.",
+                )
+            )
+
+            materials.append(
+                MaterialItem(
+                    name=f"Арматура A400 Ø{distribution_rebar_diameter} мм (распределительная)",
+                    quantity=round(distribution_rebar_weight, 2),
+                    unit="кг",
+                    detail=f"{round(distribution_rebar_length, 2)} м.п.",
+                )
+            )
+
+            # Общий вес арматуры (для совместимости с остальным кодом)
+            total_rebar_weight = main_rebar_weight + distribution_rebar_weight
+            materials.append(
+                MaterialItem(
+                    name="Арматура A400 (общий вес)",
+                    quantity=round(total_rebar_weight, 2),
+                    unit="кг",
                 )
             )
 
@@ -529,10 +654,25 @@ class MaterialsService:
             )
 
             # Гидроизоляция
-            waterproofing_area = area * 1.1
+            waterproofing_area = area * 1.1  # +10% запас
+
+            # Тип гидроизоляции
+            waterproofing_type = foundation_params.get(
+                "waterproofing", "waterproofing_roll"
+            )
+
+            # Загружаем данные о гидроизоляции из общего раздела
+            waterproofing_data = self._get_waterproofing_data(waterproofing_type)
+
+            # Определяем название гидроизоляции
+            waterproofing_name = "Гидроизоляция"
+            if waterproofing_data:
+                waterproofing_name = waterproofing_data.get("name", "Гидроизоляция")
+
+            # Добавляем гидроизоляцию в список материалов
             materials.append(
                 MaterialItem(
-                    name="Гидроизоляция",
+                    name=waterproofing_name,
                     quantity=round(waterproofing_area, 2),
                     unit="м²",
                 )
@@ -540,9 +680,39 @@ class MaterialsService:
 
         elif foundation_type == FoundationType.PILE:
             # Свайный фундамент
-            pile_step = float(foundation_params.get("step", 2.5))  # м
-            pile_diameter = float(foundation_params.get("diameter", 0.3))  # м
-            pile_depth = float(foundation_params.get("depth", 2.0))  # м
+            pile_step = safe_float(foundation_params.get("step", [2.5]))  # м
+            pile_diameter = safe_float(foundation_params.get("diameter", [0.3]))  # м
+            pile_depth = safe_float(foundation_params.get("depth", [2.0]))  # м
+
+            # Получаем диаметры арматуры или используем стандартные
+            pile_longitudinal_rebar_diameter = safe_float(
+                foundation_params.get("pile_longitudinal_rebar_diameter", [12])
+            )  # мм
+            pile_transverse_rebar_diameter = safe_float(
+                foundation_params.get("pile_transverse_rebar_diameter", [8])
+            )  # мм
+            grillage_longitudinal_rebar_diameter = safe_float(
+                foundation_params.get("grillage_longitudinal_rebar_diameter", [12])
+            )  # мм
+            grillage_transverse_rebar_diameter = safe_float(
+                foundation_params.get("grillage_transverse_rebar_diameter", [8])
+            )  # мм
+
+            # Вес арматуры за 1 м погонный (кг/м) в зависимости от диаметра
+            rebar_weights = {
+                6: 0.222,
+                8: 0.395,
+                10: 0.617,
+                12: 0.888,
+                14: 1.21,
+                16: 1.58,
+                18: 2.00,
+                20: 2.47,
+                22: 2.98,
+                25: 3.85,
+                28: 4.83,
+                32: 6.31,
+            }
 
             # Количество свай
             piles_count = (
@@ -577,42 +747,209 @@ class MaterialsService:
                 )
             )
 
-            # Арматура
-            rebar_weight = concrete_volume * 60  # кг/м³
+            # Расчет арматуры для свай
+            # 1. Продольная арматура для свай (обычно 4 стержня на сваю)
+            pile_longitudinal_rebar_count = 4  # стержней на одну сваю
+            pile_longitudinal_rebar_length = (
+                pile_depth * pile_longitudinal_rebar_count * piles_count
+            )
+
+            # 2. Поперечная арматура для свай (хомуты)
+            pile_stirrup_step = 0.3  # шаг хомутов в метрах
+            pile_stirrup_count_per_pile = math.ceil(pile_depth / pile_stirrup_step)
+            pile_stirrup_perimeter = math.pi * pile_diameter
+            pile_stirrup_total_length = (
+                pile_stirrup_count_per_pile * pile_stirrup_perimeter * piles_count
+            )
+
+            # 3. Продольная арматура для ростверка (обычно 4 стержня)
+            grillage_longitudinal_rebar_count = 4
+            grillage_longitudinal_rebar_length = (
+                perimeter * grillage_longitudinal_rebar_count
+            )
+
+            # 4. Поперечная арматура для ростверка (хомуты)
+            grillage_stirrup_step = 0.3  # шаг хомутов в метрах
+            grillage_stirrup_count = math.ceil(perimeter / grillage_stirrup_step)
+            grillage_stirrup_perimeter = 2 * (grillage_width + grillage_height)
+            grillage_stirrup_total_length = (
+                grillage_stirrup_count * grillage_stirrup_perimeter
+            )
+
+            # 5. Учитываем запас 10%
+            pile_longitudinal_rebar_length *= 1.1
+            pile_stirrup_total_length *= 1.1
+            grillage_longitudinal_rebar_length *= 1.1
+            grillage_stirrup_total_length *= 1.1
+
+            # 6. Расчет весов арматуры
+            pile_longitudinal_weight = (
+                pile_longitudinal_rebar_length
+                * rebar_weights.get(pile_longitudinal_rebar_diameter, 0.888)
+            )
+            pile_transverse_weight = pile_stirrup_total_length * rebar_weights.get(
+                pile_transverse_rebar_diameter, 0.395
+            )
+            grillage_longitudinal_weight = (
+                grillage_longitudinal_rebar_length
+                * rebar_weights.get(grillage_longitudinal_rebar_diameter, 0.888)
+            )
+            grillage_transverse_weight = (
+                grillage_stirrup_total_length
+                * rebar_weights.get(grillage_transverse_rebar_diameter, 0.395)
+            )
+
+            # 7. Добавляем арматуру в список материалов
             materials.append(
                 MaterialItem(
-                    name="Арматура", quantity=round(rebar_weight, 2), unit="кг"
+                    name=f"Арматура A400 Ø{pile_longitudinal_rebar_diameter} мм (для свай, продольная)",
+                    quantity=round(pile_longitudinal_weight, 2),
+                    unit="кг",
+                    detail=f"{round(pile_longitudinal_rebar_length, 2)} м.п.",
+                )
+            )
+
+            materials.append(
+                MaterialItem(
+                    name=f"Арматура A400 Ø{pile_transverse_rebar_diameter} мм (для свай, поперечная)",
+                    quantity=round(pile_transverse_weight, 2),
+                    unit="кг",
+                    detail=f"{pile_stirrup_count_per_pile * piles_count} шт. ({round(pile_stirrup_total_length, 2)} м.п.)",
+                )
+            )
+
+            materials.append(
+                MaterialItem(
+                    name=f"Арматура A400 Ø{grillage_longitudinal_rebar_diameter} мм (для ростверка, продольная)",
+                    quantity=round(grillage_longitudinal_weight, 2),
+                    unit="кг",
+                    detail=f"{round(grillage_longitudinal_rebar_length, 2)} м.п.",
+                )
+            )
+
+            materials.append(
+                MaterialItem(
+                    name=f"Арматура A400 Ø{grillage_transverse_rebar_diameter} мм (для ростверка, поперечная)",
+                    quantity=round(grillage_transverse_weight, 2),
+                    unit="кг",
+                    detail=f"{grillage_stirrup_count} шт. ({round(grillage_stirrup_total_length, 2)} м.п.)",
+                )
+            )
+
+            # Общий вес арматуры (для совместимости с остальным кодом)
+            total_rebar_weight = (
+                pile_longitudinal_weight
+                + pile_transverse_weight
+                + grillage_longitudinal_weight
+                + grillage_transverse_weight
+            )
+            materials.append(
+                MaterialItem(
+                    name="Арматура A400 (общий вес)",
+                    quantity=round(total_rebar_weight, 2),
+                    unit="кг",
+                )
+            )
+
+            # Гидроизоляция для ростверка
+            # Площадь гидроизоляции ростверка: нижняя поверхность + боковые поверхности
+            grillage_bottom_area = perimeter * grillage_width
+            grillage_sides_area = (
+                perimeter * grillage_height * 2
+            )  # две стороны: внешняя и внутренняя
+            waterproofing_area = (
+                grillage_bottom_area + grillage_sides_area
+            ) * 1.1  # +10% запас
+
+            # Тип гидроизоляции
+            waterproofing_type = foundation_params.get(
+                "waterproofing", "waterproofing_roll"
+            )
+
+            # Загружаем данные о гидроизоляции из общего раздела
+            waterproofing_data = self._get_waterproofing_data(waterproofing_type)
+
+            # Определяем название гидроизоляции
+            waterproofing_name = "Гидроизоляция ростверка"
+            if waterproofing_data:
+                waterproofing_name = waterproofing_data.get(
+                    "name", "Гидроизоляция ростверка"
+                )
+                waterproofing_key = waterproofing_type.replace("waterproofing_", "")
+                if (
+                    waterproofing_key != "ultrathin"
+                    and "ростверка" not in waterproofing_name
+                ):
+                    waterproofing_name += " ростверка"
+
+            # Добавляем гидроизоляцию в список материалов
+            materials.append(
+                MaterialItem(
+                    name=waterproofing_name,
+                    quantity=round(waterproofing_area, 2),
+                    unit="м²",
                 )
             )
 
         elif foundation_type == FoundationType.COLUMN:
             # Столбчатый фундамент
-            column_step = float(foundation_params.get("step", 2.5))  # м
-            column_size = float(foundation_params.get("size", 0.4))  # м
-            column_depth = float(foundation_params.get("depth", 1.5))  # м
+            column_step = safe_float(foundation_params.get("step", [2.5]))  # м
+            column_size = safe_float(foundation_params.get("size", [0.3]))  # м
+            column_depth = safe_float(foundation_params.get("depth", [1.5]))  # м
 
-            # Количество столбов
+            # Получаем диаметры арматуры или используем стандартные
+            column_longitudinal_rebar_diameter = safe_float(
+                foundation_params.get("column_longitudinal_rebar_diameter", [12])
+            )  # мм
+            column_transverse_rebar_diameter = safe_float(
+                foundation_params.get("column_transverse_rebar_diameter", [8])
+            )  # мм
+            beam_longitudinal_rebar_diameter = safe_float(
+                foundation_params.get("beam_longitudinal_rebar_diameter", [12])
+            )  # мм
+            beam_transverse_rebar_diameter = safe_float(
+                foundation_params.get("beam_transverse_rebar_diameter", [8])
+            )  # мм
+
+            # Вес арматуры за 1 м погонный (кг/м) в зависимости от диаметра
+            rebar_weights = {
+                6: 0.222,
+                8: 0.395,
+                10: 0.617,
+                12: 0.888,
+                14: 1.21,
+                16: 1.58,
+                18: 2.00,
+                20: 2.47,
+                22: 2.98,
+                25: 3.85,
+                28: 4.83,
+                32: 6.31,
+            }
+
+            # Расчет количества столбов
+            columns_per_side = math.ceil(
+                math.sqrt(area) / column_step
+            )  # примерное количество столбов на одну сторону
             columns_count = (
-                math.ceil(perimeter / column_step) + 4
-            )  # +4 для углов и доп. точек
+                columns_per_side * 4 - 4
+            )  # по периметру, вычитаем повторные углы
 
             # Объем бетона для столбов
-            column_volume = (
-                column_size * column_size * (column_depth + 0.3)
-            )  # +0.3м над землей
-            column_concrete_volume = column_volume * columns_count
+            column_volume = column_size * column_size * column_depth
+            columns_concrete_volume = column_volume * columns_count
 
-            # Объем бетона для ростверка
-            grillage_height = 0.4  # м
+            # Объем бетона для обвязки (балки)
+            grillage_height = 0.3  # м
             grillage_width = 0.3  # м
             grillage_volume = perimeter * grillage_height * grillage_width
 
             # Общий объем бетона
-            concrete_volume = column_concrete_volume + grillage_volume
+            concrete_volume = columns_concrete_volume + grillage_volume
 
             materials.append(
                 MaterialItem(
-                    name=f"Столбы, {column_size}м x {column_size}м x {column_depth + 0.3}м",
+                    name=f"Столбы {column_size}x{column_size}м, h={column_depth}м",
                     quantity=columns_count,
                     unit="шт",
                 )
@@ -626,11 +963,140 @@ class MaterialsService:
                 )
             )
 
-            # Арматура
-            rebar_weight = concrete_volume * 65  # кг/м³
+            # Расчет арматуры для столбов
+            # 1. Продольная арматура для столбов (обычно 4 стержня на столб)
+            column_longitudinal_rebar_count = 4  # стержней на один столб
+            column_longitudinal_rebar_length = (
+                column_depth * column_longitudinal_rebar_count * columns_count
+            )
+
+            # 2. Поперечная арматура для столбов (хомуты)
+            column_stirrup_step = 0.2  # шаг хомутов в метрах
+            column_stirrup_count_per_column = math.ceil(
+                column_depth / column_stirrup_step
+            )
+            column_stirrup_perimeter = 4 * column_size  # периметр прямоугольного столба
+            column_stirrup_total_length = (
+                column_stirrup_count_per_column
+                * column_stirrup_perimeter
+                * columns_count
+            )
+
+            # 3. Продольная арматура для обвязки (обычно 4 стержня)
+            beam_longitudinal_rebar_count = 4
+            beam_longitudinal_rebar_length = perimeter * beam_longitudinal_rebar_count
+
+            # 4. Поперечная арматура для обвязки (хомуты)
+            beam_stirrup_step = 0.2  # шаг хомутов в метрах
+            beam_stirrup_count = math.ceil(perimeter / beam_stirrup_step)
+            beam_stirrup_perimeter = 2 * (grillage_width + grillage_height)
+            beam_stirrup_total_length = beam_stirrup_count * beam_stirrup_perimeter
+
+            # 5. Учитываем запас 10%
+            column_longitudinal_rebar_length *= 1.1
+            column_stirrup_total_length *= 1.1
+            beam_longitudinal_rebar_length *= 1.1
+            beam_stirrup_total_length *= 1.1
+
+            # 6. Расчет весов арматуры
+            column_longitudinal_weight = (
+                column_longitudinal_rebar_length
+                * rebar_weights.get(column_longitudinal_rebar_diameter, 0.888)
+            )
+            column_transverse_weight = column_stirrup_total_length * rebar_weights.get(
+                column_transverse_rebar_diameter, 0.395
+            )
+            beam_longitudinal_weight = (
+                beam_longitudinal_rebar_length
+                * rebar_weights.get(beam_longitudinal_rebar_diameter, 0.888)
+            )
+            beam_transverse_weight = beam_stirrup_total_length * rebar_weights.get(
+                beam_transverse_rebar_diameter, 0.395
+            )
+
+            # 7. Добавляем арматуру в список материалов
             materials.append(
                 MaterialItem(
-                    name="Арматура", quantity=round(rebar_weight, 2), unit="кг"
+                    name=f"Арматура A400 Ø{column_longitudinal_rebar_diameter} мм (для столбов, продольная)",
+                    quantity=round(column_longitudinal_weight, 2),
+                    unit="кг",
+                    detail=f"{round(column_longitudinal_rebar_length, 2)} м.п.",
+                )
+            )
+
+            materials.append(
+                MaterialItem(
+                    name=f"Арматура A400 Ø{column_transverse_rebar_diameter} мм (для столбов, поперечная)",
+                    quantity=round(column_transverse_weight, 2),
+                    unit="кг",
+                    detail=f"{column_stirrup_count_per_column * columns_count} шт. ({round(column_stirrup_total_length, 2)} м.п.)",
+                )
+            )
+
+            materials.append(
+                MaterialItem(
+                    name=f"Арматура A400 Ø{beam_longitudinal_rebar_diameter} мм (для обвязки, продольная)",
+                    quantity=round(beam_longitudinal_weight, 2),
+                    unit="кг",
+                    detail=f"{round(beam_longitudinal_rebar_length, 2)} м.п.",
+                )
+            )
+
+            materials.append(
+                MaterialItem(
+                    name=f"Арматура A400 Ø{beam_transverse_rebar_diameter} мм (для обвязки, поперечная)",
+                    quantity=round(beam_transverse_weight, 2),
+                    unit="кг",
+                    detail=f"{beam_stirrup_count} шт. ({round(beam_stirrup_total_length, 2)} м.п.)",
+                )
+            )
+
+            # Общий вес арматуры (для совместимости с остальным кодом)
+            total_rebar_weight = (
+                column_longitudinal_weight
+                + column_transverse_weight
+                + beam_longitudinal_weight
+                + beam_transverse_weight
+            )
+            materials.append(
+                MaterialItem(
+                    name="Арматура A400 (общий вес)",
+                    quantity=round(total_rebar_weight, 2),
+                    unit="кг",
+                )
+            )
+
+            # Гидроизоляция для ростверка и нижней части столбов
+            # Площадь гидроизоляции ростверка: нижняя поверхность + боковые поверхности
+            grillage_bottom_area = perimeter * grillage_width
+            grillage_sides_area = (
+                perimeter * grillage_height * 2
+            )  # две стороны: внешняя и внутренняя
+            # Площадь гидроизоляции для нижней части столбов (только нижняя часть, соприкасающаяся с грунтом)
+            columns_bottom_area = columns_count * (column_size * column_size)
+            waterproofing_area = (
+                grillage_bottom_area + grillage_sides_area + columns_bottom_area
+            ) * 1.1  # +10% запас
+
+            # Тип гидроизоляции
+            waterproofing_type = foundation_params.get(
+                "waterproofing", "waterproofing_roll"
+            )
+
+            # Загружаем данные о гидроизоляции из общего раздела
+            waterproofing_data = self._get_waterproofing_data(waterproofing_type)
+
+            # Определяем название гидроизоляции
+            waterproofing_name = "Гидроизоляция"
+            if waterproofing_data:
+                waterproofing_name = waterproofing_data.get("name", "Гидроизоляция")
+
+            # Добавляем гидроизоляцию в список материалов
+            materials.append(
+                MaterialItem(
+                    name=waterproofing_name,
+                    quantity=round(waterproofing_area, 2),
+                    unit="м²",
                 )
             )
 
@@ -657,7 +1123,7 @@ class MaterialsService:
 
         if wall_material == WallMaterial.BRICK:
             # Кирпичные стены
-            thickness = float(wall_params.get("thickness", 0.38))  # м
+            thickness = safe_float(wall_params.get("thickness", [0.38]))  # м
             brick_type_key = wall_params.get("type", "solid")
 
             # Словарь для перевода типов кирпича на русский
@@ -704,9 +1170,9 @@ class MaterialsService:
         elif wall_material == WallMaterial.WOOD:
             # Деревянные стены
             wood_type = wall_params.get("type", "сосна")
-            wood_size = int(wall_params.get("size", 150))  # мм
-            waste_percent = float(
-                wall_params.get("waste", 15)
+            wood_size = safe_float(wall_params.get("size", [150]))  # мм
+            waste_percent = safe_float(
+                wall_params.get("waste", [15])
             )  # % запас на обрезки, по умолчанию 15%
             standard_length = 6.0  # стандартная длина бруса (м)
 
@@ -769,7 +1235,7 @@ class MaterialsService:
         elif wall_material == WallMaterial.BLOCK:
             # Блочные стены
             block_type = wall_params.get("type", "газобетон")
-            block_thickness = int(wall_params.get("thickness", 300))  # мм
+            block_thickness = safe_float(wall_params.get("thickness", [300]))  # мм
 
             # Стандартный размер блока: длина x высота x толщина
             block_length = 0.6  # м
@@ -806,7 +1272,7 @@ class MaterialsService:
 
         elif wall_material == WallMaterial.CONCRETE:
             # Монолитный бетон
-            thickness = int(wall_params.get("thickness", 200))  # мм
+            thickness = safe_float(wall_params.get("thickness", [200]))  # мм
             concrete_class = wall_params.get("class", "B25")
 
             # Объем бетона
@@ -841,7 +1307,7 @@ class MaterialsService:
         elif wall_material == WallMaterial.PANEL:
             # Панельные стены
             panel_type = wall_params.get("type", "ЖБИ")
-            panel_thickness = int(wall_params.get("thickness", 180))  # мм
+            panel_thickness = safe_float(wall_params.get("thickness", [180]))  # мм
 
             # Средняя площадь панели
             panel_area = 3.0 * 1.2  # 3.0 x 1.2 м
@@ -1086,34 +1552,76 @@ class MaterialsService:
                 # Обновляем каждый элемент материала, добавляя стоимость
                 updated_materials = []
                 for material in materials:
-                    # Ищем соответствующий материал в детализированных материалах
-                    material_price = None
-                    for key, details in detailed_materials.items():
-                        if details["name"] == material.name:
-                            material_price = details["price"]
-                            break
+                    # Для гидроизоляции проверяем секцию waterproofing_types
+                    if (
+                        "гидроизоляция" in material.name.lower()
+                        or "ультратонкая" in material.name.lower()
+                    ):
+                        waterproofing_price = None
+                        # Ищем соответствующий тип в waterproofing_types
+                        if "waterproofing_types" in materials_data:
+                            for key, info in materials_data[
+                                "waterproofing_types"
+                            ].items():
+                                if info["name"].lower() in material.name.lower():
+                                    waterproofing_price = info["price"]
+                                    break
 
-                    # Если цена найдена, добавляем стоимость к материалу
-                    if material_price is not None:
-                        updated_material = MaterialItem(
-                            name=material.name,
-                            quantity=material.quantity,
-                            unit=material.unit,
-                            price=material_price,
-                            total_cost=round(material.quantity * material_price, 2),
-                        )
+                        if waterproofing_price is not None:
+                            updated_material = MaterialItem(
+                                name=material.name,
+                                quantity=material.quantity,
+                                unit=material.unit,
+                                price=waterproofing_price,
+                                total_cost=round(
+                                    material.quantity * waterproofing_price, 2
+                                ),
+                            )
+                        else:
+                            # Если цена не найдена, используем приблизительную цену
+                            estimated_price = self._get_estimated_price(
+                                material.name, material.unit
+                            )
+                            updated_material = MaterialItem(
+                                name=material.name,
+                                quantity=material.quantity,
+                                unit=material.unit,
+                                price=estimated_price,
+                                total_cost=round(
+                                    material.quantity * estimated_price, 2
+                                ),
+                            )
                     else:
-                        # Если цена не найдена, используем приблизительную цену
-                        estimated_price = self._get_estimated_price(
-                            material.name, material.unit
-                        )
-                        updated_material = MaterialItem(
-                            name=material.name,
-                            quantity=material.quantity,
-                            unit=material.unit,
-                            price=estimated_price,
-                            total_cost=round(material.quantity * estimated_price, 2),
-                        )
+                        # Для других материалов ищем в обычном месте
+                        material_price = None
+                        for key, details in detailed_materials.items():
+                            if details["name"] == material.name:
+                                material_price = details["price"]
+                                break
+
+                        # Если цена найдена, добавляем стоимость к материалу
+                        if material_price is not None:
+                            updated_material = MaterialItem(
+                                name=material.name,
+                                quantity=material.quantity,
+                                unit=material.unit,
+                                price=material_price,
+                                total_cost=round(material.quantity * material_price, 2),
+                            )
+                        else:
+                            # Если цена не найдена, используем приблизительную цену
+                            estimated_price = self._get_estimated_price(
+                                material.name, material.unit
+                            )
+                            updated_material = MaterialItem(
+                                name=material.name,
+                                quantity=material.quantity,
+                                unit=material.unit,
+                                price=estimated_price,
+                                total_cost=round(
+                                    material.quantity * estimated_price, 2
+                                ),
+                            )
 
                     updated_materials.append(updated_material)
 

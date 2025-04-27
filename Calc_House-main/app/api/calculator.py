@@ -19,6 +19,13 @@ from app.services.materials_service import MaterialsService
 router = APIRouter()
 
 
+def safe_float(value, default=0):
+    if isinstance(value, list):
+        # Если это список, возьмите первое значение или используйте значение по умолчанию
+        return float(value[0]) if value else default
+    return float(value) if value is not None else default
+
+
 @router.post("/calculate", response_model=CalculatorResponse)
 async def calculate_construction(
     data: CalculatorRequest,
@@ -103,10 +110,10 @@ async def calculate_simple_materials(request: Request):
             )
 
         # Извлекаем параметры дома
-        house_length = float(data.get("houseLength", 0))
-        house_width = float(data.get("houseWidth", 0))
+        house_length = safe_float(data.get("houseLength", 0))
+        house_width = safe_float(data.get("houseWidth", 0))
         floors = int(data.get("floors", 1))
-        ceiling_height = float(data.get("ceilingHeight", 2.7))
+        ceiling_height = safe_float(data.get("ceilingHeight", 2.7))
 
         # Проверяем основные параметры
         if house_length <= 0 or house_width <= 0 or floors <= 0 or ceiling_height <= 0:
@@ -137,9 +144,9 @@ async def calculate_simple_materials(request: Request):
         # Расчет для ленточного фундамента
         if foundation_type == "strip":
             # Параметры ленточного фундамента
-            strip_width = float(data.get("stripWidth", 0.4))
-            strip_height = float(data.get("stripHeight", 0.8))
-            strip_depth = float(data.get("stripDepth", 1.2))
+            strip_width = safe_float(data.get("stripWidth", 0.4))
+            strip_height = safe_float(data.get("stripHeight", 0.8))
+            strip_depth = safe_float(data.get("stripDepth", 1.2))
 
             # Параметры арматуры
             longitudinal_rebar_diameter = int(data.get("longitudinalRebarDiameter", 12))
@@ -237,7 +244,22 @@ async def calculate_simple_materials(request: Request):
         # Расчет для плитного фундамента
         elif foundation_type == "slab":
             # Параметры плитного фундамента
-            slab_thickness = float(data.get("slabThickness", 0.3))
+            slab_thickness = safe_float(data.get("slabThickness", 0.2))
+            slab_cushion = safe_float(data.get("slabCushion", 0.15))
+
+            # Параметры арматуры
+            slab_main_rebar_diameter = int(data.get("slabMainRebarDiameter", 12))
+            slab_distribution_rebar_diameter = int(
+                data.get("slabDistributionRebarDiameter", 8)
+            )
+
+            # Добавляем параметры в объект foundation_params
+            foundation_params = {
+                "thickness": slab_thickness,
+                "cushion": slab_cushion,
+                "main_rebar_diameter": slab_main_rebar_diameter,
+                "distribution_rebar_diameter": slab_distribution_rebar_diameter,
+            }
 
             # Объем бетона для плитного фундамента
             concrete_volume = house_area * slab_thickness
@@ -339,6 +361,226 @@ async def calculate_simple_materials(request: Request):
                     }
                 )
 
+        # Расчет для свайного фундамента
+        elif foundation_type == "pile":
+            # Параметры свайного фундамента
+            pile_step = safe_float(data.get("pileStep", 1.5))
+            pile_diameter = safe_float(data.get("pileDiameter", 0.2))
+            pile_depth = safe_float(data.get("pileDepth", 2.5))
+
+            # Параметры арматуры
+            pile_longitudinal_rebar_diameter = int(
+                data.get("pileLongitudinalRebarDiameter", 12)
+            )
+            pile_transverse_rebar_diameter = int(
+                data.get("pileTransverseRebarDiameter", 8)
+            )
+            grillage_longitudinal_rebar_diameter = int(
+                data.get("grillageLongitudinalRebarDiameter", 12)
+            )
+            grillage_transverse_rebar_diameter = int(
+                data.get("grillageTransverseRebarDiameter", 8)
+            )
+
+            # Добавляем параметры в объект foundation_params
+            foundation_params = {
+                "step": pile_step,
+                "diameter": pile_diameter,
+                "depth": pile_depth,
+                "pile_longitudinal_rebar_diameter": pile_longitudinal_rebar_diameter,
+                "pile_transverse_rebar_diameter": pile_transverse_rebar_diameter,
+                "grillage_longitudinal_rebar_diameter": grillage_longitudinal_rebar_diameter,
+                "grillage_transverse_rebar_diameter": grillage_transverse_rebar_diameter,
+            }
+
+            # Объем бетона для свайного фундамента
+            concrete_volume = pile_depth * pile_diameter**2 * math.pi
+
+            # Добавляем выбранные материалы
+            if "concrete_m200" in foundation_selected_materials:
+                result["items"]["foundation"].append(
+                    {
+                        "name": "Бетон М200",
+                        "quantity": concrete_volume,
+                        "unit": "м³",
+                        "price": 4500.0,
+                    }
+                )
+
+            if "concrete_m300" in foundation_selected_materials:
+                result["items"]["foundation"].append(
+                    {
+                        "name": "Бетон М300",
+                        "quantity": concrete_volume,
+                        "unit": "м³",
+                        "price": 5200.0,
+                    }
+                )
+
+            if "concrete_m400" in foundation_selected_materials:
+                result["items"]["foundation"].append(
+                    {
+                        "name": "Бетон М400",
+                        "quantity": concrete_volume,
+                        "unit": "м³",
+                        "price": 5800.0,
+                    }
+                )
+
+            if "rebar_a400" in foundation_selected_materials:
+                # Арматура (примерно 70 кг на кубометр бетона)
+                rebar_weight = concrete_volume * 70.0
+                result["items"]["foundation"].append(
+                    {
+                        "name": "Арматура А400",
+                        "quantity": rebar_weight,
+                        "unit": "кг",
+                        "price": 60.0,
+                    }
+                )
+
+            if "rebar_a500" in foundation_selected_materials:
+                rebar_weight = concrete_volume * 70.0
+                result["items"]["foundation"].append(
+                    {
+                        "name": "Арматура А500",
+                        "quantity": rebar_weight,
+                        "unit": "кг",
+                        "price": 65.0,
+                    }
+                )
+
+            # Если ничего не выбрано, добавляем стандартные материалы
+            if not result["items"]["foundation"]:
+                result["items"]["foundation"].append(
+                    {
+                        "name": "Бетон М300",
+                        "quantity": concrete_volume,
+                        "unit": "м³",
+                        "price": 5200.0,
+                    }
+                )
+
+                rebar_weight = concrete_volume * 70.0
+                result["items"]["foundation"].append(
+                    {
+                        "name": "Арматура А400",
+                        "quantity": rebar_weight,
+                        "unit": "кг",
+                        "price": 60.0,
+                    }
+                )
+
+        # Расчет для столбчатого фундамента
+        elif foundation_type == "column":
+            # Параметры столбчатого фундамента
+            column_step = safe_float(data.get("columnStep", 1.5))
+            column_size = safe_float(data.get("columnSize", 0.3))
+            column_depth = safe_float(data.get("columnDepth", 1.5))
+
+            # Параметры арматуры
+            column_longitudinal_rebar_diameter = int(
+                data.get("columnLongitudinalRebarDiameter", 12)
+            )
+            column_transverse_rebar_diameter = int(
+                data.get("columnTransverseRebarDiameter", 8)
+            )
+            beam_longitudinal_rebar_diameter = int(
+                data.get("beamLongitudinalRebarDiameter", 12)
+            )
+            beam_transverse_rebar_diameter = int(
+                data.get("beamTransverseRebarDiameter", 8)
+            )
+
+            # Добавляем параметры в объект foundation_params
+            foundation_params = {
+                "step": column_step,
+                "size": column_size,
+                "depth": column_depth,
+                "column_longitudinal_rebar_diameter": column_longitudinal_rebar_diameter,
+                "column_transverse_rebar_diameter": column_transverse_rebar_diameter,
+                "beam_longitudinal_rebar_diameter": beam_longitudinal_rebar_diameter,
+                "beam_transverse_rebar_diameter": beam_transverse_rebar_diameter,
+            }
+
+            # Объем бетона для столбчатого фундамента
+            concrete_volume = column_depth * column_size**2 * math.pi
+
+            # Добавляем выбранные материалы
+            if "concrete_m200" in foundation_selected_materials:
+                result["items"]["foundation"].append(
+                    {
+                        "name": "Бетон М200",
+                        "quantity": concrete_volume,
+                        "unit": "м³",
+                        "price": 4500.0,
+                    }
+                )
+
+            if "concrete_m300" in foundation_selected_materials:
+                result["items"]["foundation"].append(
+                    {
+                        "name": "Бетон М300",
+                        "quantity": concrete_volume,
+                        "unit": "м³",
+                        "price": 5200.0,
+                    }
+                )
+
+            if "concrete_m400" in foundation_selected_materials:
+                result["items"]["foundation"].append(
+                    {
+                        "name": "Бетон М400",
+                        "quantity": concrete_volume,
+                        "unit": "м³",
+                        "price": 5800.0,
+                    }
+                )
+
+            if "rebar_a400" in foundation_selected_materials:
+                # Арматура (примерно 70 кг на кубометр бетона)
+                rebar_weight = concrete_volume * 70.0
+                result["items"]["foundation"].append(
+                    {
+                        "name": "Арматура А400",
+                        "quantity": rebar_weight,
+                        "unit": "кг",
+                        "price": 60.0,
+                    }
+                )
+
+            if "rebar_a500" in foundation_selected_materials:
+                rebar_weight = concrete_volume * 70.0
+                result["items"]["foundation"].append(
+                    {
+                        "name": "Арматура А500",
+                        "quantity": rebar_weight,
+                        "unit": "кг",
+                        "price": 65.0,
+                    }
+                )
+
+            # Если ничего не выбрано, добавляем стандартные материалы
+            if not result["items"]["foundation"]:
+                result["items"]["foundation"].append(
+                    {
+                        "name": "Бетон М300",
+                        "quantity": concrete_volume,
+                        "unit": "м³",
+                        "price": 5200.0,
+                    }
+                )
+
+                rebar_weight = concrete_volume * 70.0
+                result["items"]["foundation"].append(
+                    {
+                        "name": "Арматура А400",
+                        "quantity": rebar_weight,
+                        "unit": "кг",
+                        "price": 60.0,
+                    }
+                )
+
         # Расчет материалов для стен
         wall_type = materials.get("walls", {}).get("type", "brick")
         walls_selected_materials = materials.get("walls", {}).get(
@@ -352,7 +594,9 @@ async def calculate_simple_materials(request: Request):
         if wall_type == "brick":
             # Получаем дополнительные параметры для кирпичных стен
             brick_type = materials.get("walls", {}).get("brickType", "ordinary")
-            brick_thickness = float(materials.get("walls", {}).get("thickness", 0.38))
+            brick_thickness = safe_float(
+                materials.get("walls", {}).get("thickness", 0.38)
+            )
 
             # Количество кирпичей на 1 м² стены
             bricks_per_sqm = 51 if brick_thickness <= 0.25 else 103
@@ -503,7 +747,7 @@ async def calculate_simple_materials(request: Request):
         roof_selected_materials = materials.get("roof", {}).get("selectedMaterials", [])
 
         # Площадь кровли (с учетом наклона)
-        roof_angle = float(data.get("roofAngle", 25))
+        roof_angle = safe_float(data.get("roofAngle", 25))
         roof_multiplier = 1.0 / math.cos(math.radians(roof_angle))
         roof_area = house_area * roof_multiplier
 
@@ -1036,88 +1280,314 @@ async def _convert_form_data_to_calculator_input(
     Преобразует данные из формы в формат для расчета материалов
     """
     # Базовые параметры
-    area = float(form_data.get("area", 100))
-    floor_height = float(form_data.get("floorHeight", 2.7))
-    floors = int(form_data.get("floors", 1))
+    area = safe_float(form_data.get("area", 100))
+    floor_height = safe_float(form_data.get("floorHeight", 2.7))
+    floors = (
+        int(form_data.get("floors", 1))
+        if not isinstance(form_data.get("floors"), list)
+        else int(form_data.get("floors", [1])[0])
+    )
 
     # Фундамент
-    foundation_type = form_data.get("foundationType", "strip")
+    foundation_type_value = form_data.get("foundationType", "strip")
+    if isinstance(foundation_type_value, list):
+        foundation_type = foundation_type_value[0] if foundation_type_value else "strip"
+    else:
+        foundation_type = foundation_type_value
+
     foundation_params = {}
 
     if foundation_type == "strip":
+        # Проверка параметров бетона
+        foundation_concrete_value = form_data.get("foundation_concrete", "concrete_b20")
+        if isinstance(foundation_concrete_value, list):
+            foundation_concrete = (
+                foundation_concrete_value[0]
+                if foundation_concrete_value
+                else "concrete_b20"
+            )
+        else:
+            foundation_concrete = foundation_concrete_value
+
         foundation_params = {
-            "width": float(form_data.get("stripWidth", 0.4)),
-            "height": float(form_data.get("stripHeight", 0.5)),
-            "depth": float(form_data.get("stripDepth", 1.2)),
-            "longitudinal_rebar_diameter": int(
-                form_data.get("longitudinalRebarDiameter", 12)
+            "width": safe_float(form_data.get("stripWidth", 0.4)),
+            "height": safe_float(form_data.get("stripHeight", 0.5)),
+            "depth": safe_float(form_data.get("stripDepth", 1.2)),
+            "longitudinal_rebar_diameter": (
+                int(form_data.get("longitudinalRebarDiameter", 12))
+                if not isinstance(form_data.get("longitudinalRebarDiameter"), list)
+                else int(form_data.get("longitudinalRebarDiameter", [12])[0])
             ),
-            "transverse_rebar_diameter": int(
-                form_data.get("transverseRebarDiameter", 8)
+            "transverse_rebar_diameter": (
+                int(form_data.get("transverseRebarDiameter", 8))
+                if not isinstance(form_data.get("transverseRebarDiameter"), list)
+                else int(form_data.get("transverseRebarDiameter", [8])[0])
             ),
-            "concrete": form_data.get("foundation_concrete", "concrete_b20"),
+            "concrete": foundation_concrete,
         }
     elif foundation_type == "slab":
+        # Проверка параметров бетона
+        slab_concrete_value = form_data.get("slab_concrete", "concrete_b25")
+        if isinstance(slab_concrete_value, list):
+            slab_concrete = (
+                slab_concrete_value[0] if slab_concrete_value else "concrete_b25"
+            )
+        else:
+            slab_concrete = slab_concrete_value
+
         foundation_params = {
-            "thickness": float(form_data.get("slabThickness", 0.2)),
-            "cushion": float(form_data.get("slabCushion", 0.15)),
-            "concrete": form_data.get("slab_concrete", "concrete_b25"),
+            "thickness": safe_float(form_data.get("slabThickness", 0.2)),
+            "cushion": safe_float(form_data.get("slabCushion", 0.15)),
+            "concrete": slab_concrete,
         }
     elif foundation_type == "pile":
+        # Проверка типа свай
+        pile_type_value = form_data.get("pile_type", "piles_concrete")
+        if isinstance(pile_type_value, list):
+            pile_type = pile_type_value[0] if pile_type_value else "piles_concrete"
+        else:
+            pile_type = pile_type_value
+
+        # Проверка типа гидроизоляции
+        pile_waterproofing_value = form_data.get(
+            "pile_waterproofing", "waterproofing_roll"
+        )
+        if isinstance(pile_waterproofing_value, list):
+            pile_waterproofing = (
+                pile_waterproofing_value[0]
+                if pile_waterproofing_value
+                else "waterproofing_roll"
+            )
+        else:
+            pile_waterproofing = pile_waterproofing_value
+
         foundation_params = {
-            "step": float(form_data.get("pileStep", 1.5)),
-            "diameter": float(form_data.get("pileDiameter", 0.2)),
-            "depth": float(form_data.get("pileDepth", 2.5)),
-            "type": form_data.get("pile_type", "piles_concrete"),
+            "step": safe_float(form_data.get("pileStep", 1.5)),
+            "diameter": safe_float(form_data.get("pileDiameter", 0.2)),
+            "depth": safe_float(form_data.get("pileDepth", 2.5)),
+            "type": pile_type,
+            "waterproofing": pile_waterproofing,
         }
     elif foundation_type == "column":
+        # Проверка типа колонн
+        column_type_value = form_data.get("column_type", "columns_concrete")
+        if isinstance(column_type_value, list):
+            column_type = (
+                column_type_value[0] if column_type_value else "columns_concrete"
+            )
+        else:
+            column_type = column_type_value
+
+        # Проверка типа гидроизоляции
+        column_waterproofing_value = form_data.get(
+            "column_waterproofing", "waterproofing_roll"
+        )
+        if isinstance(column_waterproofing_value, list):
+            column_waterproofing = (
+                column_waterproofing_value[0]
+                if column_waterproofing_value
+                else "waterproofing_roll"
+            )
+        else:
+            column_waterproofing = column_waterproofing_value
+
         foundation_params = {
-            "step": float(form_data.get("columnStep", 1.5)),
-            "size": float(form_data.get("columnSize", 0.3)),
-            "depth": float(form_data.get("columnDepth", 1.5)),
-            "type": form_data.get("column_type", "columns_concrete"),
+            "step": safe_float(form_data.get("columnStep", 1.5)),
+            "size": safe_float(form_data.get("columnSize", 0.3)),
+            "depth": safe_float(form_data.get("columnDepth", 1.5)),
+            "type": column_type,
+            "waterproofing": column_waterproofing,
         }
 
     # Стены
-    wall_material = form_data.get("wallMaterial", "brick")
+    wall_material_value = form_data.get("wallMaterial", "brick")
+    if isinstance(wall_material_value, list):
+        wall_material = wall_material_value[0] if wall_material_value else "brick"
+    else:
+        wall_material = wall_material_value
+
     wall_params = {}
 
     if wall_material == "brick":
+        # Проверка типа кирпича
+        brick_type_value = form_data.get("brickType", "solid")
+        if isinstance(brick_type_value, list):
+            brick_type = brick_type_value[0] if brick_type_value else "solid"
+        else:
+            brick_type = brick_type_value
+
+        # Проверка раствора
+        brick_mortar_value = form_data.get("brick_mortar", "mortar_cement")
+        if isinstance(brick_mortar_value, list):
+            brick_mortar = (
+                brick_mortar_value[0] if brick_mortar_value else "mortar_cement"
+            )
+        else:
+            brick_mortar = brick_mortar_value
+
+        # Проверка утеплителя
+        brick_insulation_value = form_data.get("brick_insulation", "insulation_mineral")
+        if isinstance(brick_insulation_value, list):
+            brick_insulation = (
+                brick_insulation_value[0]
+                if brick_insulation_value
+                else "insulation_mineral"
+            )
+        else:
+            brick_insulation = brick_insulation_value
+
         wall_params = {
-            "thickness": 0.38,  # м
-            "type": form_data.get("brickType", "solid"),
-            "mortar": form_data.get("brick_mortar", "mortar_cement"),
-            "insulation": form_data.get("brick_insulation", "insulation_mineral"),
+            "thickness": safe_float(
+                form_data.get("brickThickness", 0.38)
+            ),  # Берем толщину из параметров формы
+            "type": brick_type,
+            "mortar": brick_mortar,
+            "insulation": brick_insulation,
         }
     elif wall_material == "wood":
+        # Проверка типа древесины
+        wood_type_value = form_data.get("woodType", "timber")
+        if isinstance(wood_type_value, list):
+            wood_type = wood_type_value[0] if wood_type_value else "timber"
+        else:
+            wood_type = wood_type_value
+
+        # Проверка размера древесины
+        wood_size_value = form_data.get("woodSize", "150")
+        if isinstance(wood_size_value, list):
+            wood_size = wood_size_value[0] if wood_size_value else "150"
+        else:
+            wood_size = wood_size_value
+
+        # Проверка материалов
+        wood_materials_value = form_data.get("wood_materials", "wall_insulation")
+        if isinstance(wood_materials_value, list):
+            wood_materials = (
+                wood_materials_value[0] if wood_materials_value else "wall_insulation"
+            )
+        else:
+            wood_materials = wood_materials_value
+
         wall_params = {
-            "type": form_data.get("woodType", "timber"),
-            "size": form_data.get("woodSize", "150"),
-            "materials": form_data.get("wood_materials", "wall_insulation"),
+            "type": wood_type,
+            "size": wood_size,
+            "materials": wood_materials,
         }
     elif wall_material == "block":
+        # Проверка типа блоков
+        block_type_value = form_data.get("blockType", "lightweight")
+        if isinstance(block_type_value, list):
+            block_type = block_type_value[0] if block_type_value else "lightweight"
+        else:
+            block_type = block_type_value
+
+        # Проверка раствора
+        block_mortar_value = form_data.get("block_mortar", "mortar_cement")
+        if isinstance(block_mortar_value, list):
+            block_mortar = (
+                block_mortar_value[0] if block_mortar_value else "mortar_cement"
+            )
+        else:
+            block_mortar = block_mortar_value
+
+        # Проверка утеплителя
+        block_insulation_value = form_data.get("block_insulation", "insulation_mineral")
+        if isinstance(block_insulation_value, list):
+            block_insulation = (
+                block_insulation_value[0]
+                if block_insulation_value
+                else "insulation_mineral"
+            )
+        else:
+            block_insulation = block_insulation_value
+
         wall_params = {
-            "type": form_data.get("blockType", "aerated_concrete"),
-            "thickness": form_data.get("blockThickness", "300"),
-            "materials": form_data.get("block_materials", "adhesive"),
+            "thickness": safe_float(form_data.get("blockThickness", 0.4)),
+            "type": block_type,
+            "mortar": block_mortar,
+            "insulation": block_insulation,
         }
     elif wall_material == "concrete":
+        # Проверка типа бетона
+        concrete_type_value = form_data.get("concreteType", "concrete_b25")
+        if isinstance(concrete_type_value, list):
+            concrete_type = (
+                concrete_type_value[0] if concrete_type_value else "concrete_b25"
+            )
+        else:
+            concrete_type = concrete_type_value
+
+        # Проверка утеплителя
+        concrete_insulation_value = form_data.get(
+            "concrete_insulation", "insulation_mineral"
+        )
+        if isinstance(concrete_insulation_value, list):
+            concrete_insulation = (
+                concrete_insulation_value[0]
+                if concrete_insulation_value
+                else "insulation_mineral"
+            )
+        else:
+            concrete_insulation = concrete_insulation_value
+
         wall_params = {
-            "thickness": form_data.get("concreteThickness", "200"),
-            "class": form_data.get("concreteClass", "B25"),
-            "materials": form_data.get("concrete_materials", "all"),
+            "thickness": safe_float(form_data.get("concreteThickness", 0.2)),
+            "type": concrete_type,
+            "insulation": concrete_insulation,
         }
     elif wall_material == "panel":
+        # Проверка типа панелей
+        panel_type_value = form_data.get("panelType", "panel_concrete")
+        if isinstance(panel_type_value, list):
+            panel_type = panel_type_value[0] if panel_type_value else "panel_concrete"
+        else:
+            panel_type = panel_type_value
+
+        # Проверка толщины панелей
+        panel_thickness_value = form_data.get("panelThickness", "180")
+        if isinstance(panel_thickness_value, list):
+            panel_thickness = (
+                panel_thickness_value[0] if panel_thickness_value else "180"
+            )
+        else:
+            panel_thickness = panel_thickness_value
+
         wall_params = {
-            "type": form_data.get("panelType", "sip_panels"),
-            "thickness": form_data.get("panelThickness", "150"),
-            "materials": form_data.get("panel_materials", "both"),
+            "type": panel_type,
+            "thickness": panel_thickness,
         }
 
     # Крыша
-    roof_type = form_data.get("roofType", "metal")
-    roof_construction = form_data.get("roofConstruction", "gable")
-    roof_angle = float(form_data.get("roofAngle", 30))
+    roof_type_value = form_data.get("roofType", "pitched")
+    if isinstance(roof_type_value, list):
+        roof_type = roof_type_value[0] if roof_type_value else "pitched"
+    else:
+        roof_type = roof_type_value
+
+    # Проверка конструкции крыши
+    roof_construction_value = form_data.get("roofConstruction", "gable")
+    if isinstance(roof_construction_value, list):
+        roof_construction = (
+            roof_construction_value[0] if roof_construction_value else "gable"
+        )
+    else:
+        roof_construction = roof_construction_value
+
+    # Проверка материала крыши
+    roof_material_value = form_data.get("roofMaterial", "metal")
+    if isinstance(roof_material_value, list):
+        roof_material = roof_material_value[0] if roof_material_value else "metal"
+    else:
+        roof_material = roof_material_value
+
+    roof_params = {
+        "type": roof_type,
+        "construction": roof_construction,
+        "angle": safe_float(form_data.get("roofAngle", 25)),
+        "height": safe_float(form_data.get("roofHeight", 1.5)),
+        "overhang": safe_float(form_data.get("roofOverhang", 0.6)),
+        "material": roof_material,
+    }
 
     # Создаем экземпляр MaterialsCalculatorInput
     return MaterialsCalculatorInput(
@@ -1130,5 +1600,8 @@ async def _convert_form_data_to_calculator_input(
         wall_params=wall_params,
         roof_type=RoofType(roof_type),
         roof_construction=RoofConstruction(roof_construction),
-        roof_angle=roof_angle,
+        roof_angle=roof_params["angle"],
+        roof_height=roof_params["height"],
+        roof_overhang=roof_params["overhang"],
+        roof_material=roof_material,
     )

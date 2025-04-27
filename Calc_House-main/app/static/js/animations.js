@@ -821,19 +821,20 @@ document.addEventListener('DOMContentLoaded', function () {
                             return;
                         }
 
+                        // Проверяем, что формула еще видима
+                        const formulasArea = document.getElementById('formulas-area');
+                        if (!formulasArea || !formulasArea.isConnected) {
+                            logDebug('Область формул уже не существует, не создаем SVG линию');
+                            return;
+                        }
+
                         // Преобразуем все значения в строки
                         const x1String = String(x1 || 0);
                         const y1String = String(y1 || 0);
                         const x2String = String(x2 || 0);
                         const y2String = String(y2 || 0);
 
-                        // Определяем, содержит ли координата символ %
-                        const x1HasPercent = x1String.includes('%');
-                        const y1HasPercent = y1String.includes('%');
-                        const x2HasPercent = x2String.includes('%');
-                        const y2HasPercent = y2String.includes('%');
-
-                        // Удаляем символы % и преобразуем в числа
+                        // Удаляем символы % и преобразуем в числа от 0 до 100
                         const numX1 = parseFloat(x1String.replace('%', ''));
                         const numY1 = parseFloat(y1String.replace('%', ''));
                         const numX2 = parseFloat(x2String.replace('%', ''));
@@ -845,13 +846,6 @@ document.addEventListener('DOMContentLoaded', function () {
                             return; // Прекращаем выполнение, если координаты некорректны
                         }
 
-                        // Проверяем, что формула еще видима
-                        const formulasArea = document.getElementById('formulas-area');
-                        if (!formulasArea || !formulasArea.isConnected) {
-                            logDebug('Область формул уже не существует, не создаем SVG линию');
-                            return;
-                        }
-
                         const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
                         svg.style.position = 'absolute';
                         svg.style.top = '0';
@@ -861,17 +855,15 @@ document.addEventListener('DOMContentLoaded', function () {
                         svg.style.pointerEvents = 'none';
                         svg.style.zIndex = '15';
 
-                        // Создаем кривую вместо прямой линии
+                        // Устанавливаем viewBox с фиксированными размерами 100x100
+                        svg.setAttribute('viewBox', '0 0 100 100');
+                        svg.setAttribute('preserveAspectRatio', 'none');
+
+                        // Создаем кривую вместо прямой линии используя числовые координаты в диапазоне 0-100
                         const dx = (numX2 - numX1) * 0.5;
 
-                        // Добавляем процентные символы, если они были в исходных значениях
-                        const x1Suffix = x1HasPercent ? '%' : '';
-                        const y1Suffix = y1HasPercent ? '%' : '';
-                        const x2Suffix = x2HasPercent ? '%' : '';
-                        const y2Suffix = y2HasPercent ? '%' : '';
-
-                        // Формируем безопасную строку пути с правильными суффиксами
-                        const pathData = `M ${numX1}${x1Suffix} ${numY1}${y1Suffix} C ${numX1 + dx}${x1Suffix} ${numY1}${y1Suffix}, ${numX2 - dx}${x2Suffix} ${numY2}${y2Suffix}, ${numX2}${x2Suffix} ${numY2}${y2Suffix}`;
+                        // Формируем SVG-путь без процентов
+                        const pathData = `M ${numX1} ${numY1} C ${numX1 + dx} ${numY1}, ${numX2 - dx} ${numY2}, ${numX2} ${numY2}`;
 
                         const line = document.createElementNS('http://www.w3.org/2000/svg', 'path');
                         line.setAttribute('d', pathData);
