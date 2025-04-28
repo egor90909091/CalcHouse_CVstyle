@@ -8,10 +8,11 @@
         content="Калькулятор строительных материалов для дома - рассчитайте необходимые материалы для строительства дома">
     <meta name="keywords"
         content="калькулятор строительных материалов, расчет материалов для дома, строительный калькулятор">
-    <title>Калькулятор строительных материалов для дома</title>
+    <title>BuildMate</title>
 
-    <!-- Предотвращает запрос favicon.ico -->
-    <link rel="icon" href="data:image/x-icon;base64,">
+    <!-- Иконка сайта (домик) -->
+    <link rel="icon"
+        href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzAwNzREOSIgc3Ryb2tlPSJub25lIj48cGF0aCBkPSJNMTIgMi41TDMgOS43djExLjhoMTh2LTExLjhMMTIgMi41ek0xNiAxOC41aC0zdi0zaC0ydjNoLTNWMTNsNC0zLjQgNCAzLjR2NS41eiIvPjwvc3ZnPg==">
 
     <!-- CSS стили -->
     <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
@@ -138,109 +139,116 @@
                                         </div>
                                     </div>
 
-                                    <!-- Блок параметров арматуры для ленточного фундамента -->
-                                    <div id="strip-rebar-params"
-                                        class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 rebar-params"
-                                        style="display: none;">
-                                        <div>
-                                            <label for="stripLongitudinalRebarDiameter" class="block mb-1">Диаметр
-                                                продольной арматуры:</label>
-                                            <select id="stripLongitudinalRebarDiameter"
-                                                name="stripLongitudinalRebarDiameter" class="w-full p-2 border rounded">
-                                                <option value="8">A400 Ø8 мм</option>
-                                                <option value="10">A400 Ø10 мм</option>
-                                                <option value="12" selected>A400 Ø12 мм</option>
-                                                <option value="14">A400 Ø14 мм</option>
-                                                <option value="16">A400 Ø16 мм</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label for="stripTransverseRebarDiameter" class="block mb-1">Диаметр
-                                                поперечной арматуры:</label>
-                                            <select id="stripTransverseRebarDiameter"
-                                                name="stripTransverseRebarDiameter" class="w-full p-2 border rounded">
-                                                <option value="6">A400 Ø6 мм</option>
-                                                <option value="8" selected>A400 Ø8 мм</option>
-                                                <option value="10">A400 Ø10 мм</option>
-                                                <option value="12">A400 Ø12 мм</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
                                     <div class="mt-6">
-                                        <h4 class="font-medium mb-2">Выбор материалов</h4>
-                                        <div class="grid grid-cols-2 gap-4">
-                                            <!-- Выбор бетона -->
-                                            <div>
-                                                <label class="block mb-2 font-medium">Бетон</label>
-                                                <select name="foundation_concrete"
-                                                    class="w-full p-3 border border-gray-300 rounded-lg">
-                                                    <option value="concrete_b15">Бетон B15</option>
-                                                    <option value="concrete_b20" selected>Бетон B20</option>
-                                                    <option value="concrete_b25">Бетон B25</option>
-                                                </select>
-                                            </div>
+                                        <h4 class="block mb-1 mr-2">Выбор материалов</h4>
+                                        <div class="grid grid-cols-1 gap-4">
+                                            <!-- Первая строка: Бетон и Арматура -->
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <!-- Выбор бетона -->
+                                                <div>
+                                                    <label class="block mb-2 font-medium">Бетон</label>
+                                                    <select name="foundation_concrete"
+                                                        class="w-full p-3 border border-gray-300 rounded-lg">
+                                                        <option value="concrete_b15">Бетон B15</option>
+                                                        <option value="concrete_b20" selected>Бетон B20</option>
+                                                        <option value="concrete_b25">Бетон B25</option>
+                                                    </select>
+                                                </div>
 
-                                            <!-- Выбор арматуры -->
-                                            <div>
-                                                <label class="block mb-2 font-medium">
-                                                    <div class="flex items-center">
-                                                        <span>Арматура</span>
-                                                        <div class="relative ml-auto">
-                                                            <input type="checkbox" id="strip-rebar-toggle"
-                                                                class="absolute opacity-0 rebar-toggle"
-                                                                style="width: 24px; height: 24px;">
-                                                            <svg xmlns="http://www.w3.org/2000/svg"
-                                                                class="h-6 w-6 text-gray-400 cursor-pointer" fill="none"
-                                                                viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                                    stroke-width="2"
-                                                                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                                    stroke-width="2"
-                                                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                            </svg>
+                                                <!-- Выбор арматуры -->
+                                                <div>
+                                                    <label class="block mb-2 font-medium">
+                                                        <div class="flex items-center">
+                                                            <span>Арматура</span>
+                                                            <div class="relative ml-auto">
+                                                                <input type="checkbox" id="strip-rebar-toggle"
+                                                                    class="absolute opacity-0 rebar-toggle"
+                                                                    style="width: 24px; height: 24px;">
+                                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                                    class="h-6 w-6 text-gray-400 cursor-pointer"
+                                                                    fill="none" viewBox="0 0 24 24"
+                                                                    stroke="currentColor">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        stroke-width="2"
+                                                                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        stroke-width="2"
+                                                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                </svg>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                </label>
-                                                <select name="foundation_rebar"
-                                                    class="w-full p-3 border border-gray-300 rounded-lg">
-                                                    <option value="rebar_a300">Арматура A300</option>
-                                                    <option value="rebar_a400" selected>Арматура A400</option>
-                                                    <option value="rebar_a500">Арматура A500</option>
-                                                </select>
+                                                    </label>
+                                                    <select name="foundation_rebar"
+                                                        class="w-full p-3 border border-gray-300 rounded-lg">
+                                                        <option value="rebar_a300">Арматура A300</option>
+                                                        <option value="rebar_a400" selected>Арматура A400</option>
+                                                        <option value="rebar_a500">Арматура A500</option>
+                                                    </select>
+                                                </div>
                                             </div>
 
-                                            <!-- Выбор опалубки -->
-                                            <div>
-                                                <label class="block mb-2 font-medium">Опалубка</label>
-                                                <select name="foundation_formwork"
-                                                    class="w-full p-3 border border-gray-300 rounded-lg">
-                                                    <option value="formwork_plywood" selected>Опалубка из фанеры
-                                                    </option>
-                                                    <option value="formwork_metal">Опалубка металлическая</option>
-                                                    <option value="formwork_wood">Опалубка из доски</option>
-                                                </select>
+                                            <!-- Блок параметров арматуры для ленточного фундамента -->
+                                            <div id="strip-rebar-params" class="grid grid-cols-2 gap-4 rebar-params"
+                                                style="display: none;">
+                                                <div>
+                                                    <label for="stripLongitudinalRebarDiameter"
+                                                        class="block mb-1">Диаметр продольной арматуры:</label>
+                                                    <select id="stripLongitudinalRebarDiameter"
+                                                        name="stripLongitudinalRebarDiameter"
+                                                        class="w-full p-2 border rounded">
+                                                        <option value="8"> Ø8 мм</option>
+                                                        <option value="10"> Ø10 мм</option>
+                                                        <option value="12" selected>A400 Ø12 мм</option>
+                                                        <option value="14"> Ø14 мм</option>
+                                                        <option value="16"> Ø16 мм</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label for="stripTransverseRebarDiameter" class="block mb-1">Диаметр
+                                                        поперечной арматуры:</label>
+                                                    <select id="stripTransverseRebarDiameter"
+                                                        name="stripTransverseRebarDiameter"
+                                                        class="w-full p-2 border rounded">
+                                                        <option value="6"> Ø6 мм</option>
+                                                        <option value="8" selected> Ø8 мм</option>
+                                                        <option value="10"> Ø10 мм</option>
+                                                        <option value="12"> Ø12 мм</option>
+                                                    </select>
+                                                </div>
                                             </div>
 
-                                            <!-- Выбор гидроизоляции -->
-                                            <div>
-                                                <label class="block mb-2 font-medium">Гидроизоляция</label>
-                                                <select name="foundation_waterproofing"
-                                                    class="w-full p-3 border border-gray-300 rounded-lg">
-                                                    <option value="waterproofing_roll" selected>Гидроизоляция рулонная
-                                                    </option>
-                                                    <option value="waterproofing_membrane">Гидроизоляция мембранная
-                                                    </option>
-                                                    <option value="waterproofing_mastic">Гидроизоляция обмазочная
-                                                    </option>
-                                                </select>
+                                            <!-- Вторая строка: Опалубка и Гидроизоляция -->
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <!-- Выбор опалубки -->
+                                                <div>
+                                                    <label class="block mb-2 font-medium">Опалубка</label>
+                                                    <select name="foundation_formwork"
+                                                        class="w-full p-3 border border-gray-300 rounded-lg">
+                                                        <option value="formwork_plywood" selected>Опалубка из фанеры
+                                                        </option>
+                                                        <option value="formwork_metal">Опалубка металлическая</option>
+                                                        <option value="formwork_wood">Опалубка из доски</option>
+                                                    </select>
+                                                </div>
+
+                                                <!-- Выбор гидроизоляции -->
+                                                <div>
+                                                    <label class="block mb-2 font-medium">Гидроизоляция</label>
+                                                    <select name="foundation_waterproofing"
+                                                        class="w-full p-3 border border-gray-300 rounded-lg">
+                                                        <option value="waterproofing_roll" selected>Гидроизоляция
+                                                            рулонная</option>
+                                                        <option value="waterproofing_membrane">Гидроизоляция мембранная
+                                                        </option>
+                                                        <option value="waterproofing_mastic">Гидроизоляция обмазочная
+                                                        </option>
+                                                    </select>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-
                             <!-- Плитный фундамент -->
                             <div class="foundation-type" id="slabFoundation" style="display: none;">
                                 <div>
@@ -248,10 +256,7 @@
                                     </h3>
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
-                                            <div class="flex items-center mb-3">
-                                                <label for="slabThickness" class="block mb-1 mr-2">Толщина плиты
-                                                    (м):</label>
-                                            </div>
+                                            <label for="slabThickness" class="block mb-1">Толщина плиты (м):</label>
                                             <input type="number" id="slabThickness" name="slabThickness" min="0.1"
                                                 max="0.5" step="0.05" value="0.2" class="w-full p-2 border rounded">
                                         </div>
@@ -262,111 +267,116 @@
                                         </div>
                                     </div>
 
-                                    <!-- Блок параметров арматуры для плитного фундамента -->
-                                    <div id="slab-rebar-params"
-                                        class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 rebar-params"
-                                        style="display: none;">
-                                        <div>
-                                            <label for="slabMainRebarDiameter" class="block mb-1">Диаметр основной
-                                                арматуры:</label>
-                                            <select id="slabMainRebarDiameter" name="slabMainRebarDiameter"
-                                                class="w-full p-2 border rounded">
-                                                <option value="8">A400 Ø8 мм</option>
-                                                <option value="10">A400 Ø10 мм</option>
-                                                <option value="12" selected>A400 Ø12 мм</option>
-                                                <option value="14">A400 Ø14 мм</option>
-                                                <option value="16">A400 Ø16 мм</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label for="slabDistributionRebarDiameter" class="block mb-1">Диаметр
-                                                распределительной арматуры:</label>
-                                            <select id="slabDistributionRebarDiameter"
-                                                name="slabDistributionRebarDiameter" class="w-full p-2 border rounded">
-                                                <option value="6">A400 Ø6 мм</option>
-                                                <option value="8" selected>A400 Ø8 мм</option>
-                                                <option value="10">A400 Ø10 мм</option>
-                                                <option value="12">A400 Ø12 мм</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
                                     <div class="mt-6">
-                                        <h4 class="font-medium mb-2">Выбор материалов</h4>
-                                        <div class="grid grid-cols-2 gap-4">
-                                            <!-- Выбор бетона -->
-                                            <div>
-                                                <label class="block mb-2 font-medium">Бетон</label>
-                                                <select name="slab_concrete"
-                                                    class="w-full p-3 border border-gray-300 rounded-lg">
-                                                    <option value="concrete_b20">Бетон B20</option>
-                                                    <option value="concrete_b25" selected>Бетон B25</option>
-                                                    <option value="concrete_b30">Бетон B30</option>
-                                                </select>
-                                            </div>
+                                        <h4 class="block mb-1 mr-2">Выбор материалов</h4>
+                                        <div class="grid grid-cols-1 gap-4">
+                                            <!-- Первая строка: Бетон и Арматура -->
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <!-- Выбор бетона -->
+                                                <div>
+                                                    <label class="block mb-2 font-medium">Бетон</label>
+                                                    <select name="slab_concrete"
+                                                        class="w-full p-3 border border-gray-300 rounded-lg">
+                                                        <option value="concrete_b20">Бетон B20</option>
+                                                        <option value="concrete_b25" selected>Бетон B25</option>
+                                                        <option value="concrete_b30">Бетон B30</option>
+                                                    </select>
+                                                </div>
 
-                                            <!-- Выбор арматуры -->
-                                            <div>
-                                                <label class="block mb-2 font-medium">
-                                                    <div class="flex items-center">
-                                                        <span>Арматура</span>
-                                                        <div class="relative ml-auto">
-                                                            <input type="checkbox" id="slab-rebar-toggle"
-                                                                class="absolute opacity-0 rebar-toggle"
-                                                                style="width: 24px; height: 24px;">
-                                                            <svg xmlns="http://www.w3.org/2000/svg"
-                                                                class="h-6 w-6 text-gray-400 cursor-pointer" fill="none"
-                                                                viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                                    stroke-width="2"
-                                                                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                                    stroke-width="2"
-                                                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                            </svg>
+                                                <!-- Выбор арматуры -->
+                                                <div>
+                                                    <label class="block mb-2 font-medium">
+                                                        <div class="flex items-center">
+                                                            <span>Арматура</span>
+                                                            <div class="relative ml-auto">
+                                                                <input type="checkbox" id="slab-rebar-toggle"
+                                                                    class="absolute opacity-0 rebar-toggle"
+                                                                    style="width: 24px; height: 24px;">
+                                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                                    class="h-6 w-6 text-gray-400 cursor-pointer"
+                                                                    fill="none" viewBox="0 0 24 24"
+                                                                    stroke="currentColor">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        stroke-width="2"
+                                                                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        stroke-width="2"
+                                                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                </svg>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                </label>
-                                                <select name="slab_rebar"
-                                                    class="w-full p-3 border border-gray-300 rounded-lg">
-                                                    <option value="rebar_a300">Арматура A300</option>
-                                                    <option value="rebar_a400" selected>Арматура A400</option>
-                                                    <option value="rebar_a500">Арматура A500</option>
-                                                </select>
+                                                    </label>
+                                                    <select name="slab_rebar"
+                                                        class="w-full p-3 border border-gray-300 rounded-lg">
+                                                        <option value="rebar_a300">Арматура A300</option>
+                                                        <option value="rebar_a400" selected>Арматура A400</option>
+                                                        <option value="rebar_a500">Арматура A500</option>
+                                                    </select>
+                                                </div>
                                             </div>
 
-                                            <!-- Выбор песка -->
-                                            <div>
-                                                <label class="block mb-2 font-medium">Песок для подушки</label>
-                                                <select name="slab_sand"
-                                                    class="w-full p-3 border border-gray-300 rounded-lg">
-                                                    <option value="sand_river" selected>Песок речной</option>
-                                                    <option value="sand_quarry">Песок карьерный</option>
-                                                    <option value="sand_washed">Песок мытый</option>
-                                                </select>
+                                            <!-- Блок параметров арматуры для плитного фундамента -->
+                                            <div id="slab-rebar-params" class="grid grid-cols-2 gap-4 rebar-params"
+                                                style="display: none;">
+                                                <div>
+                                                    <label for="slabMainRebarDiameter" class="block mb-1">Диаметр
+                                                        основной арматуры:</label>
+                                                    <select id="slabMainRebarDiameter" name="slabMainRebarDiameter"
+                                                        class="w-full p-2 border rounded">
+                                                        <option value="8"> Ø8 мм</option>
+                                                        <option value="10"> Ø10 мм</option>
+                                                        <option value="12" selected> Ø12 мм</option>
+                                                        <option value="14"> Ø14 мм</option>
+                                                        <option value="16"> Ø16 мм</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label for="slabDistributionRebarDiameter"
+                                                        class="block mb-1">Диаметр распределительной арматуры:</label>
+                                                    <select id="slabDistributionRebarDiameter"
+                                                        name="slabDistributionRebarDiameter"
+                                                        class="w-full p-2 border rounded">
+                                                        <option value="6"> Ø6 мм</option>
+                                                        <option value="8" selected> Ø8 мм</option>
+                                                        <option value="10"> Ø10 мм</option>
+                                                        <option value="12"> Ø12 мм</option>
+                                                    </select>
+                                                </div>
                                             </div>
 
-                                            <!-- Выбор гидроизоляции -->
-                                            <div>
-                                                <label class="block mb-2 font-medium">Гидроизоляция</label>
-                                                <select name="slab_waterproofing"
-                                                    class="w-full p-3 border border-gray-300 rounded-lg">
-                                                    <option value="waterproofing_roll" selected>Гидроизоляция рулонная
-                                                    </option>
-                                                    <option value="waterproofing_membrane">Гидроизоляция мембранная
-                                                    </option>
-                                                    <option value="waterproofing_mastic">Гидроизоляция обмазочная
-                                                    </option>
-                                                    <option value="waterproofing_ultrathin">Ультратонкая гидроизоляция
-                                                        6мм
-                                                    </option>
-                                                </select>
+                                            <!-- Вторая строка: Песок и Гидроизоляция -->
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <!-- Выбор песка -->
+                                                <div>
+                                                    <label class="block mb-2 font-medium">Песок для подушки</label>
+                                                    <select name="slab_sand"
+                                                        class="w-full p-3 border border-gray-300 rounded-lg">
+                                                        <option value="sand_river" selected>Песок речной</option>
+                                                        <option value="sand_quarry">Песок карьерный</option>
+                                                        <option value="sand_washed">Песок мытый</option>
+                                                    </select>
+                                                </div>
+
+                                                <!-- Выбор гидроизоляции -->
+                                                <div>
+                                                    <label class="block mb-2 font-medium">Гидроизоляция</label>
+                                                    <select name="slab_waterproofing"
+                                                        class="w-full p-3 border border-gray-300 rounded-lg">
+                                                        <option value="waterproofing_roll" selected>Гидроизоляция
+                                                            рулонная</option>
+                                                        <option value="waterproofing_membrane">Гидроизоляция мембранная
+                                                        </option>
+                                                        <option value="waterproofing_mastic">Гидроизоляция обмазочная
+                                                        </option>
+                                                        <option value="waterproofing_ultrathin">Ультратонкая
+                                                            гидроизоляция 6мм</option>
+                                                    </select>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-
                             <!-- Свайный фундамент -->
                             <div class="foundation-type" id="pileFoundation" style="display: none;">
                                 <div>
@@ -374,9 +384,7 @@
                                     </h3>
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
-                                            <div class="flex items-center mb-3">
-                                                <label for="pileStep" class="block mb-1 mr-2">Шаг свай (м):</label>
-                                            </div>
+                                            <label for="pileStep" class="block mb-1">Шаг свай (м):</label>
                                             <input type="number" id="pileStep" name="pileStep" min="1" max="3"
                                                 step="0.5" value="1.5" class="w-full p-2 border rounded">
                                         </div>
@@ -397,126 +405,135 @@
                                         </div>
                                     </div>
 
-                                    <!-- Блок параметров арматуры для свайного фундамента -->
-                                    <div id="pile-rebar-params"
-                                        class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 rebar-params"
-                                        style="display: none;">
-                                        <div>
-                                            <label for="pileLongitudinalRebarDiameter" class="block mb-1">Диаметр
-                                                продольной арматуры свай:</label>
-                                            <select id="pileLongitudinalRebarDiameter"
-                                                name="pileLongitudinalRebarDiameter" class="w-full p-2 border rounded">
-                                                <option value="10">A400 Ø10 мм</option>
-                                                <option value="12" selected>A400 Ø12 мм</option>
-                                                <option value="14">A400 Ø14 мм</option>
-                                                <option value="16">A400 Ø16 мм</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label for="pileTransverseRebarDiameter" class="block mb-1">Диаметр
-                                                поперечной арматуры свай:</label>
-                                            <select id="pileTransverseRebarDiameter" name="pileTransverseRebarDiameter"
-                                                class="w-full p-2 border rounded">
-                                                <option value="6">A400 Ø6 мм</option>
-                                                <option value="8" selected>A400 Ø8 мм</option>
-                                                <option value="10">A400 Ø10 мм</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label for="grillageLongitudinalRebarDiameter" class="block mb-1">Диаметр
-                                                продольной арматуры ростверка:</label>
-                                            <select id="grillageLongitudinalRebarDiameter"
-                                                name="grillageLongitudinalRebarDiameter"
-                                                class="w-full p-2 border rounded">
-                                                <option value="10">A400 Ø10 мм</option>
-                                                <option value="12" selected>A400 Ø12 мм</option>
-                                                <option value="14">A400 Ø14 мм</option>
-                                                <option value="16">A400 Ø16 мм</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label for="grillageTransverseRebarDiameter" class="block mb-1">Диаметр
-                                                поперечной арматуры ростверка:</label>
-                                            <select id="grillageTransverseRebarDiameter"
-                                                name="grillageTransverseRebarDiameter"
-                                                class="w-full p-2 border rounded">
-                                                <option value="6">A400 Ø6 мм</option>
-                                                <option value="8" selected>A400 Ø8 мм</option>
-                                                <option value="10">A400 Ø10 мм</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
                                     <div class="mt-6">
-                                        <h4 class="font-medium mb-2">Выбор материалов</h4>
-                                        <div class="grid grid-cols-2 gap-4">
-                                            <!-- Выбор свай -->
-                                            <div>
-                                                <label class="block mb-2 font-medium">Сваи</label>
-                                                <select name="pile_type"
-                                                    class="w-full p-3 border border-gray-300 rounded-lg">
-                                                    <option value="piles_concrete" selected>Сваи железобетонные</option>
-                                                    <option value="piles_screw">Сваи винтовые</option>
-                                                    <option value="piles_bored">Сваи буронабивные</option>
-                                                </select>
-                                            </div>
-
-                                            <!-- Выбор бетона для ростверка -->
-                                            <div>
-                                                <label class="block mb-2 font-medium">Бетон для ростверка</label>
-                                                <select name="grillage_concrete"
-                                                    class="w-full p-3 border border-gray-300 rounded-lg">
-                                                    <option value="concrete_b20">Бетон B20</option>
-                                                    <option value="concrete_b25" selected>Бетон B25</option>
-                                                    <option value="concrete_b30">Бетон B30</option>
-                                                </select>
-                                            </div>
-
-                                            <!-- Выбор арматуры -->
-                                            <div>
-                                                <label class="block mb-2 font-medium">
-                                                    <div class="flex items-center">
-                                                        <span>Арматура</span>
-                                                        <div class="relative ml-auto">
-                                                            <input type="checkbox" id="pile-rebar-toggle"
-                                                                class="absolute opacity-0 rebar-toggle"
-                                                                style="width: 24px; height: 24px;">
-                                                            <svg xmlns="http://www.w3.org/2000/svg"
-                                                                class="h-6 w-6 text-gray-400 cursor-pointer" fill="none"
-                                                                viewBox="0 0 24 24" stroke="currentColor">
-                                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                                    stroke-width="2"
-                                                                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                                                                <path stroke-linecap="round" stroke-linejoin="round"
-                                                                    stroke-width="2"
-                                                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                            </svg>
+                                        <h4 class="block mb-1 mr-2">Выбор материалов</h4>
+                                        <div class="grid grid-cols-1 gap-4">
+                                            <!-- Первая строка: Сваи и Арматура -->
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <!-- Выбор свай -->
+                                                <div>
+                                                    <label class="block mb-2 font-medium">Сваи</label>
+                                                    <select name="pile_type"
+                                                        class="w-full p-3 border border-gray-300 rounded-lg">
+                                                        <option value="piles_concrete" selected>Сваи железобетонные
+                                                        </option>
+                                                        <option value="piles_screw">Сваи винтовые</option>
+                                                        <option value="piles_bored">Сваи буронабивные</option>
+                                                    </select>
+                                                </div>
+                                                <!-- Выбор арматуры -->
+                                                <div>
+                                                    <label class="block mb-2 font-medium">
+                                                        <div class="flex items-center">
+                                                            <span>Арматура</span>
+                                                            <div class="relative ml-auto">
+                                                                <input type="checkbox" id="pile-rebar-toggle"
+                                                                    class="absolute opacity-0 rebar-toggle"
+                                                                    style="width: 24px; height: 24px;">
+                                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                                    class="h-6 w-6 text-gray-400 cursor-pointer"
+                                                                    fill="none" viewBox="0 0 24 24"
+                                                                    stroke="currentColor">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        stroke-width="2"
+                                                                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        stroke-width="2"
+                                                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                </svg>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                </label>
-                                                <select name="pile_rebar"
-                                                    class="w-full p-3 border border-gray-300 rounded-lg">
-                                                    <option value="rebar_a300">Арматура A300</option>
-                                                    <option value="rebar_a400" selected>Арматура A400</option>
-                                                    <option value="rebar_a500">Арматура A500</option>
-                                                </select>
+                                                    </label>
+                                                    <select name="pile_rebar"
+                                                        class="w-full p-3 border border-gray-300 rounded-lg">
+                                                        <option value="rebar_a300">Арматура A300</option>
+                                                        <option value="rebar_a400" selected>Арматура A400</option>
+                                                        <option value="rebar_a500">Арматура A500</option>
+                                                    </select>
+                                                </div>
                                             </div>
 
-                                            <!-- Выбор гидроизоляции -->
-                                            <div>
-                                                <label class="block mb-2 font-medium">Гидроизоляция</label>
-                                                <select name="pile_waterproofing"
-                                                    class="w-full p-3 border border-gray-300 rounded-lg">
-                                                    <option value="waterproofing_roll" selected>Гидроизоляция рулонная
-                                                    </option>
-                                                    <option value="waterproofing_membrane">Гидроизоляция мембранная
-                                                    </option>
-                                                    <option value="waterproofing_mastic">Гидроизоляция обмазочная
-                                                    </option>
-                                                    <option value="waterproofing_ultrathin">Ультратонкая гидроизоляция
-                                                        6мм
-                                                    </option>
-                                                </select>
+                                            <!-- Блок параметров арматуры для свайного фундамента -->
+                                            <div id="pile-rebar-params" class="grid grid-cols-2 gap-4 rebar-params"
+                                                style="display: none;">
+                                                <div>
+                                                    <label for="pileLongitudinalRebarDiameter"
+                                                        class="block mb-1">Диаметр продольной арматуры свай:</label>
+                                                    <select id="pileLongitudinalRebarDiameter"
+                                                        name="pileLongitudinalRebarDiameter"
+                                                        class="w-full p-2 border rounded">
+                                                        <option value="10"> Ø10 мм</option>
+                                                        <option value="12" selected> Ø12 мм</option>
+                                                        <option value="14"> Ø14 мм</option>
+                                                        <option value="16"> Ø16 мм</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label for="pileTransverseRebarDiameter" class="block mb-1">Диаметр
+                                                        поперечной арматуры свай:</label>
+                                                    <select id="pileTransverseRebarDiameter"
+                                                        name="pileTransverseRebarDiameter"
+                                                        class="w-full p-2 border rounded">
+                                                        <option value="6"> Ø6 мм</option>
+                                                        <option value="8" selected> Ø8 мм</option>
+                                                        <option value="10"> Ø10 мм</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label for="grillageLongitudinalRebarDiameter"
+                                                        class="block mb-1">Диаметр продольной арматуры
+                                                        ростверка:</label>
+                                                    <select id="grillageLongitudinalRebarDiameter"
+                                                        name="grillageLongitudinalRebarDiameter"
+                                                        class="w-full p-2 border rounded">
+                                                        <option value="10"> Ø10 мм</option>
+                                                        <option value="12" selected> Ø12 мм</option>
+                                                        <option value="14"> Ø14 мм</option>
+                                                        <option value="16"> Ø16 мм</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label for="grillageTransverseRebarDiameter"
+                                                        class="block mb-1">Диаметр поперечной арматуры
+                                                        ростверка:</label>
+                                                    <select id="grillageTransverseRebarDiameter"
+                                                        name="grillageTransverseRebarDiameter"
+                                                        class="w-full p-2 border rounded">
+                                                        <option value="6"> Ø6 мм</option>
+                                                        <option value="8" selected> Ø8 мм</option>
+                                                        <option value="10"> Ø10 мм</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <!-- Вторая строка: Бетон для ростверка и Гидроизоляция -->
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <!-- Выбор бетона для ростверка -->
+                                                <div>
+                                                    <label class="block mb-2 font-medium">Бетон для ростверка</label>
+                                                    <select name="grillage_concrete"
+                                                        class="w-full p-3 border border-gray-300 rounded-lg">
+                                                        <option value="concrete_b20">Бетон B20</option>
+                                                        <option value="concrete_b25" selected>Бетон B25</option>
+                                                        <option value="concrete_b30">Бетон B30</option>
+                                                    </select>
+                                                </div>
+
+                                                <!-- Выбор гидроизоляции -->
+                                                <div>
+                                                    <label class="block mb-2 font-medium">Гидроизоляция</label>
+                                                    <select name="pile_waterproofing"
+                                                        class="w-full p-3 border border-gray-300 rounded-lg">
+                                                        <option value="waterproofing_roll" selected>Гидроизоляция
+                                                            рулонная</option>
+                                                        <option value="waterproofing_membrane">Гидроизоляция мембранная
+                                                        </option>
+                                                        <option value="waterproofing_mastic">Гидроизоляция обмазочная
+                                                        </option>
+                                                        <option value="waterproofing_ultrathin">Ультратонкая
+                                                            гидроизоляция 6мм</option>
+                                                    </select>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -530,9 +547,7 @@
                                         фундамента</h3>
                                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
-                                            <div class="flex items-center mb-3">
-                                                <label for="columnStep" class="block mb-1 mr-2">Шаг столбов (м):</label>
-                                            </div>
+                                            <label for="columnStep" class="block mb-1">Шаг столбов (м):</label>
                                             <input type="number" id="columnStep" name="columnStep" min="1" max="3"
                                                 step="0.5" value="2" class="w-full p-2 border rounded">
                                         </div>
@@ -554,56 +569,10 @@
                                     </div>
 
                                     <!-- Блок параметров арматуры для столбчатого фундамента -->
-                                    <div id="column-rebar-params"
-                                        class="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 rebar-params"
-                                        style="display: none;">
-                                        <div>
-                                            <label for="columnLongitudinalRebarDiameter" class="block mb-1">Диаметр
-                                                продольной арматуры столбов:</label>
-                                            <select id="columnLongitudinalRebarDiameter"
-                                                name="columnLongitudinalRebarDiameter"
-                                                class="w-full p-2 border rounded">
-                                                <option value="10">A400 Ø10 мм</option>
-                                                <option value="12" selected>A400 Ø12 мм</option>
-                                                <option value="14">A400 Ø14 мм</option>
-                                                <option value="16">A400 Ø16 мм</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label for="columnTransverseRebarDiameter" class="block mb-1">Диаметр
-                                                поперечной арматуры столбов:</label>
-                                            <select id="columnTransverseRebarDiameter"
-                                                name="columnTransverseRebarDiameter" class="w-full p-2 border rounded">
-                                                <option value="6">A400 Ø6 мм</option>
-                                                <option value="8" selected>A400 Ø8 мм</option>
-                                                <option value="10">A400 Ø10 мм</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label for="beamLongitudinalRebarDiameter" class="block mb-1">Диаметр
-                                                продольной арматуры балок:</label>
-                                            <select id="beamLongitudinalRebarDiameter"
-                                                name="beamLongitudinalRebarDiameter" class="w-full p-2 border rounded">
-                                                <option value="10">A400 Ø10 мм</option>
-                                                <option value="12" selected>A400 Ø12 мм</option>
-                                                <option value="14">A400 Ø14 мм</option>
-                                                <option value="16">A400 Ø16 мм</option>
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label for="beamTransverseRebarDiameter" class="block mb-1">Диаметр
-                                                поперечной арматуры балок:</label>
-                                            <select id="beamTransverseRebarDiameter" name="beamTransverseRebarDiameter"
-                                                class="w-full p-2 border rounded">
-                                                <option value="6">A400 Ø6 мм</option>
-                                                <option value="8" selected>A400 Ø8 мм</option>
-                                                <option value="10">A400 Ø10 мм</option>
-                                            </select>
-                                        </div>
-                                    </div>
+
 
                                     <div class="mt-6">
-                                        <h4 class="font-medium mb-2">Выбор материалов</h4>
+                                        <h4 class="block mb-1 mr-2">Выбор материалов</h4>
                                         <div class="grid grid-cols-2 gap-4">
                                             <!-- Выбор бетонных столбов -->
                                             <div>
@@ -615,19 +584,6 @@
                                                     <option value="columns_block">Столбы из блоков ФБС</option>
                                                 </select>
                                             </div>
-
-                                            <!-- Выбор бетона -->
-                                            <div>
-                                                <label class="block mb-2 font-medium">Бетон</label>
-                                                <select name="column_concrete"
-                                                    class="w-full p-3 border border-gray-300 rounded-lg">
-                                                    <option value="concrete_b15">Бетон B15</option>
-                                                    <option value="concrete_b20" selected>Бетон B20</option>
-                                                    <option value="concrete_b25">Бетон B25</option>
-                                                </select>
-                                            </div>
-
-                                            <!-- Выбор арматуры -->
                                             <div>
                                                 <label class="block mb-2 font-medium">
                                                     <div class="flex items-center">
@@ -654,6 +610,70 @@
                                                     <option value="rebar_a300">Арматура A300</option>
                                                     <option value="rebar_a400" selected>Арматура A400</option>
                                                     <option value="rebar_a500">Арматура A500</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div id="column-rebar-params" class="mt-4 grid grid-cols-2 gap-4 rebar-params"
+                                            style="display: none;">
+                                            <div>
+                                                <label for="columnLongitudinalRebarDiameter" class="block mb-1">Диаметр
+                                                    продольной арматуры столбов:</label>
+                                                <select id="columnLongitudinalRebarDiameter"
+                                                    name="columnLongitudinalRebarDiameter"
+                                                    class="w-full p-2 border rounded">
+                                                    <option value="10"> Ø10 мм</option>
+                                                    <option value="12" selected> Ø12 мм</option>
+                                                    <option value="14"> Ø14 мм</option>
+                                                    <option value="16"> Ø16 мм</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label for="columnTransverseRebarDiameter" class="block mb-1">Диаметр
+                                                    поперечной арматуры столбов:</label>
+                                                <select id="columnTransverseRebarDiameter"
+                                                    name="columnTransverseRebarDiameter"
+                                                    class="w-full p-2 border rounded">
+                                                    <option value="6"> Ø6 мм</option>
+                                                    <option value="8" selected> Ø8 мм</option>
+                                                    <option value="10"> Ø10 мм</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label for="beamLongitudinalRebarDiameter" class="block mb-1">Диаметр
+                                                    продольной арматуры балок:</label>
+                                                <select id="beamLongitudinalRebarDiameter"
+                                                    name="beamLongitudinalRebarDiameter"
+                                                    class="w-full p-2 border rounded">
+                                                    <option value="10"> Ø10 мм</option>
+                                                    <option value="12" selected> Ø12 мм</option>
+                                                    <option value="14"> Ø14 мм</option>
+                                                    <option value="16"> Ø16 мм</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label for="beamTransverseRebarDiameter" class="block mb-1">Диаметр
+                                                    поперечной арматуры балок:</label>
+                                                <select id="beamTransverseRebarDiameter"
+                                                    name="beamTransverseRebarDiameter"
+                                                    class="w-full p-2 border rounded">
+                                                    <option value="6"> Ø6 мм</option>
+                                                    <option value="8" selected> Ø8 мм</option>
+                                                    <option value="10"> Ø10 мм</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <!-- Выбор бетона и гидроизоляции в одной строке -->
+                                        <div class="grid grid-cols-2 gap-4 mt-4">
+                                            <!-- Выбор бетона -->
+                                            <div>
+                                                <label class="block mb-2 font-medium">Бетон</label>
+                                                <select name="column_concrete"
+                                                    class="w-full p-3 border border-gray-300 rounded-lg">
+                                                    <option value="concrete_b15">Бетон B15</option>
+                                                    <option value="concrete_b20" selected>Бетон B20</option>
+                                                    <option value="concrete_b25">Бетон B25</option>
                                                 </select>
                                             </div>
 

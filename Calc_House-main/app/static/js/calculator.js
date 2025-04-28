@@ -6,6 +6,14 @@
 // Этот код переопределит значение в utils.js, если он загружен
 window.DEBUG = true;
 
+// Цены на различные типы кирпича для расчетов
+const BRICK_PRICES = {
+    solid: 24.5,      // Керамический полнотелый — 24,5 ₽/шт
+    hollow: 20,       // Керамический пустотелый — 20 ₽/шт
+    silicate: 16,     // Силикатный — 16 ₽/шт
+    porous: 140       // Поризованный блок — 140 ₽/шт
+};
+
 // Переменные для работы калькулятора
 let lastCalculationParams = {};
 let calculationCounter = 0;
@@ -1428,13 +1436,36 @@ function showBasicResults(params) {
         total_cost: area * 30 * 80
     });
 
-    // Стены
+    // Стены - используем цены для типов кирпича из констант
+    // Получаем тип кирпича из параметров (или 'solid' по умолчанию)
+    const brickType = params.brickType || 'solid';
+
+    // Получаем цену за кирпич из таблицы цен
+    const brickPrice = BRICK_PRICES[brickType] || 20; // Цена по умолчанию, если тип не найден
+
+    // Получаем название типа кирпича для более понятного отображения
+    let brickName = "Кирпич";
+    switch (brickType) {
+        case 'solid':
+            brickName = "Керамический полнотелый кирпич";
+            break;
+        case 'hollow':
+            brickName = "Керамический пустотелый кирпич";
+            break;
+        case 'silicate':
+            brickName = "Силикатный кирпич";
+            break;
+        case 'porous':
+            brickName = "Поризованный блок";
+            break;
+    }
+
     walls.push({
-        name: "Кирпич",
+        name: brickName,
         quantity: area * 100,
         unit: "шт.",
-        price: 20,
-        total_cost: area * 100 * 20
+        price: brickPrice,
+        total_cost: area * 100 * brickPrice
     });
 
     walls.push({

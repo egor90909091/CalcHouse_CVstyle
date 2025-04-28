@@ -119,22 +119,22 @@
             "materials": {
                 "brick_solid": {
                     "name": "Кирпич керамический полнотелый",
-                    "price": 30,
+                    "price": 24.5,
                     "unit": "шт"
                 },
                 "brick_hollow": {
                     "name": "Кирпич керамический пустотелый",
-                    "price": 25,
+                    "price": 20,
                     "unit": "шт"
                 },
                 "silicate_brick": {
                     "name": "Кирпич силикатный",
-                    "price": 21.5,
+                    "price": 16,
                     "unit": "шт"
                 },
                 "porous_block": {
                     "name": "Поризованный керамический блок",
-                    "price": 150,
+                    "price": 140,
                     "unit": "шт"
                 },
                 "mortar": {

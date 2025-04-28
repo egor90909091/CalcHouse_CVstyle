@@ -91,7 +91,7 @@ if __name__ == "__main__":
 
     # Запускаем сервер с таймаутом для сокетов
     config = Config(
-        "main:app", host="0.0.0.0", port=8001, reload=True, timeout_keep_alive=5
+        "main:app", host="0.0.0.0", port=8000, reload=True, timeout_keep_alive=5
     )
     server = uvicorn.Server(config)
 

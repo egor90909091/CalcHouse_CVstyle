@@ -657,6 +657,17 @@ async def calculate_simple_materials(request: Request):
                     }
                 )
 
+            # Добавляем утеплитель для кирпичных стен
+            if "insulation" in walls_selected_materials:
+                result["items"]["walls"].append(
+                    {
+                        "name": "Утеплитель (минеральная вата)",
+                        "quantity": walls_area,
+                        "unit": "м²",
+                        "price": 350.0,
+                    }
+                )
+
             # Если ничего не выбрано, добавляем стандартные материалы
             if not result["items"]["walls"]:
                 result["items"]["walls"].append(
