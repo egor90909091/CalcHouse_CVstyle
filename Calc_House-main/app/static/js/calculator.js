@@ -138,6 +138,9 @@ function navigateToCalculator() {
 async function handleFormSubmit(event) {
     event.preventDefault();
 
+    // Логируем событие отправки формы
+    logDebug("Обработка отправки формы калькулятора...");
+
     // Получаем форму и данные
     const form = event.target;
     const params = getFormParams(form);
@@ -148,7 +151,7 @@ async function handleFormSubmit(event) {
     // Проверяем наличие необходимых параметров
     if (!params.area) {
         alert("Пожалуйста, укажите площадь дома");
-        return;
+        return Promise.resolve(); // Возвращаем разрешенный Promise
     }
 
     // Показываем анимацию загрузки
@@ -166,6 +169,8 @@ async function handleFormSubmit(event) {
         setTimeout(() => {
             showAIRecommendations(params);
         }, 1000);
+
+        return Promise.resolve(); // Успех
     } catch (error) {
         console.error("Ошибка при обработке формы:", error);
 
@@ -185,6 +190,8 @@ async function handleFormSubmit(event) {
 
         // Показываем результаты
         showDetailedResults(fallbackData, params);
+
+        return Promise.resolve(error); // Резолвим Promise даже в случае ошибки, чтобы finally сработал
     }
 }
 
@@ -435,10 +442,44 @@ document.addEventListener('DOMContentLoaded', function () {
         // Удаляем встроенный обработчик в атрибуте onsubmit
         calculatorForm.onsubmit = null;
 
-        // Добавляем наш обработчик
-        calculatorForm.addEventListener('submit', handleFormSubmit);
+        // Очищаем все существующие обработчики
+        const newSubmit = function (e) {
+            e.preventDefault();
 
-        console.log("Обработчик формы калькулятора инициализирован");
+            // Логируем попытку отправки формы
+            logDebug("Нажата кнопка 'Рассчитать материалы'");
+
+            // Если форма уже отправляется, игнорируем повторную отправку
+            if (window.isFormSubmitting) {
+                logDebug("Форма уже отправляется, повторная отправка заблокирована");
+                return false;
+            }
+
+            // Устанавливаем флаг, что форма отправляется
+            window.isFormSubmitting = true;
+
+            // Вызываем обработчик формы
+            handleFormSubmit(e)
+                .catch(err => {
+                    console.error("Ошибка при обработке формы:", err);
+                    return null; // Возвращаем нормальное значение для продолжения цепочки промисов
+                })
+                .finally(() => {
+                    // После завершения обработки (успешной или с ошибкой) снимаем флаг
+                    setTimeout(() => {
+                        window.isFormSubmitting = false;
+                        logDebug("Сброшен флаг отправки формы, можно отправлять снова");
+                    }, 2000);
+                });
+        };
+
+        // Удаляем все обработчики событий
+        calculatorForm.removeEventListener('submit', handleFormSubmit);
+
+        // Устанавливаем новый обработчик
+        calculatorForm.addEventListener('submit', newSubmit);
+
+        console.log("Обработчик формы калькулятора переинициализирован");
     } else {
         console.error("Форма калькулятора не найдена!");
     }
@@ -2305,14 +2346,12 @@ document.addEventListener('DOMContentLoaded', function () {
         updateWallMaterialFields();
     }
 
-    // Обработка отправки формы расчета
+    // Удаляем дублирующий обработчик формы
+    // Обработка отправки формы расчета уже настроена в первом DOMContentLoaded
     const calculatorForm = document.getElementById('calculatorForm');
     if (calculatorForm) {
-        calculatorForm.addEventListener('submit', function (e) {
-            e.preventDefault();
-
-            // Запускаем обработку формы
-            handleFormSubmit(e);
-        });
+        // Не добавляем здесь новый обработчик, так как он уже добавлен ранее
+        // Это предотвращает двойную отправку формы
+        logDebug("Пропускаем повторную инициализацию обработчика формы");
     }
 });
