@@ -1818,35 +1818,61 @@ async function showAIRecommendations(params, focusPriority = 'cost', forceUpdate
 
         // Добавляем рекомендации
         if (data.recommendations && data.recommendations.length > 0) {
-            // Берем только первую рекомендацию, независимо от количества полученных
-            const recommendation = data.recommendations[0];
-
-            // Создаем параграф для лайфхака
-            const paragraph = document.createElement('p');
-            paragraph.className = 'text-indent-paragraph';
-
-            // Получаем текст рекомендации
-            let recommendationText = '';
-            if (typeof recommendation === 'object' && recommendation !== null) {
-                if (recommendation.text) {
-                    recommendationText = recommendation.text;
-                } else if (recommendation.description) {
-                    recommendationText = recommendation.description;
-                } else if (recommendation.content) {
-                    recommendationText = recommendation.content;
-                } else if (recommendation.message) {
-                    recommendationText = recommendation.message;
-                } else {
-                    recommendationText = JSON.stringify(recommendation);
-                }
-            } else {
-                recommendationText = String(recommendation);
+            // Добавляем общую сводку если она есть
+            if (data.summary) {
+                const summaryDiv = document.createElement('div');
+                summaryDiv.className = 'mb-4 p-3 bg-gray-700 text-white rounded-lg';
+                summaryDiv.textContent = data.summary;
+                contentContainer.appendChild(summaryDiv);
             }
 
-            paragraph.textContent = recommendationText;
-            contentContainer.appendChild(paragraph);
+            console.log("Получены рекомендации:", data.recommendations);
+
+            // Вместо группировки по категориям просто выводим все рекомендации
+            const allRecommendationsDiv = document.createElement('div');
+            allRecommendationsDiv.className = 'space-y-4';
+
+            // Выводим все рекомендации в том порядке, в котором они получены
+            data.recommendations.forEach((rec, index) => {
+                // Контейнер для рекомендации
+                const recDiv = document.createElement('div');
+                recDiv.className = 'bg-gray-800 p-3 rounded-lg shadow-md mb-3 border border-gray-700';
+
+                // Заголовок категории и рекомендации
+                const categoryTitle = document.createElement('div');
+                categoryTitle.className = 'font-bold text-blue-400 mb-2';
+                categoryTitle.textContent = rec.category || 'Рекомендация';
+                recDiv.appendChild(categoryTitle);
+
+                // Заголовок рекомендации
+                const recTitle = document.createElement('div');
+                recTitle.className = 'font-semibold mb-1 text-white';
+                recTitle.textContent = rec.title || 'Рекомендация';
+                recDiv.appendChild(recTitle);
+
+                // Описание рекомендации
+                const recDesc = document.createElement('div');
+                recDesc.className = 'text-gray-300 mb-2';
+                recDesc.textContent = rec.description || '';
+                recDiv.appendChild(recDesc);
+
+                // Польза от рекомендации
+                if (rec.impact) {
+                    const recImpact = document.createElement('div');
+                    recImpact.className = 'text-green-400 text-sm';
+                    recImpact.textContent = rec.impact;
+                    recDiv.appendChild(recImpact);
+                }
+
+                allRecommendationsDiv.appendChild(recDiv);
+            });
+
+            contentContainer.appendChild(allRecommendationsDiv);
+
+            // Выводим в консоль информацию о количестве рекомендаций
+            console.log(`Отображено ${data.recommendations.length} рекомендаций`);
         } else {
-            contentContainer.innerHTML = '<p class="text-center text-gray-500">Нет доступных рекомендаций для текущих параметров.</p>';
+            contentContainer.innerHTML = '<p class="text-center text-gray-400">Нет доступных рекомендаций для текущих параметров.</p>';
         }
 
         // Прокручиваем к рекомендациям, если они не видны
@@ -1894,7 +1920,7 @@ function handleRecommendationError(contentContainer, heading, errorMessage) {
 
     // Создаем параграф для стандартного лайфхака при ошибке
     const fallbackRecommendation = document.createElement('p');
-    fallbackRecommendation.className = 'text-indent-paragraph';
+    fallbackRecommendation.className = 'text-gray-300 p-4 bg-gray-800 rounded-lg';
 
     // Выбираем один из заготовленных лайфхаков
     const fallbackTexts = [
@@ -2136,8 +2162,8 @@ function showLoadingState(isLoading) {
         loader.id = 'ai-recommendations-loader';
         loader.className = 'flex justify-center items-center py-6';
         loader.innerHTML = `
-            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-gray-900"></div>
-            <span class="ml-3 text-gray-700">Загружаем рекомендации...</span>
+            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-400"></div>
+            <span class="ml-3 text-gray-300">Загружаем рекомендации...</span>
         `;
 
         // Сохраняем существующий контент, если он есть

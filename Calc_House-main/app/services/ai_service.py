@@ -237,65 +237,43 @@ class AIService:
         self, request: RecommendationRequest, optimization_focus: Optional[str] = None
     ) -> RecommendationResponse:
         """
-        Получение ИИ-рекомендаций на основе данных калькулятора через DeepSeek API.
-
-        Args:
-            request: Данные запроса с параметрами калькулятора
-            optimization_focus: Фокус оптимизации (cost, quality, speed)
-
-        Returns:
-            RecommendationResponse: Объект с рекомендациями
+        Получение рекомендаций от DeepSeek API
         """
         try:
-            # Проверяем наличие API ключа
             if not DEEPSEEK_API_KEY:
-                logger.warning("API ключ отсутствует. Используем заглушки.")
-                # Если ключа нет, используем заглушки
+                logger.warning(
+                    "API ключ DeepSeek не найден, используем заглушки рекомендаций"
+                )
                 return await self._get_fallback_recommendations(
                     request, optimization_focus
                 )
 
-            # Формируем запрос к API DeepSeek
-            prompt = self._create_recommendation_prompt(request, optimization_focus)
-            logger.info(f"Сформирован промпт для запроса: {prompt[:100]}...")
-
-            # Подготовка данных для запроса
             headers = {
                 "Content-Type": "application/json",
                 "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
             }
+
+            # Создаем промпт для DeepSeek
+            prompt = self._create_recommendation_prompt(request, optimization_focus)
+
+            # Параметры запроса
             payload = {
                 "model": "deepseek-chat",
                 "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.7,
-                "max_tokens": 1000,
-                "stream": False,
+                "temperature": 0.5,
+                "max_tokens": 2500,
             }
 
-            logger.info("Отправка запроса к DeepSeek API...")
-
             try:
+                # Выполняем запрос к DeepSeek API
+                logger.info(f"Отправка запроса к DeepSeek API...")
                 response = self.session.post(
-                    DEEPSEEK_API_URL,
-                    headers=headers,
-                    json=payload,
-                    timeout=(
-                        5,
-                        60,
-                    ),  # Явно указываем таймаут: (connect timeout, read timeout)
+                    DEEPSEEK_API_URL, json=payload, headers=headers
                 )
+                response.raise_for_status()  # Проверка на ошибки HTTP
 
-                # Обработка HTTP ошибок
-                response.raise_for_status()
-
-            except requests.exceptions.Timeout:
-                logger.error("Таймаут при запросе к DeepSeek API, используем заглушки.")
-                return await self._get_fallback_recommendations(
-                    request, optimization_focus
-                )
-
-            except requests.exceptions.ConnectionError:
-                logger.error("Ошибка соединения с DeepSeek API, используем заглушки.")
+            except requests.exceptions.RequestException as e:
+                logger.error(f"Ошибка запроса к DeepSeek API: {str(e)}")
                 return await self._get_fallback_recommendations(
                     request, optimization_focus
                 )
@@ -325,15 +303,32 @@ class AIService:
             ai_response = response_data["choices"][0]["message"]["content"]
             logger.info(f"Получен ответ от DeepSeek API: {ai_response[:100]}...")
 
+            # Извлекаем JSON из ответа
+            json_start = ai_response.find("{")
+            json_end = ai_response.rfind("}") + 1
+            if json_start == -1 or json_end == 0:
+                logger.error(f"JSON не найден в ответе: {ai_response[:200]}...")
+                return await self._get_fallback_recommendations(
+                    request, optimization_focus
+                )
+
+            json_data = ai_response[json_start:json_end]
+            try:
+                ai_response_data = json.loads(json_data)
+            except json.JSONDecodeError:
+                logger.error(f"Не удалось распарсить JSON ответа")
+                return await self._get_fallback_recommendations(
+                    request, optimization_focus
+                )
+
             # Преобразуем ответ в структурированные рекомендации
             recommendations = self._parse_ai_response(ai_response)
 
             # Формируем сводку рекомендаций
-            summary = self._generate_summary(recommendations)
+            summary = self._generate_summary(recommendations, ai_response_data)
 
             # Возвращаем структурированный ответ с рекомендациями
             return RecommendationResponse(
-                success=True,
                 recommendations=recommendations,
                 summary=summary,
             )
@@ -397,32 +392,46 @@ class AIService:
         }.get(calculator_data.roof_type.value, calculator_data.roof_type.value)
 
         prompt = f"""
-        Дайте ТОЛЬКО ОДИН практичный, уникальный и персонализированный лайфхак по строительству дома, учитывая ТОЧНО указанные параметры.
+        Создайте ЧЕТЫРЕ подробные строительные рекомендации (400-500 символов каждая) по:
+        1. Общие рекомендации для дома {calculator_data.area}м² из {wall_material_display}, {calculator_data.floors} этаж(а/ей)
+        2. Рекомендация по {foundation_type_display}у
+        3. Рекомендация по стенам из {wall_material_display}а
+        4. Рекомендация по кровле типа {roof_type_display}
         
-        Ваш ответ должен быть кратким (450-650 символов) и состоять из одного абзаца.
-        НЕ РЕКОМЕНДУЙТЕ то, что уже выбрано в параметрах. Например, если выбран кирпич, не советуйте использовать кирпич.
-        НЕ предлагайте заменить выбранные материалы на другие.
-        Учитывайте ВСЕ параметры, включая дополнительные опции.
+        Приоритет заказчика: {priority}.
         
-        Параметры дома:
-        - Площадь: {calculator_data.area} м²
-        - Фундамент: {foundation_type_display}
-        - Материал стен: {wall_material_display}
-        - Количество этажей: {calculator_data.floors}
-        - Тип кровли: {roof_type_display}
-        - Дополнительные опции: {additional_options_str}
-        
-        Приоритет заказчика: {priority}
-        
-        Предложите конкретный лайфхак, который учитывает именно эту комбинацию параметров и улучшит результат.
-        Лайфхак должен быть практичным, основанным на реальном опыте строительства, и применимым к данному типу дома.
-        
-        Дайте ответ в формате JSON:
+        Формат строго JSON:
         {{
-            "lifehack": "Ваш лайфхак в одном абзаце (450-650 символов)"
+          "summary": "Краткое резюме всех рекомендаций",
+          "recommendations": [
+            {{
+              "category": "Общие",
+              "title": "Заголовок общей рекомендации",
+              "description": "Описание 400-500 символов",
+              "impact": "Польза от рекомендации"
+            }},
+            {{
+              "category": "Фундамент",
+              "title": "Заголовок фундамента",
+              "description": "Описание 400-500 символов",
+              "impact": "Польза от рекомендации"
+            }},
+            {{
+              "category": "Стены",
+              "title": "Заголовок стен",
+              "description": "Описание 400-500 символов",
+              "impact": "Польза от рекомендации"
+            }},
+            {{
+              "category": "Крыша",
+              "title": "Заголовок крыши",
+              "description": "Описание 400-500 символов",
+              "impact": "Польза от рекомендации"
+            }}
+          ]
         }}
         
-        НЕ ДОБАВЛЯЙТЕ НИКАКИХ ДОПОЛНИТЕЛЬНЫХ КОММЕНТАРИЕВ, ТОЛЬКО JSON С ЛАЙФХАКОМ.
+        ТОЛЬКО JSON, БЕЗ ПОЯСНЕНИЙ.
         """
 
         return prompt
@@ -446,40 +455,62 @@ class AIService:
             logger.debug(f"Извлеченные JSON данные: {json_data[:200]}...")
 
             try:
-                lifehack_data = json.loads(json_data)
-                logger.info(f"Успешно десериализован лайфхак")
+                ai_response_data = json.loads(json_data)
+                logger.info(f"Успешно десериализован ответ AI")
             except json.JSONDecodeError as e:
                 logger.error(
                     f"Ошибка парсинга JSON: {e}. Содержимое: {json_data[:200]}..."
                 )
                 raise ValueError(f"Ошибка парсинга JSON: {e}")
 
-            # Создаем один объект Recommendation из полученного лайфхака
+            # Создаем список рекомендаций из полученного ответа
             recommendations = []
-            if "lifehack" in lifehack_data:
+
+            # Проверяем наличие нового формата ответа
+            if "recommendations" in ai_response_data and isinstance(
+                ai_response_data["recommendations"], list
+            ):
+                # Обрабатываем новый формат с множественными рекомендациями
+                for rec_data in ai_response_data["recommendations"]:
+                    recommendations.append(
+                        Recommendation(
+                            title=rec_data.get("title", "Рекомендация"),
+                            description=rec_data.get("description", ""),
+                            impact=rec_data.get("impact", ""),
+                            estimated_savings=None,
+                        )
+                    )
+                    logger.debug(f"Добавлена рекомендация: {rec_data.get('title')}")
+            # Проверяем наличие старого формата с одним лайфхаком
+            elif "lifehack" in ai_response_data:
                 recommendations.append(
                     Recommendation(
                         title="Лайфхак дня",
-                        description=lifehack_data.get("lifehack", ""),
+                        description=ai_response_data.get("lifehack", ""),
                         impact="",
                         estimated_savings=None,
                     )
                 )
                 logger.debug(
-                    f"Добавлен лайфхак: {lifehack_data.get('lifehack')[:50]}..."
+                    f"Добавлен лайфхак: {ai_response_data.get('lifehack')[:50]}..."
                 )
             else:
-                logger.error("Поле 'lifehack' не найдено в ответе")
+                logger.error(
+                    "Поля 'recommendations' или 'lifehack' не найдены в ответе"
+                )
+                # Добавляем базовую рекомендацию на случай ошибки
                 recommendations.append(
                     Recommendation(
-                        title="Лайфхак дня",
+                        title="Рекомендация",
                         description="Используйте современные строительные материалы и технологии, они могут значительно сократить затраты на строительство и эксплуатацию дома.",
-                        impact="",
+                        impact="Повышение эффективности и снижение затрат",
                         estimated_savings=None,
                     )
                 )
 
-            logger.info(f"Успешно создан объект Recommendation с лайфхаком")
+            logger.info(
+                f"Успешно создано {len(recommendations)} рекомендаций из ответа AI"
+            )
             return recommendations
 
         except Exception as e:
@@ -487,38 +518,55 @@ class AIService:
             # В случае ошибки возвращаем базовую рекомендацию
             return [
                 Recommendation(
-                    title="Лайфхак дня",
+                    title="Рекомендация",
                     description="Для получения наилучших результатов при строительстве, фотографируйте каждый этап работы. Это поможет отследить скрытые коммуникации и избежать проблем при последующих ремонтах.",
-                    impact="",
+                    impact="Повышение контроля качества",
                     estimated_savings=None,
                 )
             ]
 
-    def _generate_summary(self, recommendations: List[Recommendation]) -> str:
+    def _generate_summary(
+        self,
+        recommendations: List[Recommendation],
+        ai_response_data: Optional[Dict] = None,
+    ) -> str:
         """
-        Генерация краткого резюме на основе рекомендаций
+        Генерация краткого резюме на основе рекомендаций или использование готового summary из ответа DeepSeek
         """
+        # Если есть готовое summary в ответе AI, используем его
+        if ai_response_data and "summary" in ai_response_data:
+            return ai_response_data.get("summary")
+
+        # Иначе генерируем резюме на основе рекомендаций
         if not recommendations:
-            logger.warning("Нет рекомендаций для генерации резюме")
-            return "Нет доступных рекомендаций."
+            return "Рекомендации не найдены."
 
-        total_savings = 0
-        savings_count = 0
-
+        # Группируем рекомендации по категориям, если есть достаточно данных
+        categories = {}
         for rec in recommendations:
-            if rec.estimated_savings:
-                total_savings += rec.estimated_savings
-                savings_count += 1
+            # Попытка извлечь категорию из заголовка, если она не указана явно
+            title = rec.title.lower()
+            if "фундамент" in title:
+                category = "фундамент"
+            elif "стен" in title:
+                category = "стены"
+            elif "крыш" in title:
+                category = "крыша"
+            else:
+                category = "общее"
 
-        avg_savings = total_savings / savings_count if savings_count > 0 else 0
+            if category not in categories:
+                categories[category] = 0
+            categories[category] += 1
 
-        summary = f"Предложено {len(recommendations)} рекомендаций"
-
-        if avg_savings > 0:
-            summary += f", которые могут помочь сэкономить в среднем около {avg_savings:.1f}% бюджета"
-
-        logger.info(f"Сгенерировано резюме: {summary}")
-        return summary + "."
+        # Составляем резюме на основе категорий
+        if len(categories) > 1:
+            category_summary = ", ".join(
+                [f"{count} по {cat}" for cat, count in categories.items()]
+            )
+            return f"Предоставлено {len(recommendations)} рекомендаций: {category_summary}. Рекомендации учитывают выбранные параметры строительства и направлены на оптимизацию процесса и повышение качества строительства."
+        else:
+            return f"Предоставлено {len(recommendations)} практических рекомендаций для оптимизации строительства."
 
     async def _get_fallback_recommendations(
         self, request: RecommendationRequest, optimization_focus: Optional[str]

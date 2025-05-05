@@ -1,3 +1,61 @@
+/* Стили для блока рекомендаций */
+.ai-recommendations {
+    background-color: #1a202c;
+    /* темный фон */
+    border-color: #4299e1;
+    /* синяя граница */
+    color: #cbd5e0;
+    /* светло-серый текст */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.ai-recommendations-title {
+    color: #63b3ed;
+    /* голубой цвет для заголовка */
+    font-weight: 700;
+}
+
+.ai-recommendations-content p {
+    color: #cbd5e0;
+    line-height: 1.5;
+}
+
+/* Стили для секций рекомендаций */
+.recommendation-section {
+    margin-bottom: 1rem;
+}
+
+.recommendation-section h5 {
+    color: #4299e1;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.recommendation-item {
+    background-color: #2d3748;
+    border: 1px solid #4a5568;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.recommendation-title {
+    color: #fff;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.recommendation-description {
+    color: #cbd5e0;
+    margin-bottom: 0.5rem;
+}
+
+.recommendation-impact {
+    color: #48bb78;
+    font-size: 0.875rem;
+}
+
 /* Стили для блока рекомендаций ИИ */
 .ai-recommendations {
     background-color: #f8f9fa;
