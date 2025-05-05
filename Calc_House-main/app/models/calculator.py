@@ -12,6 +12,16 @@ class FoundationType(str, Enum):
     COLUMN = "column"  # Столбчатый
 
 
+class FloorType(str, Enum):
+    """Типы межэтажных перекрытий"""
+
+    WOOD = "wood"  # Деревянное перекрытие
+    CONCRETE = "concrete"  # Монолитное железобетонное
+    SLAB = "slab"  # Плитное перекрытие
+    PREFAB = "prefab"  # Сборное железобетонное
+    STEEL = "steel"  # Металлическое перекрытие
+
+
 class WallMaterial(str, Enum):
     """Материалы стен"""
 
@@ -58,6 +68,9 @@ class CalculatorInput(BaseModel):
     foundation_type: FoundationType = Field(..., description="Тип фундамента")
     wall_material: WallMaterial = Field(..., description="Материал стен")
     floors: int = Field(..., description="Количество этажей", ge=1, le=3)
+    floor_type: Optional[FloorType] = Field(
+        None, description="Тип межэтажных перекрытий"
+    )
     roof_type: RoofType = Field(..., description="Тип кровли")
     additional_options: Optional[List[AdditionalOption]] = Field(
         default=[], description="Дополнительные опции"
@@ -217,11 +230,58 @@ class MaterialItem(BaseModel):
     )
 
 
+class FloorParams(BaseModel):
+    """Параметры межэтажных перекрытий"""
+
+    thickness: float = Field(..., description="Толщина перекрытия в метрах")
+    load_capacity: float = Field(..., description="Несущая способность в кг/м²")
+
+
+class WoodFloorParams(FloorParams):
+    """Параметры деревянных перекрытий"""
+
+    beam_type: str = Field(..., description="Тип балок")
+    beam_size: float = Field(..., description="Сечение балок в мм")
+    beam_spacing: float = Field(..., description="Шаг между балками в м")
+
+
+class ConcreteFloorParams(FloorParams):
+    """Параметры монолитных перекрытий"""
+
+    concrete_class: str = Field(..., description="Класс бетона")
+    reinforcement: float = Field(..., description="Количество арматуры кг/м³")
+
+
+class SlabFloorParams(FloorParams):
+    """Параметры плитных перекрытий"""
+
+    slab_type: str = Field(..., description="Тип плит")
+    slab_size: str = Field(..., description="Размер плит")
+
+
+class PrefabFloorParams(FloorParams):
+    """Параметры сборных железобетонных перекрытий"""
+
+    panel_type: str = Field(..., description="Тип панелей")
+    panel_size: str = Field(..., description="Размер панелей")
+
+
+class SteelFloorParams(FloorParams):
+    """Параметры металлических перекрытий"""
+
+    beam_type: str = Field(..., description="Тип балок")
+    beam_profile: str = Field(..., description="Профиль балок")
+    beam_spacing: float = Field(..., description="Шаг между балками в м")
+
+
 class MaterialsResult(BaseModel):
     """Результат расчета материалов"""
 
     foundation: List[MaterialItem] = Field(..., description="Материалы для фундамента")
     walls: List[MaterialItem] = Field(..., description="Материалы для стен")
+    floors: List[MaterialItem] = Field(
+        default=[], description="Материалы для межэтажных перекрытий"
+    )
     roof: List[MaterialItem] = Field(..., description="Материалы для кровли")
 
 
@@ -250,6 +310,14 @@ class MaterialsCalculatorInput(BaseModel):
     wall_material: WallMaterial = Field(..., description="Материал стен")
     wall_params: Dict[str, Any] = Field(..., description="Параметры стен")
 
+    # Перекрытия
+    floor_type: Optional[FloorType] = Field(
+        None, description="Тип межэтажных перекрытий"
+    )
+    floor_params: Optional[Dict[str, Any]] = Field(
+        None, description="Параметры перекрытий"
+    )
+
     # Крыша
     roof_type: RoofType = Field(..., description="Тип кровли")
     roof_construction: RoofConstruction = Field(
@@ -271,6 +339,9 @@ class CalculatorRequest(BaseModel):
     foundation_type: FoundationType = Field(..., description="Тип фундамента")
     wall_material: WallMaterial = Field(..., description="Материал стен")
     floors: int = Field(..., description="Количество этажей", ge=1, le=3)
+    floor_type: Optional[FloorType] = Field(
+        None, description="Тип межэтажных перекрытий"
+    )
     roof_type: RoofType = Field(..., description="Тип кровли")
     additional_options: Optional[List[AdditionalOption]] = Field(
         default=[], description="Дополнительные опции"

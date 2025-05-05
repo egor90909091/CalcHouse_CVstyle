@@ -231,7 +231,10 @@ document.addEventListener('DOMContentLoaded', function () {
         return originalAddEventListener.call(this, type, listener, options);
     };
 
-    // Установка начальных значений из строки запроса
+    // Сначала пытаемся загрузить параметры из localStorage
+    loadFormFromLocalStorage();
+
+    // Затем, если есть параметры в URL, они перезапишут localStorage
     setFormFromQueryString();
 
     // Обработчик для переключения параметров стен в зависимости от выбранного материала
@@ -1281,160 +1284,165 @@ function showDetailedResults(detailedData, params) {
         return;
     }
 
-    // Скрываем анимацию загрузки
-    const loadingAnimation = document.getElementById('loading-animation');
-    if (loadingAnimation) {
-        loadingAnimation.classList.add('hidden');
-    }
-
-    // Проверяем, что данные существуют и имеют правильную структуру
-    if (!detailedData) {
-        logDebug("Ошибка: данные отсутствуют");
-        return;
-    }
-
-    if (!detailedData.foundation || !detailedData.walls || !detailedData.roof) {
-        logDebug("Ошибка: неполные данные о материалах");
-        // Если данные отсутствуют, создаем пустые массивы
-        if (!detailedData.foundation) detailedData.foundation = [];
-        if (!detailedData.walls) detailedData.walls = [];
-        if (!detailedData.roof) detailedData.roof = [];
-    }
-
-    logDebug("Размеры массивов: " +
-        "foundation=" + (detailedData.foundation ? detailedData.foundation.length : 0) +
-        ", walls=" + (detailedData.walls ? detailedData.walls.length : 0) +
-        ", roof=" + (detailedData.roof ? detailedData.roof.length : 0));
-
-    // Через небольшую задержку показываем результаты
+    // Скрываем анимацию загрузки только после задержки
+    // Это даст возможность анимации полностью завершиться
     setTimeout(() => {
-        // Анимация появления заголовков
-        const foundationTitle = document.getElementById('foundation-title');
-        const wallsTitle = document.getElementById('walls-title');
-        const roofTitle = document.getElementById('roof-title');
-
-        // Проверяем непустоту данных перед отображением
-        const hasFoundationData = detailedData.foundation && detailedData.foundation.length > 0;
-        const hasWallsData = detailedData.walls && detailedData.walls.length > 0;
-        const hasRoofData = detailedData.roof && detailedData.roof.length > 0;
-
-        // Если данных нет, добавляем пустые заполнители
-        if (!hasFoundationData) {
-            detailedData.foundation = [{
-                name: "Данные отсутствуют",
-                quantity: 0,
-                unit: "",
-                price: 0,
-                total_cost: 0
-            }];
+        const loadingAnimation = document.getElementById('loading-animation');
+        if (loadingAnimation) {
+            loadingAnimation.classList.add('hidden');
+            logDebug("Анимация загрузки скрыта с задержкой");
         }
 
-        if (!hasWallsData) {
-            detailedData.walls = [{
-                name: "Данные отсутствуют",
-                quantity: 0,
-                unit: "",
-                price: 0,
-                total_cost: 0
-            }];
+        // Проверяем, что данные существуют и имеют правильную структуру
+        if (!detailedData) {
+            logDebug("Ошибка: данные отсутствуют");
+            return;
         }
 
-        if (!hasRoofData) {
-            detailedData.roof = [{
-                name: "Данные отсутствуют",
-                quantity: 0,
-                unit: "",
-                price: 0,
-                total_cost: 0
-            }];
+        if (!detailedData.foundation || !detailedData.walls || !detailedData.roof) {
+            logDebug("Ошибка: неполные данные о материалах");
+            // Если данные отсутствуют, создаем пустые массивы
+            if (!detailedData.foundation) detailedData.foundation = [];
+            if (!detailedData.walls) detailedData.walls = [];
+            if (!detailedData.roof) detailedData.roof = [];
         }
 
-        // Заполняем разделы с задержкой
+        logDebug("Размеры массивов: " +
+            "foundation=" + (detailedData.foundation ? detailedData.foundation.length : 0) +
+            ", walls=" + (detailedData.walls ? detailedData.walls.length : 0) +
+            ", roof=" + (detailedData.roof ? detailedData.roof.length : 0));
+
+        // Через увеличенную задержку показываем результаты
+        // Общая задержка около 3-4 секунд для завершения анимации
         setTimeout(() => {
-            if (foundationTitle) {
-                foundationTitle.classList.remove('opacity-0');
-                foundationTitle.classList.add('transition-opacity', 'duration-500');
+            // Анимация появления заголовков
+            const foundationTitle = document.getElementById('foundation-title');
+            const wallsTitle = document.getElementById('walls-title');
+            const roofTitle = document.getElementById('roof-title');
+
+            // Проверяем непустоту данных перед отображением
+            const hasFoundationData = detailedData.foundation && detailedData.foundation.length > 0;
+            const hasWallsData = detailedData.walls && detailedData.walls.length > 0;
+            const hasRoofData = detailedData.roof && detailedData.roof.length > 0;
+
+            // Если данных нет, добавляем пустые заполнители
+            if (!hasFoundationData) {
+                detailedData.foundation = [{
+                    name: "Данные отсутствуют",
+                    quantity: 0,
+                    unit: "",
+                    price: 0,
+                    total_cost: 0
+                }];
             }
-            logDebug("Заполняем раздел фундамента", detailedData.foundation);
-            fillSection(foundationMaterials, detailedData.foundation);
-            logDebug("Заполнен раздел фундамента");
-        }, 300);
 
-        setTimeout(() => {
-            if (wallsTitle) {
-                wallsTitle.classList.remove('opacity-0');
-                wallsTitle.classList.add('transition-opacity', 'duration-500');
+            if (!hasWallsData) {
+                detailedData.walls = [{
+                    name: "Данные отсутствуют",
+                    quantity: 0,
+                    unit: "",
+                    price: 0,
+                    total_cost: 0
+                }];
             }
-            logDebug("Заполняем раздел стен", detailedData.walls);
-            fillSection(wallMaterials, detailedData.walls);
-            logDebug("Заполнен раздел стен");
-        }, 800);
 
-        setTimeout(() => {
-            if (roofTitle) {
-                roofTitle.classList.remove('opacity-0');
-                roofTitle.classList.add('transition-opacity', 'duration-500');
+            if (!hasRoofData) {
+                detailedData.roof = [{
+                    name: "Данные отсутствуют",
+                    quantity: 0,
+                    unit: "",
+                    price: 0,
+                    total_cost: 0
+                }];
             }
-            logDebug("Заполняем раздел крыши", detailedData.roof);
-            fillSection(roofMaterials, detailedData.roof);
-            logDebug("Заполнен раздел крыши");
-        }, 1300);
 
-        // Добавляем вывод общей стоимости
-        setTimeout(() => {
-            // Рассчитываем общую стоимость
-            let totalCost = 0;
+            // Заполняем разделы с задержкой
+            setTimeout(() => {
+                if (foundationTitle) {
+                    foundationTitle.classList.remove('opacity-0');
+                    foundationTitle.classList.add('transition-opacity', 'duration-500');
+                }
+                logDebug("Заполняем раздел фундамента", detailedData.foundation);
+                fillSection(foundationMaterials, detailedData.foundation);
+                logDebug("Заполнен раздел фундамента");
+            }, 300);
 
-            // Суммируем все разделы
-            ['foundation', 'walls', 'roof'].forEach(section => {
-                if (detailedData[section]) {
-                    detailedData[section].forEach(item => {
-                        if (item.total_cost) {
-                            totalCost += item.total_cost;
+            setTimeout(() => {
+                if (wallsTitle) {
+                    wallsTitle.classList.remove('opacity-0');
+                    wallsTitle.classList.add('transition-opacity', 'duration-500');
+                }
+                logDebug("Заполняем раздел стен", detailedData.walls);
+                fillSection(wallMaterials, detailedData.walls);
+                logDebug("Заполнен раздел стен");
+            }, 800);
+
+            setTimeout(() => {
+                if (roofTitle) {
+                    roofTitle.classList.remove('opacity-0');
+                    roofTitle.classList.add('transition-opacity', 'duration-500');
+                }
+                logDebug("Заполняем раздел крыши", detailedData.roof);
+                fillSection(roofMaterials, detailedData.roof);
+                logDebug("Заполнен раздел крыши");
+            }, 1300);
+
+            // Добавляем вывод общей стоимости
+            setTimeout(() => {
+                // Рассчитываем общую стоимость
+                let totalCost = 0;
+
+                // Суммируем все разделы
+                ['foundation', 'walls', 'roof'].forEach(section => {
+                    if (detailedData[section]) {
+                        detailedData[section].forEach(item => {
+                            if (item.total_cost) {
+                                totalCost += item.total_cost;
+                            }
+                        });
+                    }
+                });
+
+                // Создаем блок для отображения итоговой суммы
+                const resultsContainer = document.getElementById('results');
+                if (resultsContainer) {
+                    // Проверяем, нет ли уже блока с итоговой суммой
+                    let totalBlock = document.getElementById('total-cost-block');
+                    if (!totalBlock) {
+                        totalBlock = document.createElement('div');
+                        totalBlock.id = 'total-cost-block';
+                        totalBlock.className = 'mt-8 p-4 rounded-lg shadow-lg border-2 total-cost-container';
+                        totalBlock.style.borderColor = 'var(--accent-color)';
+                        totalBlock.style.backgroundColor = 'var(--surface-accent)';
+                        totalBlock.innerHTML = `
+                            <div class="flex justify-between items-center">
+                                <h3 class="text-xl font-bold">Общая стоимость материалов:</h3>
+                                <span class="text-2xl font-bold">${Math.round(totalCost).toLocaleString('ru-RU')} ₽</span>
+                            </div>
+                        `;
+
+                        // Вставляем блок перед примечанием
+                        const noteContainer = document.querySelector('.note-container');
+                        if (noteContainer) {
+                            noteContainer.parentNode.insertBefore(totalBlock, noteContainer);
+                        } else {
+                            // Если блок с примечанием не найден, добавляем в конец
+                            resultsContainer.appendChild(totalBlock);
                         }
-                    });
-                }
-            });
-
-            // Создаем блок для отображения итоговой суммы
-            const resultsContainer = document.getElementById('results');
-            if (resultsContainer) {
-                // Проверяем, нет ли уже блока с итоговой суммой
-                let totalBlock = document.getElementById('total-cost-block');
-                if (!totalBlock) {
-                    totalBlock = document.createElement('div');
-                    totalBlock.id = 'total-cost-block';
-                    totalBlock.className = 'mt-8 p-4 rounded-lg shadow-lg border-2 total-cost-container';
-                    totalBlock.style.borderColor = 'var(--accent-color)';
-                    totalBlock.style.backgroundColor = 'var(--surface-accent)';
-                    totalBlock.innerHTML = `
-                        <div class="flex justify-between items-center">
-                            <h3 class="text-xl font-bold">Общая стоимость материалов:</h3>
-                            <span class="text-2xl font-bold">${Math.round(totalCost).toLocaleString('ru-RU')} ₽</span>
-                        </div>
-                    `;
-
-                    // Вставляем блок перед примечанием
-                    const noteContainer = document.querySelector('.note-container');
-                    if (noteContainer) {
-                        noteContainer.parentNode.insertBefore(totalBlock, noteContainer);
                     } else {
-                        // Если блок с примечанием не найден, добавляем в конец
-                        resultsContainer.appendChild(totalBlock);
-                    }
-                } else {
-                    // Обновляем сумму, если блок уже существует
-                    const costSpan = totalBlock.querySelector('span');
-                    if (costSpan) {
-                        costSpan.textContent = `${Math.round(totalCost).toLocaleString('ru-RU')} ₽`;
+                        // Обновляем сумму, если блок уже существует
+                        const costSpan = totalBlock.querySelector('span');
+                        if (costSpan) {
+                            costSpan.textContent = `${Math.round(totalCost).toLocaleString('ru-RU')} ₽`;
+                        }
                     }
                 }
-            }
-        }, 1800);
+            }, 1800);
 
-        // Подготавливаем данные для печати
-        preparePrintView();
-    }, 300);
+            // Подготавливаем данные для печати
+            preparePrintView();
+        }, 2000); // Задержка 2 секунды вместо 5.2 секунд
+    }, 1500); // Задержка 1.5 секунды вместо 2.8 секунд
 }
 
 /**
@@ -1691,6 +1699,8 @@ async function showAIRecommendations(params, focusPriority = 'cost', forceUpdate
             return;
         }
 
+        // Не удаляем существующие рекомендации, они будут заменены новыми после успешного запроса
+
         // Проверяем, изменились ли параметры с последнего запроса
         const paramsKey = JSON.stringify(params) + focusPriority;
         if (!forceUpdate && lastRecommendationParams === paramsKey) {
@@ -1725,12 +1735,12 @@ async function showAIRecommendations(params, focusPriority = 'cost', forceUpdate
         // Показываем контейнер рекомендаций всегда, даже если он пустой
         recommendationsContainer.classList.remove('hidden');
 
-        // Добавляем индикатор загрузки
+        // Заголовок остается неизменным во время загрузки
         const heading = recommendationsContainer.querySelector('.ai-recommendations-title, h4, h3, h2');
         if (heading) {
             heading.innerHTML = `
-                <div class="flex items-center justify-center">
-                    <span>Подготовка персональных рекомендаций...</span>
+                <div class="flex items-center">
+                    <span>Рекомендации ИИ-ассистента по строительству</span>
                     <div class="loader ml-2"></div>
                 </div>
             `;
@@ -1752,22 +1762,19 @@ async function showAIRecommendations(params, focusPriority = 'cost', forceUpdate
 
         logDebug("Подготовленные параметры для AI: " + JSON.stringify(requestBody));
 
-        // Отображаем индикатор загрузки
-        showLoadingState(true);
-
         // Отменяем предыдущий таймаут, если он существует
         if (recommendationRequestTimeout) {
             clearTimeout(recommendationRequestTimeout);
         }
 
-        // Устанавливаем таймаут для запроса (30 секунд вместо 15)
+        // Устанавливаем таймаут для запроса (2.5 минуты)
         recommendationRequestTimeout = setTimeout(() => {
             logDebug("Превышено время ожидания ответа от сервера");
             isRecommendationRequestInProgress = false;
 
             // Обрабатываем ошибку таймаута
             handleRecommendationError(contentContainer, heading, "Превышено время ожидания ответа от сервера");
-        }, 30000); // 30 секунд таймаут
+        }, 155000); // 2 минуты 35 секунд таймаут
 
         // Отправляем запрос
         let response;
@@ -1778,15 +1785,15 @@ async function showAIRecommendations(params, focusPriority = 'cost', forceUpdate
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify(requestBody),
-                timeout: 25000 // Увеличиваем таймаут до 25 секунд
+                timeout: 150000 // 2.5 минуты (150 секунд)
             });
         } catch (error) {
             clearTimeout(recommendationRequestTimeout);
             recommendationRequestTimeout = null;
             isRecommendationRequestInProgress = false;
 
-            // Обрабатываем ошибку сети
-            handleRecommendationError(contentContainer, heading, `Ошибка соединения: ${error.message}`);
+            // Обрабатываем ошибку сети с указанием что это не API ошибка
+            handleRecommendationError(contentContainer, heading, `Ошибка соединения: ${error.message}`, false);
             return;
         }
 
@@ -1797,8 +1804,8 @@ async function showAIRecommendations(params, focusPriority = 'cost', forceUpdate
         if (!response.ok) {
             isRecommendationRequestInProgress = false;
 
-            // Обрабатываем ошибку API
-            handleRecommendationError(contentContainer, heading, `Ошибка API: ${response.status} ${response.statusText}`);
+            // Обрабатываем ошибку API, указывая что это ошибка API
+            handleRecommendationError(contentContainer, heading, `Ошибка API: ${response.status} ${response.statusText}`, true, response.status);
             return;
         }
 
@@ -1808,7 +1815,7 @@ async function showAIRecommendations(params, focusPriority = 'cost', forceUpdate
         // Сохраняем параметры этого запроса как последние успешные
         lastRecommendationParams = paramsKey;
 
-        // Обновляем заголовок
+        // Обновляем заголовок без анимации
         if (heading) {
             heading.textContent = 'Рекомендации ИИ-ассистента по строительству';
         }
@@ -1818,10 +1825,16 @@ async function showAIRecommendations(params, focusPriority = 'cost', forceUpdate
 
         // Добавляем рекомендации
         if (data.recommendations && data.recommendations.length > 0) {
+            // Определяем, используется ли светлая тема
+            const isLightTheme = document.documentElement.classList.contains('light-theme');
+
             // Добавляем общую сводку если она есть
             if (data.summary) {
                 const summaryDiv = document.createElement('div');
-                summaryDiv.className = 'mb-4 p-3 bg-gray-700 text-white rounded-lg';
+                // Адаптируем стиль к теме
+                summaryDiv.className = isLightTheme
+                    ? 'mb-4 p-3 bg-blue-50 text-blue-800 rounded-lg border border-blue-200'
+                    : 'mb-4 p-3 bg-gray-700 text-white rounded-lg';
                 summaryDiv.textContent = data.summary;
                 contentContainer.appendChild(summaryDiv);
             }
@@ -1836,30 +1849,41 @@ async function showAIRecommendations(params, focusPriority = 'cost', forceUpdate
             data.recommendations.forEach((rec, index) => {
                 // Контейнер для рекомендации
                 const recDiv = document.createElement('div');
-                recDiv.className = 'bg-gray-800 p-3 rounded-lg shadow-md mb-3 border border-gray-700';
+                // Адаптируем стиль к теме
+                recDiv.className = isLightTheme
+                    ? 'bg-white p-3 rounded-lg shadow-md mb-3 border border-gray-200'
+                    : 'bg-gray-800 p-3 rounded-lg shadow-md mb-3 border border-gray-700';
 
                 // Заголовок категории и рекомендации
                 const categoryTitle = document.createElement('div');
-                categoryTitle.className = 'font-bold text-blue-400 mb-2';
+                categoryTitle.className = isLightTheme
+                    ? 'font-bold text-blue-600 mb-2'
+                    : 'font-bold text-blue-400 mb-2';
                 categoryTitle.textContent = rec.category || 'Рекомендация';
                 recDiv.appendChild(categoryTitle);
 
                 // Заголовок рекомендации
                 const recTitle = document.createElement('div');
-                recTitle.className = 'font-semibold mb-1 text-white';
+                recTitle.className = isLightTheme
+                    ? 'font-semibold mb-1 text-gray-800'
+                    : 'font-semibold mb-1 text-white';
                 recTitle.textContent = rec.title || 'Рекомендация';
                 recDiv.appendChild(recTitle);
 
                 // Описание рекомендации
                 const recDesc = document.createElement('div');
-                recDesc.className = 'text-gray-300 mb-2';
+                recDesc.className = isLightTheme
+                    ? 'text-gray-700 mb-2'
+                    : 'text-gray-300 mb-2';
                 recDesc.textContent = rec.description || '';
                 recDiv.appendChild(recDesc);
 
                 // Польза от рекомендации
                 if (rec.impact) {
                     const recImpact = document.createElement('div');
-                    recImpact.className = 'text-green-400 text-sm';
+                    recImpact.className = isLightTheme
+                        ? 'text-green-600 text-sm'
+                        : 'text-green-400 text-sm';
                     recImpact.textContent = rec.impact;
                     recDiv.appendChild(recImpact);
                 }
@@ -1900,8 +1924,10 @@ async function showAIRecommendations(params, focusPriority = 'cost', forceUpdate
  * @param {Element} contentContainer - Контейнер для контента рекомендаций
  * @param {Element} heading - Заголовок блока рекомендаций
  * @param {String} errorMessage - Сообщение об ошибке
+ * @param {Boolean} isApiError - Флаг, указывающий, что это ошибка API (404, 500 и т.д.)
+ * @param {Number} statusCode - Код статуса HTTP, если это ошибка API
  */
-function handleRecommendationError(contentContainer, heading, errorMessage) {
+function handleRecommendationError(contentContainer, heading, errorMessage, isApiError = false, statusCode = 0) {
     console.error('Ошибка при получении рекомендаций:', errorMessage);
 
     // Сбрасываем флаг запроса рекомендаций, чтобы можно было повторить запрос
@@ -1918,23 +1944,39 @@ function handleRecommendationError(contentContainer, heading, errorMessage) {
     // Очищаем контейнер полностью
     contentContainer.innerHTML = '';
 
-    // Создаем параграф для стандартного лайфхака при ошибке
-    const fallbackRecommendation = document.createElement('p');
-    fallbackRecommendation.className = 'text-gray-300 p-4 bg-gray-800 rounded-lg';
+    // Определяем, используется ли светлая тема
+    const isLightTheme = document.documentElement.classList.contains('light-theme');
 
-    // Выбираем один из заготовленных лайфхаков
-    const fallbackTexts = [
-        'Для получения наилучших результатов при строительстве, фотографируйте каждый этап работы. Это поможет отследить скрытые коммуникации и избежать проблем при последующих ремонтах.',
-        'Используйте качественную гидроизоляцию фундамента с двойным слоем защиты. Экономия на этом этапе может привести к серьезным проблемам и дорогостоящим ремонтам в будущем.',
-        'При планировании электропроводки предусмотрите на 30% больше розеток, чем кажется необходимым сейчас. Это избавит от необходимости использовать удлинители и снизит риск перегрузки сети.'
-    ];
+    // Показываем запасную рекомендацию только если это ошибка API (404 или 500)
+    if (isApiError && (statusCode === 404 || statusCode === 500)) {
+        // Создаем параграф для стандартного лайфхака при ошибке API
+        const fallbackRecommendation = document.createElement('p');
+        fallbackRecommendation.className = isLightTheme
+            ? 'text-gray-700 p-4 bg-blue-50 rounded-lg border border-blue-200 fallback-recommendation'
+            : 'text-gray-300 p-4 bg-gray-800 rounded-lg fallback-recommendation';
 
-    // Выбираем случайный лайфхак
-    const randomIndex = Math.floor(Math.random() * fallbackTexts.length);
-    fallbackRecommendation.textContent = fallbackTexts[randomIndex];
+        // Выбираем один из заготовленных лайфхаков
+        const fallbackTexts = [
+            'Для получения наилучших результатов при строительстве, фотографируйте каждый этап работы. Это поможет отследить скрытые коммуникации и избежать проблем при последующих ремонтах.',
+            'При выборе окон обращайте внимание не только на стеклопакеты, но и на качество фурнитуры. Именно фурнитура является наиболее частой причиной проблем с окнами в долгосрочной перспективе.',
+            'Инвестируйте в качественную кровельную мембрану под основным кровельным материалом. Это значительно повысит защиту от влаги и продлит срок службы кровли.'
+        ];
 
-    // Добавляем лайфхак в контейнер
-    contentContainer.appendChild(fallbackRecommendation);
+        // Выбираем случайный лайфхак, исключая проблемный
+        const randomIndex = Math.floor(Math.random() * fallbackTexts.length);
+        fallbackRecommendation.textContent = fallbackTexts[randomIndex];
+
+        // Добавляем лайфхак в контейнер
+        contentContainer.appendChild(fallbackRecommendation);
+    } else {
+        // Для других ошибок просто показываем сообщение об ошибке
+        const errorDiv = document.createElement('div');
+        errorDiv.className = isLightTheme
+            ? 'text-red-600 p-3 bg-red-50 rounded-lg border border-red-200'
+            : 'text-red-400 p-3 bg-gray-800 rounded-lg';
+        errorDiv.textContent = 'Не удалось загрузить рекомендации. Пожалуйста, попробуйте позже.';
+        contentContainer.appendChild(errorDiv);
+    }
 }
 
 // Модифицируем showDemoResults, чтобы добавить вызов ИИ рекомендаций
@@ -2139,6 +2181,9 @@ function setupFormChangeTracking() {
                 clearAllCalculationResults();
             }
 
+            // Сохраняем текущие значения формы в localStorage при каждом изменении
+            saveFormToLocalStorage(calculatorForm);
+
             logDebug("Поле изменено, кеш рекомендаций и флаги сброшены: " + input.name);
         });
     });
@@ -2156,33 +2201,20 @@ function showLoadingState(isLoading) {
 
     if (!recommendationsContainer || !contentContainer) return;
 
+    // Сохраняем текущее содержимое, если начинается загрузка
     if (isLoading) {
-        // Создаем и показываем индикатор загрузки
-        const loader = document.createElement('div');
-        loader.id = 'ai-recommendations-loader';
-        loader.className = 'flex justify-center items-center py-6';
-        loader.innerHTML = `
-            <div class="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-400"></div>
-            <span class="ml-3 text-gray-300">Загружаем рекомендации...</span>
-        `;
-
         // Сохраняем существующий контент, если он есть
         const existingContent = contentContainer.innerHTML;
         if (existingContent && !contentContainer.dataset.savedContent) {
             contentContainer.dataset.savedContent = existingContent;
         }
 
+        // Очищаем контент во время загрузки, но не показываем никаких индикаторов
         contentContainer.innerHTML = '';
-        contentContainer.appendChild(loader);
         recommendationsContainer.classList.remove('hidden');
     } else {
-        // Удаляем индикатор загрузки если он есть
-        const loader = document.getElementById('ai-recommendations-loader');
-        if (loader) {
-            loader.remove();
-        }
-
-        // Восстанавливаем контент только если нет нового контента
+        // После загрузки контент будет установлен извне.
+        // Если нет нового контента, восстанавливаем сохраненный
         if (contentContainer.children.length === 0 && contentContainer.dataset.savedContent) {
             contentContainer.innerHTML = contentContainer.dataset.savedContent;
             delete contentContainer.dataset.savedContent;
@@ -2208,6 +2240,13 @@ function clearAllCalculationResults() {
     if (contentContainer) {
         contentContainer.innerHTML = '';
     }
+
+    // Удаляем все резервные рекомендации для надежности
+    document.querySelectorAll('.text-gray-300.p-4.bg-gray-800.rounded-lg, .fallback-recommendation').forEach(rec => {
+        if (rec && rec.parentNode) {
+            rec.parentNode.removeChild(rec);
+        }
+    });
 
     if (recommendationsContainer) {
         // Скрываем контейнер с рекомендациями до получения новых
@@ -2381,3 +2420,108 @@ document.addEventListener('DOMContentLoaded', function () {
         logDebug("Пропускаем повторную инициализацию обработчика формы");
     }
 });
+
+/**
+ * Функция для сохранения параметров формы в localStorage
+ * Это позволит восстановить настройки при обновлении страницы
+ * @param {HTMLFormElement|null} form - Форма для сохранения параметров (если null, форма будет найдена)
+ */
+function saveFormToLocalStorage(form) {
+    try {
+        // Если форма не передана, найдем ее сами
+        if (!form) {
+            form = document.getElementById('calculatorForm');
+            if (!form) {
+                logDebug("Форма не найдена для сохранения в localStorage");
+                return;
+            }
+        }
+
+        // Получаем все значения из формы
+        const formData = new FormData(form);
+        const params = {};
+
+        // Обрабатываем обычные поля формы
+        for (let [key, value] of formData.entries()) {
+            // Особая обработка для чекбоксов
+            const element = form.elements[key];
+            if (element && element.type === 'checkbox') {
+                params[key] = element.checked;
+            }
+            // Особая обработка для радио-кнопок
+            else if (element && element.type === 'radio') {
+                const radioOptions = form.querySelectorAll(`input[name="${key}"]:checked`);
+                if (radioOptions.length > 0) {
+                    params[key] = radioOptions[0].value;
+                }
+            }
+            // Обычные поля
+            else {
+                params[key] = value;
+            }
+        }
+
+        // Сохраняем параметры в localStorage
+        localStorage.setItem('calculatorParams', JSON.stringify(params));
+        logDebug("Параметры формы сохранены в localStorage: " + JSON.stringify(params));
+    } catch (error) {
+        console.error("Ошибка при сохранении параметров в localStorage:", error);
+        logDebug("Ошибка при сохранении в localStorage: " + error.message);
+    }
+}
+
+/**
+ * Функция для загрузки параметров формы из localStorage
+ * Эта функция восстанавливает настройки при загрузке страницы
+ */
+function loadFormFromLocalStorage() {
+    try {
+        // Получаем сохраненные параметры из localStorage
+        const savedParamsJson = localStorage.getItem('calculatorParams');
+        if (!savedParamsJson) {
+            logDebug("В localStorage нет сохраненных параметров");
+            return;
+        }
+
+        // Парсим JSON
+        const savedParams = JSON.parse(savedParamsJson);
+        const form = document.getElementById('calculatorForm');
+
+        if (!form) {
+            logDebug("Форма не найдена для загрузки параметров из localStorage");
+            return;
+        }
+
+        // Проходим по всем параметрам и устанавливаем соответствующие значения в форме
+        for (const [key, value] of Object.entries(savedParams)) {
+            // Находим элемент формы с соответствующим именем
+            const element = form.elements[key];
+            if (element) {
+                logDebug(`Устанавливаем значение из localStorage: ${key} = ${value}`);
+
+                // Проверяем тип элемента и устанавливаем значение
+                if (element.type === 'checkbox') {
+                    element.checked = value === true || value === 'true';
+                } else if (element.type === 'radio') {
+                    const radioOptions = form.querySelectorAll(`input[name="${key}"]`);
+                    radioOptions.forEach(radio => {
+                        radio.checked = radio.value === value;
+                    });
+                } else {
+                    element.value = value;
+                }
+
+                // Если это select и у него есть обработчик change, вызываем его
+                if (element.tagName === 'SELECT') {
+                    // Создаем и вызываем событие change
+                    const event = new Event('change', { bubbles: true });
+                    element.dispatchEvent(event);
+                }
+            }
+        }
+        logDebug("Параметры из localStorage успешно применены к форме");
+    } catch (error) {
+        console.error("Ошибка при загрузке параметров из localStorage:", error);
+        logDebug("Ошибка при загрузке из localStorage: " + error.message);
+    }
+}

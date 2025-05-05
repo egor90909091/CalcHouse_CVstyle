@@ -255,9 +255,26 @@
     transition: all 0.3s ease;
 }
 
+.light-theme .ai-recommendations {
+    background-color: rgba(235, 245, 255, 0.5);
+    border-color: #3182ce;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.dark-theme .ai-recommendations {
+    background-color: rgba(26, 32, 44, 0.5);
+    border-color: #2c5282;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
 .ai-recommendations:hover {
     box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
     background-color: rgba(235, 245, 255, 0.7);
+}
+
+.dark-theme .ai-recommendations:hover {
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    background-color: rgba(44, 55, 72, 0.7);
 }
 
 .ai-recommendations-title {
@@ -267,6 +284,14 @@
     margin-bottom: 1rem;
     display: flex;
     align-items: center;
+}
+
+.light-theme .ai-recommendations-title {
+    color: #2c5282;
+}
+
+.dark-theme .ai-recommendations-title {
+    color: #63b3ed;
 }
 
 .ai-recommendations-title:before {
@@ -290,22 +315,49 @@
     font-weight: bold;
 }
 
-.ai-recommendation-item:last-child {
-    margin-bottom: 0;
-}
-
-/* Темная тема для блока рекомендаций */
-.dark-theme .ai-recommendations {
-    background-color: rgba(44, 82, 130, 0.15);
-    border-color: #2c5282;
-}
-
-.dark-theme .ai-recommendations-title {
-    color: #63b3ed;
+.light-theme .ai-recommendation-item:before {
+    color: #3182ce;
 }
 
 .dark-theme .ai-recommendation-item:before {
     color: #63b3ed;
+}
+
+.ai-recommendation-item:last-child {
+    margin-bottom: 0;
+}
+
+/* Стили для блоков рекомендаций в светлой теме */
+.light-theme .ai-recommendations .bg-gray-800,
+.light-theme .ai-recommendations .bg-gray-700 {
+    background-color: white !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #1a202c !important;
+}
+
+.light-theme .ai-recommendations .text-white,
+.light-theme .ai-recommendations .text-gray-300 {
+    color: #4a5568 !important;
+}
+
+.light-theme .ai-recommendations .font-bold.text-blue-400 {
+    color: #3182ce !important;
+}
+
+.light-theme .ai-recommendations .text-green-400 {
+    color: #38a169 !important;
+}
+
+.light-theme .ai-recommendations .text-red-400 {
+    color: #e53e3e !important;
+    background-color: #fff5f5 !important;
+    border: 1px solid #feb2b2 !important;
+}
+
+.light-theme .ai-recommendations p.text-gray-300.p-4.bg-gray-800 {
+    background-color: #ebf8ff !important;
+    color: #2c5282 !important;
+    border: 1px solid #bee3f8 !important;
 }
 
 /* Стили для блоков параметров арматуры */
