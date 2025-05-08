@@ -1,0 +1,385 @@
+/* calculator.css - Стили для форм калькулятора и результатов */
+
+/* Форма калькулятора */
+.calculator-form {
+    border-radius: 0.5rem;
+    padding: 2rem;
+    transition: all var(--transition-speed) ease;
+}
+
+.form-subtitle {
+    font-size: 1.8rem;
+    margin-bottom: 1.5rem;
+    font-weight: 300;
+}
+
+/* Заголовок формы во всех темах */
+.form-subtitle {
+    font-size: 2rem !important;
+    margin-bottom: 1.5rem;
+    font-weight: 700;
+    line-height: 1.2;
+    transition: all var(--transition-speed) ease;
+    letter-spacing: 0 !important;
+    display: inline-block;
+    width: auto;
+}
+
+/* Поля формы */
+.calculator-form label {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+.calculator-form input,
+.calculator-form select {
+    padding: 0.75rem;
+    font-size: 1.1rem;
+    width: 100%;
+}
+
+/* Параметры фундамента и стен */
+.foundation-params,
+.wall-params {
+    transition: opacity 0.3s ease, display 0.3s ease;
+}
+
+.foundation-params.hidden,
+.wall-params.hidden {
+    display: none;
+}
+
+/* Результаты расчета */
+#results h4 {
+    transition: opacity 0.5s ease;
+}
+
+/* Анимация появления материалов */
+.material-item {
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.5s ease, transform 0.5s ease, color var(--transition-speed) ease;
+}
+
+.material-item.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* Анимация математической доски */
+.math-board-container {
+    position: relative;
+    width: 100%;
+    height: 350px;
+    background-color: #1a2635;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    perspective: 1000px;
+}
+
+/* Градиентные края доски */
+.board-edge-gradient {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(26, 38, 53, 0) 50%, rgba(26, 38, 53, 0.9) 100%);
+    pointer-events: none;
+    z-index: 10;
+}
+
+/* Легкое свечение по периметру */
+.board-glow-edge {
+    position: absolute;
+    inset: 0;
+    box-shadow: inset 0 0 20px rgba(100, 255, 200, 0.1);
+    pointer-events: none;
+    z-index: 5;
+}
+
+/* Фоновая сетка для математического вида */
+.math-grid {
+    position: absolute;
+    inset: 0;
+    background-image: linear-gradient(rgba(100, 255, 180, 0.07) 1px, transparent 1px), linear-gradient(90deg, rgba(100, 255, 180, 0.07) 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+
+/* Анимация для области формул */
+.formulas-area {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    overflow: hidden;
+}
+
+/* Прогресс трекер */
+#progress-tracker {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 2px;
+    width: 0%;
+    background: linear-gradient(90deg, rgba(100, 255, 180, 0.3), rgba(140, 220, 255, 0.7));
+    transition: width 0.6s ease-out;
+}
+
+/* Стили для анимации отрисовки линий */
+@keyframes drawLine {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+.animate-draw {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    animation: draw 5s forwards;
+}
+
+/* Формулы в анимации */
+.formula-element {
+    position: absolute;
+    color: rgba(220, 255, 240, 0.9);
+    font-family: 'CMU Serif', Georgia, serif;
+    font-size: 16px;
+    text-shadow: 0 0 3px rgba(120, 255, 200, 0.4);
+    opacity: 0;
+    transform: scale(0.95);
+    transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+    padding: 8px 12px;
+    border-radius: 4px;
+    z-index: 20;
+}
+
+.formula-element.visible {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.formula-pulse {
+    animation: formula-pulsate 2s ease-in-out infinite;
+}
+
+@keyframes formula-pulsate {
+
+    0%,
+    100% {
+        opacity: 1;
+        background-color: rgba(100, 180, 160, 0.15);
+    }
+
+    50% {
+        opacity: 0.8;
+        background-color: rgba(100, 180, 160, 0.2);
+    }
+}
+
+/* Кнопки действий */
+#recalcButton,
+#printButton {
+    transition: all 0.3s ease;
+}
+
+#recalcButton:hover,
+#printButton:hover {
+    transform: translateY(-2px);
+}
+
+/* Стили для таблицы материалов */
+.material-header {
+    color: var(--text-muted);
+    border-bottom: 1px solid var(--border-color);
+    transition: color var(--transition-speed) ease;
+}
+
+.total-row {
+    margin-top: 16px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+/* Стили для блока с итоговой суммой */
+.total-cost-container {
+    background-color: var(--surface-accent);
+    border-color: var(--accent-color);
+    border-width: 2px;
+    transition: background-color var(--transition-speed) ease,
+        border-color var(--transition-speed) ease,
+        color var(--transition-speed) ease;
+}
+
+.total-cost-container h3 {
+    color: var(--text-primary);
+    transition: color var(--transition-speed) ease;
+}
+
+.total-cost-container span {
+    color: var(--accent-color);
+    transition: color var(--transition-speed) ease;
+}
+
+/* Адаптация для печати */
+@media print {
+
+    .material-header,
+    .material-item {
+        color: #000 !important;
+        opacity: 1 !important;
+        transform: none !important;
+    }
+
+    .total-cost-container {
+        border: 2px solid #000 !important;
+        background-color: #f8f8f8 !important;
+        break-inside: avoid;
+    }
+
+    .total-cost-container h3,
+    .total-cost-container span {
+        color: #000 !important;
+    }
+}
+
+/* Стили для блока рекомендаций ИИ */
+.ai-recommendations {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    border: 1px solid #3182ce;
+    border-radius: 0.5rem;
+    background-color: rgba(235, 245, 255, 0.5);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+.light-theme .ai-recommendations {
+    background-color: rgba(235, 245, 255, 0.5);
+    border-color: #3182ce;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.dark-theme .ai-recommendations {
+    background-color: rgba(26, 32, 44, 0.5);
+    border-color: #2c5282;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.ai-recommendations:hover {
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+    background-color: rgba(235, 245, 255, 0.7);
+}
+
+.dark-theme .ai-recommendations:hover {
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    background-color: rgba(44, 55, 72, 0.7);
+}
+
+.ai-recommendations-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #2c5282;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+}
+
+.light-theme .ai-recommendations-title {
+    color: #2c5282;
+}
+
+.dark-theme .ai-recommendations-title {
+    color: #63b3ed;
+}
+
+.ai-recommendations-title:before {
+    content: '💡';
+    margin-right: 0.5rem;
+    font-size: 1.5rem;
+}
+
+.ai-recommendation-item {
+    margin-bottom: 0.75rem;
+    padding-left: 1.5rem;
+    position: relative;
+    line-height: 1.5;
+}
+
+.ai-recommendation-item:before {
+    content: '•';
+    position: absolute;
+    left: 0.5rem;
+    color: #3182ce;
+    font-weight: bold;
+}
+
+.light-theme .ai-recommendation-item:before {
+    color: #3182ce;
+}
+
+.dark-theme .ai-recommendation-item:before {
+    color: #63b3ed;
+}
+
+.ai-recommendation-item:last-child {
+    margin-bottom: 0;
+}
+
+/* Стили для блоков рекомендаций в светлой теме */
+.light-theme .ai-recommendations .bg-gray-800,
+.light-theme .ai-recommendations .bg-gray-700 {
+    background-color: white !important;
+    border: 1px solid #e2e8f0 !important;
+    color: #1a202c !important;
+}
+
+.light-theme .ai-recommendations .text-white,
+.light-theme .ai-recommendations .text-gray-300 {
+    color: #4a5568 !important;
+}
+
+.light-theme .ai-recommendations .font-bold.text-blue-400 {
+    color: #3182ce !important;
+}
+
+.light-theme .ai-recommendations .text-green-400 {
+    color: #38a169 !important;
+}
+
+.light-theme .ai-recommendations .text-red-400 {
+    color: #e53e3e !important;
+    background-color: #fff5f5 !important;
+    border: 1px solid #feb2b2 !important;
+}
+
+.light-theme .ai-recommendations p.text-gray-300.p-4.bg-gray-800 {
+    background-color: #ebf8ff !important;
+    color: #2c5282 !important;
+    border: 1px solid #bee3f8 !important;
+}
+
+/* Стили для блоков параметров арматуры */
+.rebar-params {
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+/* Стили для иконки настроек арматуры */
+.rebar-toggle+svg {
+    transition: color 0.3s ease;
+}
+
+.text-blue-500 {
+    color: #3b82f6 !important;
+}
+
+.dark-theme .text-blue-500 {
+    color: #60a5fa !important;
+}
+
+/* Стили для настроек параметров арматуры */
+.dark-theme .relative span {
+    color: var(--secondary-text) !important;
+}

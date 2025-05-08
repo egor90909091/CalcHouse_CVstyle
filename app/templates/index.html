@@ -1,0 +1,1231 @@
+<!DOCTYPE html>
+<html lang="ru" class="light-theme">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="Калькулятор строительных материалов для дома - рассчитайте необходимые материалы для строительства дома">
+    <meta name="keywords"
+        content="калькулятор строительных материалов, расчет материалов для дома, строительный калькулятор">
+    <title>BuildMate</title>
+
+    <!-- Иконка сайта (домик) -->
+    <link rel="icon"
+        href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzAwNzREOSIgc3Ryb2tlPSJub25lIj48cGF0aCBkPSJNMTIgMi41TDMgOS43djExLjhoMTh2LTExLjhMMTIgMi41ek0xNiAxOC41aC0zdi0zaC0ydjNoLTNWMTNsNC0zLjQgNCAzLjR2NS41eiIvPjwvc3ZnPg==">
+
+    <!-- CSS стили -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/theme.css">
+    <link rel="stylesheet" href="/static/css/calculator.css">
+    <link rel="stylesheet" href="/static/css/animations.css">
+    <link rel="stylesheet" href="/static/css/responsive.css">
+    <link rel="stylesheet" href="/static/css/print.css">
+
+    <!-- Удаляем ненужные React-зависимости -->
+</head>
+
+<body class="bg-gray-100">
+    <!-- Шапка сайта -->
+    <header class="shadow-md print-header">
+        <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center">
+            <h1 class="text-2xl font-bold mb-4 md:mb-0">BuildMate</h1>
+            <nav class="flex items-center w-full md:w-auto justify-end no-print">
+                <ul class="flex flex-wrap space-x-3 md:space-x-6 mr-4">
+                    <li><a href="/" class="hover:opacity-100">Калькулятор</a></li>
+                    <li><a href="/furniture" class="hover:opacity-100">Подбор мебели</a></li>
+                </ul>
+                <div class="theme-toggle" id="themeToggle">
+                    <div class="theme-toggle-inner">
+                        <div class="theme-side theme-side-light">
+                            <svg class="theme-icon" viewBox="0 0 24 24">
+                                <path
+                                    d="M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,2L14.39,5.42C13.65,5.15 12.84,5 12,5C11.16,5 10.35,5.15 9.61,5.42L12,2M3.34,7L7.5,6.65C6.9,7.16 6.36,7.78 5.94,8.5C5.5,9.24 5.25,10 5.11,10.79L3.34,7M3.36,17L5.12,13.23C5.26,14 5.53,14.78 5.95,15.5C6.37,16.24 6.91,16.86 7.5,17.37L3.36,17M20.65,7L18.88,10.79C18.74,10 18.47,9.23 18.05,8.5C17.63,7.78 17.1,7.15 16.5,6.64L20.65,7M20.64,17L16.5,17.36C17.09,16.85 17.62,16.22 18.04,15.5C18.46,14.77 18.73,14 18.87,13.21L20.64,17M12,22L9.59,18.56C10.33,18.83 11.14,19 12,19C12.82,19 13.63,18.83 14.37,18.56L12,22Z">
+                                </path>
+                            </svg>
+                        </div>
+                        <div class="theme-side theme-side-dark">
+                            <svg class="theme-icon" viewBox="0 0 24 24">
+                                <path
+                                    d="M17.75,4.09L15.22,6.03L16.13,9.09L13.5,7.28L10.87,9.09L11.78,6.03L9.25,4.09L12.44,4L13.5,1L14.56,4L17.75,4.09M21.25,11L19.61,12.25L20.2,14.23L18.5,13.06L16.8,14.23L17.39,12.25L15.75,11L17.81,10.95L18.5,9L19.19,10.95L21.25,11M18.97,15.95C19.8,15.87 20.69,17.05 20.16,17.8C19.84,18.25 19.5,18.67 19.08,19.07C15.17,23 8.84,23 4.94,19.07C1.03,15.17 1.03,8.83 4.94,4.93C5.34,4.53 5.76,4.17 6.21,3.85C6.96,3.32 8.14,4.21 8.06,5.04C7.79,7.9 8.75,10.87 10.95,13.06C13.14,15.26 16.1,16.22 18.97,15.95M17.33,17.97C14.5,17.81 11.7,16.64 9.53,14.5C7.36,12.31 6.2,9.5 6.04,6.68C3.23,9.82 3.34,14.64 6.35,17.66C9.37,20.67 14.19,20.78 17.33,17.97Z">
+                                </path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero секция -->
+    <section class="hero-section no-print">
+        <div class="container mx-auto px-4">
+            <div class="hero-content p-8 rounded-lg shadow-lg">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4 text-primary">Рассчитайте материалы для строительства
+                    дома</h2>
+                <p class="text-lg md:text-xl mb-6 text-secondary">Калькулятор поможет определить количество необходимых
+                    строительных материалов</p>
+                <a href="#calculator"
+                    class="btn-primary font-bold py-3 px-6 rounded-lg inline-block text-center w-full md:w-auto">Начать
+                    расчет</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Секция калькулятора -->
+    <section id="calculator" class="py-12 section">
+        <div class="container mx-auto px-4">
+            <h2 class="text-2xl md:text-3xl font-bold mb-8 md:mb-10 text-center text-primary no-print">Калькулятор
+                строительных материалов</h2>
+
+            <div class="max-w-4xl mx-auto transition-container">
+                <!-- Форма калькулятора -->
+                <div class="calculator-panel active">
+                    <form id="calculatorForm" class="calculator-form space-y-6">
+                        <!-- Заголовок формы -->
+                        <h3 class="form-subtitle">Введите параметры дома</h3>
+
+                        <!-- Базовые размеры дома -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="form-block area-block">
+                                <label class="block text-gray-700 mb-2">Площадь дома (м²)</label>
+                                <input type="number" name="area"
+                                    class="w-full p-2 md:p-3 border border-gray-300 rounded-lg" min="10" max="1000"
+                                    required>
+                            </div>
+                            <div class="form-block floors-block">
+                                <label class="block text-gray-700 mb-2">Высота этажа (м)</label>
+                                <input type="number" name="floorHeight"
+                                    class="w-full p-2 md:p-3 border border-gray-300 rounded-lg" min="2.5" max="4"
+                                    step="0.1" value="2.7" required>
+                            </div>
+                        </div>
+
+                        <!-- Тип фундамента -->
+                        <div class="form-block foundation-block">
+                            <label class="block text-gray-700 mb-2">Тип фундамента</label>
+                            <select name="foundationType" id="foundationType"
+                                class="w-full p-2 md:p-3 border border-gray-300 rounded-lg" required>
+                                <option value="strip">Ленточный</option>
+                                <option value="pile">Свайный</option>
+                                <option value="slab">Плитный</option>
+                                <option value="column">Столбчатый</option>
+                            </select>
+                        </div>
+
+                        <!-- Параметры фундамента (появляются в зависимости от выбранного типа) -->
+                        <div id="foundationParams">
+                            <!-- Ленточный фундамент -->
+                            <div class="foundation-type" id="stripFoundation" style="display: none;">
+                                <div>
+                                    <h3 class="text-lg font-semibold mb-4 dark:text-white">Параметры ленточного
+                                        фундамента</h3>
+                                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <div>
+                                            <label for="stripWidth" class="block mb-1">Ширина ленты (м):</label>
+                                            <input type="number" id="stripWidth" name="stripWidth" min="0.2" max="1"
+                                                step="0.1" value="0.4" class="w-full p-2 border rounded">
+                                        </div>
+                                        <div>
+                                            <label for="stripDepth" class="block mb-1">Глубина ленты (м):</label>
+                                            <input type="number" id="stripDepth" name="stripDepth" min="0.3" max="2"
+                                                step="0.1" value="0.8" class="w-full p-2 border rounded">
+                                        </div>
+                                        <div>
+                                            <label for="stripHeight" class="block mb-1">Высота ленты (м):</label>
+                                            <input type="number" id="stripHeight" name="stripHeight" min="0.3" max="1.5"
+                                                step="0.1" value="0.6" class="w-full p-2 border rounded">
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-6">
+                                        <h4 class="block mb-1 mr-2">Выбор материалов</h4>
+                                        <div class="grid grid-cols-1 gap-4">
+                                            <!-- Первая строка: Бетон и Арматура -->
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <!-- Выбор бетона -->
+                                                <div>
+                                                    <label class="block mb-2 font-medium">Бетон</label>
+                                                    <select name="foundation_concrete"
+                                                        class="w-full p-3 border border-gray-300 rounded-lg">
+                                                        <option value="concrete_b15">Бетон B15</option>
+                                                        <option value="concrete_b20" selected>Бетон B20</option>
+                                                        <option value="concrete_b25">Бетон B25</option>
+                                                    </select>
+                                                </div>
+
+                                                <!-- Выбор арматуры -->
+                                                <div>
+                                                    <label class="block mb-2 font-medium">
+                                                        <div class="flex items-center">
+                                                            <span>Арматура</span>
+                                                            <div class="relative ml-auto">
+                                                                <input type="checkbox" id="strip-rebar-toggle"
+                                                                    class="absolute opacity-0 rebar-toggle"
+                                                                    style="width: 24px; height: 24px;">
+                                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                                    class="h-6 w-6 text-gray-400 cursor-pointer"
+                                                                    fill="none" viewBox="0 0 24 24"
+                                                                    stroke="currentColor">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        stroke-width="2"
+                                                                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        stroke-width="2"
+                                                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                </svg>
+                                                            </div>
+                                                        </div>
+                                                    </label>
+                                                    <select name="foundation_rebar"
+                                                        class="w-full p-3 border border-gray-300 rounded-lg">
+                                                        <option value="rebar_a300">Арматура A300</option>
+                                                        <option value="rebar_a400" selected>Арматура A400</option>
+                                                        <option value="rebar_a500">Арматура A500</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <!-- Блок параметров арматуры для ленточного фундамента -->
+                                            <div id="strip-rebar-params" class="grid grid-cols-2 gap-4 rebar-params"
+                                                style="display: none;">
+                                                <div>
+                                                    <label for="stripLongitudinalRebarDiameter"
+                                                        class="block mb-1">Диаметр продольной арматуры:</label>
+                                                    <select id="stripLongitudinalRebarDiameter"
+                                                        name="stripLongitudinalRebarDiameter"
+                                                        class="w-full p-2 border rounded">
+                                                        <option value="8"> Ø8 мм</option>
+                                                        <option value="10"> Ø10 мм</option>
+                                                        <option value="12" selected>Ø12 мм</option>
+                                                        <option value="14"> Ø14 мм</option>
+                                                        <option value="16"> Ø16 мм</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label for="stripTransverseRebarDiameter" class="block mb-1">Диаметр
+                                                        поперечной арматуры:</label>
+                                                    <select id="stripTransverseRebarDiameter"
+                                                        name="stripTransverseRebarDiameter"
+                                                        class="w-full p-2 border rounded">
+                                                        <option value="6"> Ø6 мм</option>
+                                                        <option value="8" selected> Ø8 мм</option>
+                                                        <option value="10"> Ø10 мм</option>
+                                                        <option value="12"> Ø12 мм</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <!-- Вторая строка: Опалубка и Гидроизоляция -->
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <!-- Выбор опалубки -->
+                                                <div>
+                                                    <label class="block mb-2 font-medium">Опалубка</label>
+                                                    <select name="foundation_formwork"
+                                                        class="w-full p-3 border border-gray-300 rounded-lg">
+                                                        <option value="formwork_plywood" selected>Опалубка из фанеры
+                                                        </option>
+                                                        <option value="formwork_metal">Опалубка металлическая</option>
+                                                        <option value="formwork_wood">Опалубка из доски</option>
+                                                    </select>
+                                                </div>
+
+                                                <!-- Выбор гидроизоляции -->
+                                                <div>
+                                                    <label class="block mb-2 font-medium">Гидроизоляция</label>
+                                                    <select name="foundation_waterproofing"
+                                                        class="w-full p-3 border border-gray-300 rounded-lg">
+                                                        <option value="waterproofing_roll" selected>Гидроизоляция
+                                                            рулонная</option>
+                                                        <option value="waterproofing_membrane">Гидроизоляция мембранная
+                                                        </option>
+                                                        <option value="waterproofing_mastic">Гидроизоляция обмазочная
+                                                        </option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Плитный фундамент -->
+                            <div class="foundation-type" id="slabFoundation" style="display: none;">
+                                <div>
+                                    <h3 class="text-lg font-semibold mb-4 dark:text-white">Параметры плитного фундамента
+                                    </h3>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label for="slabThickness" class="block mb-1">Толщина плиты (м):</label>
+                                            <input type="number" id="slabThickness" name="slabThickness" min="0.1"
+                                                max="0.5" step="0.05" value="0.2" class="w-full p-2 border rounded">
+                                        </div>
+                                        <div>
+                                            <label for="slabCushion" class="block mb-1">Подушка под плиту (м):</label>
+                                            <input type="number" id="slabCushion" name="slabCushion" min="0.1" max="0.5"
+                                                step="0.05" value="0.1" class="w-full p-2 border rounded">
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-6">
+                                        <h4 class="block mb-1 mr-2">Выбор материалов</h4>
+                                        <div class="grid grid-cols-1 gap-4">
+                                            <!-- Первая строка: Бетон и Арматура -->
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <!-- Выбор бетона -->
+                                                <div>
+                                                    <label class="block mb-2 font-medium">Бетон</label>
+                                                    <select name="slab_concrete"
+                                                        class="w-full p-3 border border-gray-300 rounded-lg">
+                                                        <option value="concrete_b20">Бетон B20</option>
+                                                        <option value="concrete_b25" selected>Бетон B25</option>
+                                                        <option value="concrete_b30">Бетон B30</option>
+                                                    </select>
+                                                </div>
+
+                                                <!-- Выбор арматуры -->
+                                                <div>
+                                                    <label class="block mb-2 font-medium">
+                                                        <div class="flex items-center">
+                                                            <span>Арматура</span>
+                                                            <div class="relative ml-auto">
+                                                                <input type="checkbox" id="slab-rebar-toggle"
+                                                                    class="absolute opacity-0 rebar-toggle"
+                                                                    style="width: 24px; height: 24px;">
+                                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                                    class="h-6 w-6 text-gray-400 cursor-pointer"
+                                                                    fill="none" viewBox="0 0 24 24"
+                                                                    stroke="currentColor">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        stroke-width="2"
+                                                                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        stroke-width="2"
+                                                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                </svg>
+                                                            </div>
+                                                        </div>
+                                                    </label>
+                                                    <select name="slab_rebar"
+                                                        class="w-full p-3 border border-gray-300 rounded-lg">
+                                                        <option value="rebar_a300">Арматура A300</option>
+                                                        <option value="rebar_a400" selected>Арматура A400</option>
+                                                        <option value="rebar_a500">Арматура A500</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <!-- Блок параметров арматуры для плитного фундамента -->
+                                            <div id="slab-rebar-params" class="grid grid-cols-2 gap-4 rebar-params"
+                                                style="display: none;">
+                                                <div>
+                                                    <label for="slabMainRebarDiameter" class="block mb-1">Диаметр
+                                                        основной арматуры:</label>
+                                                    <select id="slabMainRebarDiameter" name="slabMainRebarDiameter"
+                                                        class="w-full p-2 border rounded">
+                                                        <option value="8"> Ø8 мм</option>
+                                                        <option value="10"> Ø10 мм</option>
+                                                        <option value="12" selected> Ø12 мм</option>
+                                                        <option value="14"> Ø14 мм</option>
+                                                        <option value="16"> Ø16 мм</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label for="slabDistributionRebarDiameter"
+                                                        class="block mb-1">Диаметр распределительной арматуры:</label>
+                                                    <select id="slabDistributionRebarDiameter"
+                                                        name="slabDistributionRebarDiameter"
+                                                        class="w-full p-2 border rounded">
+                                                        <option value="6"> Ø6 мм</option>
+                                                        <option value="8" selected> Ø8 мм</option>
+                                                        <option value="10"> Ø10 мм</option>
+                                                        <option value="12"> Ø12 мм</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <!-- Вторая строка: Песок и Гидроизоляция -->
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <!-- Выбор песка -->
+                                                <div>
+                                                    <label class="block mb-2 font-medium">Песок для подушки</label>
+                                                    <select name="slab_sand"
+                                                        class="w-full p-3 border border-gray-300 rounded-lg">
+                                                        <option value="sand_river" selected>Песок речной</option>
+                                                        <option value="sand_quarry">Песок карьерный</option>
+                                                        <option value="sand_washed">Песок мытый</option>
+                                                    </select>
+                                                </div>
+
+                                                <!-- Выбор гидроизоляции -->
+                                                <div>
+                                                    <label class="block mb-2 font-medium">Гидроизоляция</label>
+                                                    <select name="slab_waterproofing"
+                                                        class="w-full p-3 border border-gray-300 rounded-lg">
+                                                        <option value="waterproofing_roll" selected>Гидроизоляция
+                                                            рулонная</option>
+                                                        <option value="waterproofing_membrane">Гидроизоляция мембранная
+                                                        </option>
+                                                        <option value="waterproofing_mastic">Гидроизоляция обмазочная
+                                                        </option>
+                                                        <option value="waterproofing_ultrathin">Ультратонкая
+                                                            гидроизоляция 6мм</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Свайный фундамент -->
+                            <div class="foundation-type" id="pileFoundation" style="display: none;">
+                                <div>
+                                    <h3 class="text-lg font-semibold mb-4 dark:text-white">Параметры свайного фундамента
+                                    </h3>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label for="pileStep" class="block mb-1">Шаг свай (м):</label>
+                                            <input type="number" id="pileStep" name="pileStep" min="1" max="3"
+                                                step="0.5" value="1.5" class="w-full p-2 border rounded">
+                                        </div>
+                                        <div>
+                                            <label for="pileDiameter" class="block mb-1">Диаметр сваи (м):</label>
+                                            <input type="number" id="pileDiameter" name="pileDiameter" min="0.2"
+                                                max="0.5" step="0.05" value="0.3" class="w-full p-2 border rounded">
+                                        </div>
+                                        <div>
+                                            <label for="pileDepth" class="block mb-1">Глубина свай (м):</label>
+                                            <input type="number" id="pileDepth" name="pileDepth" min="1.5" max="4"
+                                                step="0.5" value="2" class="w-full p-2 border rounded">
+                                        </div>
+                                        <div>
+                                            <label for="grillageHeight" class="block mb-1">Высота ростверка (м):</label>
+                                            <input type="number" id="grillageHeight" name="grillageHeight" min="0.3"
+                                                max="0.8" step="0.1" value="0.4" class="w-full p-2 border rounded">
+                                        </div>
+                                    </div>
+
+                                    <div class="mt-6">
+                                        <h4 class="block mb-1 mr-2">Выбор материалов</h4>
+                                        <div class="grid grid-cols-1 gap-4">
+                                            <!-- Первая строка: Сваи и Арматура -->
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <!-- Выбор свай -->
+                                                <div>
+                                                    <label class="block mb-2 font-medium">Сваи</label>
+                                                    <select name="pile_type"
+                                                        class="w-full p-3 border border-gray-300 rounded-lg">
+                                                        <option value="piles_concrete" selected>Сваи железобетонные
+                                                        </option>
+                                                        <option value="piles_screw">Сваи винтовые</option>
+                                                        <option value="piles_bored">Сваи буронабивные</option>
+                                                    </select>
+                                                </div>
+                                                <!-- Выбор арматуры -->
+                                                <div>
+                                                    <label class="block mb-2 font-medium">
+                                                        <div class="flex items-center">
+                                                            <span>Арматура</span>
+                                                            <div class="relative ml-auto">
+                                                                <input type="checkbox" id="pile-rebar-toggle"
+                                                                    class="absolute opacity-0 rebar-toggle"
+                                                                    style="width: 24px; height: 24px;">
+                                                                <svg xmlns="http://www.w3.org/2000/svg"
+                                                                    class="h-6 w-6 text-gray-400 cursor-pointer"
+                                                                    fill="none" viewBox="0 0 24 24"
+                                                                    stroke="currentColor">
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        stroke-width="2"
+                                                                        d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                                                    <path stroke-linecap="round" stroke-linejoin="round"
+                                                                        stroke-width="2"
+                                                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                </svg>
+                                                            </div>
+                                                        </div>
+                                                    </label>
+                                                    <select name="pile_rebar"
+                                                        class="w-full p-3 border border-gray-300 rounded-lg">
+                                                        <option value="rebar_a300">Арматура A300</option>
+                                                        <option value="rebar_a400" selected>Арматура A400</option>
+                                                        <option value="rebar_a500">Арматура A500</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <!-- Блок параметров арматуры для свайного фундамента -->
+                                            <div id="pile-rebar-params" class="grid grid-cols-2 gap-4 rebar-params"
+                                                style="display: none;">
+                                                <div>
+                                                    <label for="pileLongitudinalRebarDiameter"
+                                                        class="block mb-1">Диаметр продольной арматуры свай:</label>
+                                                    <select id="pileLongitudinalRebarDiameter"
+                                                        name="pileLongitudinalRebarDiameter"
+                                                        class="w-full p-2 border rounded">
+                                                        <option value="10"> Ø10 мм</option>
+                                                        <option value="12" selected> Ø12 мм</option>
+                                                        <option value="14"> Ø14 мм</option>
+                                                        <option value="16"> Ø16 мм</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label for="pileTransverseRebarDiameter" class="block mb-1">Диаметр
+                                                        поперечной арматуры свай:</label>
+                                                    <select id="pileTransverseRebarDiameter"
+                                                        name="pileTransverseRebarDiameter"
+                                                        class="w-full p-2 border rounded">
+                                                        <option value="6"> Ø6 мм</option>
+                                                        <option value="8" selected> Ø8 мм</option>
+                                                        <option value="10"> Ø10 мм</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label for="grillageLongitudinalRebarDiameter"
+                                                        class="block mb-1">Диаметр продольной арматуры
+                                                        ростверка:</label>
+                                                    <select id="grillageLongitudinalRebarDiameter"
+                                                        name="grillageLongitudinalRebarDiameter"
+                                                        class="w-full p-2 border rounded">
+                                                        <option value="10"> Ø10 мм</option>
+                                                        <option value="12" selected> Ø12 мм</option>
+                                                        <option value="14"> Ø14 мм</option>
+                                                        <option value="16"> Ø16 мм</option>
+                                                    </select>
+                                                </div>
+                                                <div>
+                                                    <label for="grillageTransverseRebarDiameter"
+                                                        class="block mb-1">Диаметр поперечной арматуры
+                                                        ростверка:</label>
+                                                    <select id="grillageTransverseRebarDiameter"
+                                                        name="grillageTransverseRebarDiameter"
+                                                        class="w-full p-2 border rounded">
+                                                        <option value="6"> Ø6 мм</option>
+                                                        <option value="8" selected> Ø8 мм</option>
+                                                        <option value="10"> Ø10 мм</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+
+                                            <!-- Вторая строка: Бетон для ростверка и Гидроизоляция -->
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <!-- Выбор бетона для ростверка -->
+                                                <div>
+                                                    <label class="block mb-2 font-medium">Бетон для ростверка</label>
+                                                    <select name="grillage_concrete"
+                                                        class="w-full p-3 border border-gray-300 rounded-lg">
+                                                        <option value="concrete_b20">Бетон B20</option>
+                                                        <option value="concrete_b25" selected>Бетон B25</option>
+                                                        <option value="concrete_b30">Бетон B30</option>
+                                                    </select>
+                                                </div>
+
+                                                <!-- Выбор гидроизоляции -->
+                                                <div>
+                                                    <label class="block mb-2 font-medium">Гидроизоляция</label>
+                                                    <select name="pile_waterproofing"
+                                                        class="w-full p-3 border border-gray-300 rounded-lg">
+                                                        <option value="waterproofing_roll" selected>Гидроизоляция
+                                                            рулонная</option>
+                                                        <option value="waterproofing_membrane">Гидроизоляция мембранная
+                                                        </option>
+                                                        <option value="waterproofing_mastic">Гидроизоляция обмазочная
+                                                        </option>
+                                                        <option value="waterproofing_ultrathin">Ультратонкая
+                                                            гидроизоляция 6мм</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Столбчатый фундамент -->
+                            <div class="foundation-type" id="columnFoundation" style="display: none;">
+                                <div>
+                                    <h3 class="text-lg font-semibold mb-4 dark:text-white">Параметры столбчатого
+                                        фундамента</h3>
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div>
+                                            <label for="columnStep" class="block mb-1">Шаг столбов (м):</label>
+                                            <input type="number" id="columnStep" name="columnStep" min="1" max="3"
+                                                step="0.5" value="2" class="w-full p-2 border rounded">
+                                        </div>
+                                        <div>
+                                            <label for="columnSize" class="block mb-1">Размер столба (м):</label>
+                                            <input type="number" id="columnSize" name="columnSize" min="0.2" max="0.4"
+                                                step="0.05" value="0.3" class="w-full p-2 border rounded">
+                                        </div>
+                                        <div>
+                                            <label for="columnDepth" class="block mb-1">Глубина столбов (м):</label>
+                                            <input type="number" id="columnDepth" name="columnDepth" min="1" max="2"
+                                                step="0.1" value="1.5" class="w-full p-2 border rounded">
+                                        </div>
+                                        <div>
+                                            <label for="beamHeight" class="block mb-1">Высота балок (м):</label>
+                                            <input type="number" id="beamHeight" name="beamHeight" min="0.3" max="0.6"
+                                                step="0.1" value="0.4" class="w-full p-2 border rounded">
+                                        </div>
+                                    </div>
+
+                                    <!-- Блок параметров арматуры для столбчатого фундамента -->
+
+
+                                    <div class="mt-6">
+                                        <h4 class="block mb-1 mr-2">Выбор материалов</h4>
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <!-- Выбор бетонных столбов -->
+                                            <div>
+                                                <label class="block mb-2 font-medium">Столбы</label>
+                                                <select name="column_type"
+                                                    class="w-full p-3 border border-gray-300 rounded-lg">
+                                                    <option value="columns_concrete" selected>Бетонные столбы</option>
+                                                    <option value="columns_brick">Кирпичные столбы</option>
+                                                    <option value="columns_block">Столбы из блоков ФБС</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label class="block mb-2 font-medium">
+                                                    <div class="flex items-center">
+                                                        <span>Арматура</span>
+                                                        <div class="relative ml-auto">
+                                                            <input type="checkbox" id="column-rebar-toggle"
+                                                                class="absolute opacity-0 rebar-toggle"
+                                                                style="width: 24px; height: 24px;">
+                                                            <svg xmlns="http://www.w3.org/2000/svg"
+                                                                class="h-6 w-6 text-gray-400 cursor-pointer" fill="none"
+                                                                viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                                    stroke-width="2"
+                                                                    d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                                                                <path stroke-linecap="round" stroke-linejoin="round"
+                                                                    stroke-width="2"
+                                                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                            </svg>
+                                                        </div>
+                                                    </div>
+                                                </label>
+                                                <select name="column_rebar"
+                                                    class="w-full p-3 border border-gray-300 rounded-lg">
+                                                    <option value="rebar_a300">Арматура A300</option>
+                                                    <option value="rebar_a400" selected>Арматура A400</option>
+                                                    <option value="rebar_a500">Арматура A500</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <div id="column-rebar-params" class="mt-4 grid grid-cols-2 gap-4 rebar-params"
+                                            style="display: none;">
+                                            <div>
+                                                <label for="columnLongitudinalRebarDiameter" class="block mb-1">Диаметр
+                                                    продольной арматуры столбов:</label>
+                                                <select id="columnLongitudinalRebarDiameter"
+                                                    name="columnLongitudinalRebarDiameter"
+                                                    class="w-full p-2 border rounded">
+                                                    <option value="10"> Ø10 мм</option>
+                                                    <option value="12" selected> Ø12 мм</option>
+                                                    <option value="14"> Ø14 мм</option>
+                                                    <option value="16"> Ø16 мм</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label for="columnTransverseRebarDiameter" class="block mb-1">Диаметр
+                                                    поперечной арматуры столбов:</label>
+                                                <select id="columnTransverseRebarDiameter"
+                                                    name="columnTransverseRebarDiameter"
+                                                    class="w-full p-2 border rounded">
+                                                    <option value="6"> Ø6 мм</option>
+                                                    <option value="8" selected> Ø8 мм</option>
+                                                    <option value="10"> Ø10 мм</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label for="beamLongitudinalRebarDiameter" class="block mb-1">Диаметр
+                                                    продольной арматуры балок:</label>
+                                                <select id="beamLongitudinalRebarDiameter"
+                                                    name="beamLongitudinalRebarDiameter"
+                                                    class="w-full p-2 border rounded">
+                                                    <option value="10"> Ø10 мм</option>
+                                                    <option value="12" selected> Ø12 мм</option>
+                                                    <option value="14"> Ø14 мм</option>
+                                                    <option value="16"> Ø16 мм</option>
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label for="beamTransverseRebarDiameter" class="block mb-1">Диаметр
+                                                    поперечной арматуры балок:</label>
+                                                <select id="beamTransverseRebarDiameter"
+                                                    name="beamTransverseRebarDiameter"
+                                                    class="w-full p-2 border rounded">
+                                                    <option value="6"> Ø6 мм</option>
+                                                    <option value="8" selected> Ø8 мм</option>
+                                                    <option value="10"> Ø10 мм</option>
+                                                </select>
+                                            </div>
+                                        </div>
+
+                                        <!-- Выбор бетона и гидроизоляции в одной строке -->
+                                        <div class="grid grid-cols-2 gap-4 mt-4">
+                                            <!-- Выбор бетона -->
+                                            <div>
+                                                <label class="block mb-2 font-medium">Бетон</label>
+                                                <select name="column_concrete"
+                                                    class="w-full p-3 border border-gray-300 rounded-lg">
+                                                    <option value="concrete_b15">Бетон B15</option>
+                                                    <option value="concrete_b20" selected>Бетон B20</option>
+                                                    <option value="concrete_b25">Бетон B25</option>
+                                                </select>
+                                            </div>
+
+                                            <!-- Выбор гидроизоляции -->
+                                            <div>
+                                                <label class="block mb-2 font-medium">Гидроизоляция</label>
+                                                <select name="column_waterproofing"
+                                                    class="w-full p-3 border border-gray-300 rounded-lg">
+                                                    <option value="waterproofing_roll" selected>Гидроизоляция рулонная
+                                                    </option>
+                                                    <option value="waterproofing_membrane">Гидроизоляция мембранная
+                                                    </option>
+                                                    <option value="waterproofing_mastic">Гидроизоляция обмазочная
+                                                    </option>
+                                                    <option value="waterproofing_ultrathin">Ультратонкая гидроизоляция
+                                                        6мм
+                                                    </option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Материал стен -->
+                        <div class="form-block wall-block">
+                            <label class="block text-blue-700 text-2xl font-bold mb-3"
+                                style="font-size: 1.5rem; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">Материал стен</label>
+                            <select name="wallMaterial" id="wallMaterial"
+                                class="w-full p-2 md:p-3 border border-gray-300 rounded-lg" required>
+                                <option value="brick">Кирпич</option>
+                                <option value="wood">Дерево</option>
+                                <option value="block">Газоблок</option>
+                                <option value="concrete">Монолит</option>
+                                <option value="panel">Панели</option>
+                            </select>
+                        </div>
+
+                        <!-- Параметры стен (появляются в зависимости от выбранного типа) -->
+                        <div id="wallParams">
+                            <!-- Кирпичные стены -->
+                            <div class="wall-params brick-params">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <!-- Заменяем скрытое поле на выпадающий список -->
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Толщина кладки</label>
+                                        <select name="brickThickness"
+                                            class="w-full p-3 border border-gray-300 rounded-lg">
+                                            <option value="0.12">0,5 кирпича</option>
+                                            <option value="0.25">1 кирпич</option>
+                                            <option value="0.38" selected>1,5 кирпича</option>
+                                            <option value="0.51">2 кирпича</option>
+                                            <option value="0.64">2,5 кирпича</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Тип кирпича</label>
+                                        <select name="brickType" class="w-full p-3 border border-gray-300 rounded-lg">
+                                            <option value="solid">Керамический полнотелый</option>
+                                            <option value="hollow">Керамический пустотелый</option>
+                                            <option value="silicate">Силикатный</option>
+                                            <option value="porous">Поризованный блок</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Выбор материалов для кирпичных стен -->
+                                <div class="mt-6" style="margin-top: 26px;">
+                                    <label class="block text-blue-700 text-2xl font-bold mb-3"
+                                        style="font-size: 1.5rem; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">Дополнительные
+                                        материалы</label>
+                                    <div class="grid grid-cols-1 gap-4 pt-2">
+                                        <!-- Выбор раствора -->
+                                        <div>
+                                            <label class="block mb-2 font-medium">Раствор для кладки</label>
+                                            <select name="brick_mortar"
+                                                class="w-full p-3 border border-gray-300 rounded-lg">
+                                                <option value="mortar_cement" selected>Цементный раствор</option>
+                                                <option value="mortar_lime">Известковый раствор</option>
+                                                <option value="mortar_cement_lime">Цементно-известковый раствор</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- Выбор утеплителя -->
+                                        <div>
+                                            <label class="block mb-2 font-medium">Утеплитель</label>
+                                            <select name="brick_insulation"
+                                                class="w-full p-3 border border-gray-300 rounded-lg">
+                                                <option value="insulation_mineral" selected>Минеральная вата</option>
+                                                <option value="insulation_foam">Пенополистирол</option>
+                                                <option value="insulation_basalt">Базальтовая вата</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Деревянные стены -->
+                            <div class="wall-params wood-params hidden">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Тип дерева</label>
+                                        <select name="woodType" class="w-full p-3 border border-gray-300 rounded-lg">
+                                            <option value="timber">Брус</option>
+                                            <option value="round_log">Оцилиндрованное бревно</option>
+                                            <option value="glued_beam">Клееный брус</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Размер сечения (мм)</label>
+                                        <select name="woodSize" class="w-full p-3 border border-gray-300 rounded-lg">
+                                            <option value="150">150x150</option>
+                                            <option value="200">200x200</option>
+                                            <option value="250">250x250</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Выбор материалов для деревянных стен (замена чекбоксов на селект) -->
+                                <div class="mt-6" style="margin-top: 26px;">
+                                    <label class="block text-blue-700 text-2xl font-bold mb-3"
+                                        style="font-size: 1.5rem; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">Дополнительные
+                                        материалы</label>
+                                    <select name="wood_materials" class="w-full p-3 border border-gray-300 rounded-lg">
+                                        <option value="none">Без дополнительных материалов</option>
+                                        <option value="wall_insulation" selected>Утеплитель для стен</option>
+                                        <option value="interlayer_insulation">Межвенцовый утеплитель</option>
+                                        <option value="both_insulation">Оба типа утеплителя</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Блочные стены -->
+                            <div class="wall-params block-params hidden">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Тип блока</label>
+                                        <select name="blockType" class="w-full p-3 border border-gray-300 rounded-lg">
+                                            <option value="aerated_concrete">Газобетонные блоки</option>
+                                            <option value="foam_concrete">Пенобетонные блоки</option>
+                                            <option value="expanded_clay">Керамзитобетонные блоки</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Толщина блока (мм)</label>
+                                        <select name="blockThickness"
+                                            class="w-full p-3 border border-gray-300 rounded-lg">
+                                            <option value="200">200</option>
+                                            <option value="300">300</option>
+                                            <option value="400">400</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Выбор материалов для блочных стен (замена чекбоксов на селект) -->
+                                <div class="mt-6" style="margin-top: 26px;">
+                                    <label class="block text-blue-700 text-2xl font-bold mb-3"
+                                        style="font-size: 1.5rem; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">Дополнительные
+                                        материалы</label>
+                                    <select name="block_materials" class="w-full p-3 border border-gray-300 rounded-lg">
+                                        <option value="none">Без дополнительных материалов</option>
+                                        <option value="adhesive" selected>Клей для блоков</option>
+                                        <option value="insulation">Утеплитель</option>
+                                        <option value="both">Клей и утеплитель</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Монолитные стены -->
+                            <div class="wall-params concrete-params hidden">
+                                <!-- Содержимое для монолитных стен -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Толщина стены (мм)</label>
+                                        <input type="number" name="concreteThickness"
+                                            class="w-full p-3 border border-gray-300 rounded-lg" min="150" max="300"
+                                            step="10" value="200">
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Класс бетона</label>
+                                        <select name="concreteClass"
+                                            class="w-full p-3 border border-gray-300 rounded-lg">
+                                            <option value="B20">B20</option>
+                                            <option value="B25" selected>B25</option>
+                                            <option value="B30">B30</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <!-- Выбор материалов для монолитных стен (замена чекбоксов на селект) -->
+                                <div class="mt-6" style="margin-top: 26px;">
+                                    <label class="block text-blue-700 text-2xl font-bold mb-3"
+                                        style="font-size: 1.5rem; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">Дополнительные
+                                        материалы</label>
+                                    <select name="concrete_materials"
+                                        class="w-full p-3 border border-gray-300 rounded-lg">
+                                        <option value="none">Без дополнительных материалов</option>
+                                        <option value="rebar">Арматура для стен</option>
+                                        <option value="formwork">Опалубка для стен</option>
+                                        <option value="insulation">Утеплитель</option>
+                                        <option value="all" selected>Все материалы</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Панельные стены -->
+                            <div class="wall-params panel-params hidden">
+                                <!-- Содержимое для панельных стен -->
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Тип панели</label>
+                                        <select name="panelType" class="w-full p-3 border border-gray-300 rounded-lg">
+                                            <option value="sip_panels">SIP-панели</option>
+                                            <option value="concrete_panels">Железобетонные панели</option>
+                                            <option value="sandwich_panels">Сэндвич-панели</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Толщина панели (мм)</label>
+                                        <input type="number" name="panelThickness"
+                                            class="w-full p-3 border border-gray-300 rounded-lg" min="100" max="300"
+                                            step="10" value="150">
+                                    </div>
+                                </div>
+
+                                <!-- Выбор материалов для панельных стен (замена чекбоксов на селект) -->
+                                <div class="mt-6" style="margin-top: 26px;">
+                                    <label class="block text-blue-700 text-2xl font-bold mb-3"
+                                        style="font-size: 1.5rem; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">Дополнительные
+                                        материалы</label>
+                                    <select name="panel_materials" class="w-full p-3 border border-gray-300 rounded-lg">
+                                        <option value="none">Без дополнительных материалов</option>
+                                        <option value="mounting_kit">Монтажный комплект</option>
+                                        <option value="sealant">Герметик для швов</option>
+                                        <option value="both" selected>Монтажный комплект и герметик</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Количество этажей -->
+                        <div>
+                            <label class="block text-gray-700 mb-2">Количество этажей</label>
+                            <select name="floors" class="w-full p-3 border border-gray-300 rounded-lg" required>
+                                <option value="1">1 этаж</option>
+                                <option value="2">2 этажа</option>
+                                <option value="3">3 этажа</option>
+                            </select>
+                        </div>
+
+                        <!-- Упрощенная часть с крышей -->
+                        <div>
+                            <label class="block text-blue-700 text-2xl font-bold mb-3"
+                                style="font-size: 1.5rem; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">Материал
+                                кровли</label>
+                            <select name="roofType" id="roofType" class="w-full p-3 border border-gray-300 rounded-lg"
+                                required>
+                                <option value="metal">Металлочерепица</option>
+                                <option value="tile">Керамическая черепица</option>
+                                <option value="shingle">Гибкая черепица</option>
+                                <option value="flat">Плоская кровля</option>
+                            </select>
+                        </div>
+
+                        <!-- Упрощенные параметры кровли -->
+                        <div id="roofParams">
+                            <!-- Скрытые поля для дополнительных параметров крыши -->
+                            <input type="hidden" name="roofHeight" value="1.5">
+                            <input type="hidden" name="roofOverhang" value="0.6">
+                            <input type="hidden" name="roofMaterial" value="metal">
+
+                            <!-- Общие параметры для всех типов кровли -->
+                            <div class="roof-params metal-params">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Тип конструкции</label>
+                                        <select name="roofConstruction"
+                                            class="w-full p-3 border border-gray-300 rounded-lg">
+                                            <option value="gable" selected>Двускатная</option>
+                                            <option value="mono">Односкатная</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Угол наклона (°)</label>
+                                        <input type="number" name="roofAngle"
+                                            class="w-full p-3 border border-gray-300 rounded-lg" min="15" max="60"
+                                            step="1" value="30">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Параметры для керамической черепицы -->
+                            <div class="roof-params tile-params hidden">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Тип конструкции</label>
+                                        <select name="roofConstruction"
+                                            class="w-full p-3 border border-gray-300 rounded-lg">
+                                            <option value="gable" selected>Двускатная</option>
+                                            <option value="mono">Односкатная</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Угол наклона (°)</label>
+                                        <input type="number" name="roofAngle"
+                                            class="w-full p-3 border border-gray-300 rounded-lg" min="15" max="60"
+                                            step="1" value="30">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Параметры для гибкой черепицы -->
+                            <div class="roof-params shingle-params hidden">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Тип конструкции</label>
+                                        <select name="roofConstruction"
+                                            class="w-full p-3 border border-gray-300 rounded-lg">
+                                            <option value="gable" selected>Двускатная</option>
+                                            <option value="mono">Односкатная</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Угол наклона (°)</label>
+                                        <input type="number" name="roofAngle"
+                                            class="w-full p-3 border border-gray-300 rounded-lg" min="15" max="60"
+                                            step="1" value="30">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Параметры для плоской кровли -->
+                            <div class="roof-params flat-params hidden">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Тип гидроизоляции</label>
+                                        <select name="flatRoofType"
+                                            class="w-full p-3 border border-gray-300 rounded-lg">
+                                            <option value="membrane" selected>Мембранная</option>
+                                            <option value="rolled">Наплавляемая</option>
+                                            <option value="mastic">Мастичная</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-gray-700 mb-2">Толщина утеплителя (мм)</label>
+                                        <input type="number" name="flatRoofInsulation"
+                                            class="w-full p-3 border border-gray-300 rounded-lg" min="50" max="200"
+                                            step="10" value="100">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Кнопка отправки формы -->
+                        <div class="mt-8">
+                            <button type="submit" id="calculateButton"
+                                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg w-full">
+                                Рассчитать материалы
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Результаты расчета -->
+                <div class="results-panel hidden">
+                    <div id="results" class="space-y-6">
+                        <!-- Анимация загрузки -->
+                        <div id="loading-animation" class="text-center py-8">
+                            <div class="math-board-container" id="mathBoardContainer"></div>
+                        </div>
+
+                        <!-- Информация о расчете (для печати) -->
+                        <div class="print-info">
+                            <div class="print-header">
+                                <div class="print-logo">BuildMate</div>
+                                <h2>Расчет строительных материалов</h2>
+                            </div>
+                            <div class="print-meta">
+                                <p class="print-date">Дата расчета: <span id="print-date"></span></p>
+                                <p class="print-number">Расчет #<span id="print-number"></span></p>
+                            </div>
+                        </div>
+
+                        <!-- Схема дома для печати -->
+                        <div class="print-house-schema">
+                            <!-- SVG схема удалена по запросу пользователя -->
+                        </div>
+
+                        <!-- Секции результатов -->
+                        <div class="mt-8 space-y-6">
+                            <!-- Фундамент -->
+                            <div class="mb-6">
+                                <h4 class="text-lg font-semibold mb-3 opacity-0" id="foundation-title">Фундамент:</h4>
+                                <div id="foundationMaterials" class="space-y-2 pl-4"></div>
+                            </div>
+
+                            <!-- Стены -->
+                            <div class="mb-6">
+                                <h4 class="text-lg font-semibold mb-3 opacity-0" id="walls-title">Стены:</h4>
+                                <div id="wallMaterials" class="space-y-2 pl-4"></div>
+                            </div>
+
+                            <!-- Кровля -->
+                            <div class="mb-6">
+                                <h4 class="text-lg font-semibold mb-3 opacity-0" id="roof-title">Кровля:</h4>
+                                <div id="roofMaterials" class="space-y-2 pl-4"></div>
+                            </div>
+                        </div>
+
+                        <!-- Примечания -->
+                        <div class="mt-6 p-4 rounded-lg border note-container">
+                            <p class="text-sm">
+                                <strong>Примечание:</strong> Расчет является приблизительным и может отличаться от
+                                фактического
+                                количества материалов в зависимости от особенностей проекта, климатических условий и
+                                методов строительства.
+                                Рекомендуется добавить 10-15% запаса на отходы и технологические потери.
+                            </p>
+                        </div>
+
+                        <!-- Блок рекомендаций от ИИ -->
+                        <div class="mt-8 p-6 rounded-lg border border-blue-500 bg-gray-900 ai-recommendations">
+                            <h4 class="text-xl font-bold mb-4 text-blue-400 ai-recommendations-title">Рекомендации
+                                ИИ-ассистента по строительству</h4>
+                            <div id="ai-recommendations-content" class="space-y-3 ai-recommendations-content">
+                                <!-- Здесь будут загружены рекомендации от ИИ -->
+                            </div>
+                        </div>
+
+                        <!-- Водяной знак для печати -->
+                        <div class="print-watermark">BuildMate</div>
+
+                        <div class="flex flex-col sm:flex-row gap-4 mt-6 no-print">
+                            <button id="recalcButton"
+                                class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-3 px-6 rounded-lg w-full sm:w-auto">
+                                Изменить параметры
+                            </button>
+                            <button id="printButton"
+                                class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg w-full sm:w-auto">
+                                Распечатать результаты
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Секция преимуществ -->
+    <section id="features" class="py-16 section no-print">
+        <div class="container mx-auto px-4">
+            <h2 class="text-2xl md:text-3xl font-bold mb-10 text-center text-primary">Наши преимущества</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="card p-6 flex flex-col h-full text-center">
+                    <div class="text-accent mb-4 flex justify-center" style="font-size: 3rem;">🧮</div>
+                    <h3 class="text-xl font-bold mb-4 text-primary h-14 flex items-center justify-center">Комплексная
+                        оценка материалов
+                    </h3>
+                    <p class="text-secondary text-lg flex-grow">Калькулятор стремится учесть многочисленные аспекты
+                        строительного
+                        процесса, предоставляя вам обоснованную оценку необходимого количества материалов. Данный расчет
+                        поможет сформировать рациональное представление о предстоящих затратах на строительство.</p>
+                </div>
+
+                <div class="card p-6 flex flex-col h-full text-center">
+                    <div class="text-accent mb-4 flex justify-center" style="font-size: 3rem;">📋</div>
+                    <h3 class="text-xl font-bold mb-4 text-primary h-14 flex items-center justify-center">Ориентация в
+                        ценах
+                        стройматериалов</h3>
+                    <p class="text-secondary text-lg flex-grow">Получите актуальный обзор рыночных цен на строительные
+                        материалы, что
+                        позволит сравнить стоимостные параметры различных вариантов исполнения вашего дома. Эта
+                        информация поможет принять экономически обоснованное решение при выборе оптимальной конфигурации
+                        проекта.</p>
+                </div>
+
+                <div class="card p-6 flex flex-col h-full text-center">
+                    <div class="text-accent mb-4 flex justify-center" style="font-size: 3rem;">💡</div>
+                    <h3 class="text-xl font-bold mb-4 text-primary h-14 flex items-center justify-center">
+                        Профессиональный подход</h3>
+                    <p class="text-secondary text-lg flex-grow">Алгоритмы калькулятора разработаны с учетом опыта
+                        профессиональных
+                        строителей и основных строительных норм. Мы собрали ключевые принципы проектирования и
+                        стандартные методики расчета, чтобы предоставить вам практичный инструмент для планирования
+                        строительства. Это поможет получить разумную оценку материалов для вашего проекта.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Футер сайта -->
+    <footer class="no-print -mt-1">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Брендинг -->
+                <div>
+                    <div class="footer-brand">BuildMate</div>
+                    <p class="footer-description">Калькулятор материалов для строительства дома - точно знайте, что и
+                        сколько вам нужно.</p>
+                </div>
+
+                <!-- Навигация -->
+                <div>
+                    <h3 class="footer-nav-title">Навигация</h3>
+                    <ul class="footer-nav-links">
+                        <li><a href="/">Калькулятор</a></li>
+                        <li><a href="/furniture">Подбор мебели</a></li>
+
+                    </ul>
+                </div>
+
+                <!-- Контакты -->
+                <div>
+                    <h3 class="footer-contact-title">Связаться с нами</h3>
+                    <div class="footer-contact-info">
+                        <p class="footer-contact-item">
+                            <svg class="w-5 h-5 footer-contact-icon" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
+                                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path>
+                            </svg>
+                            <span>info@buildmate.ru</span>
+                        </p>
+                        <p class="footer-contact-item">
+                            <svg class="w-5 h-5 footer-contact-icon" fill="currentColor" viewBox="0 0 20 20">
+                                <path
+                                    d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z">
+                                </path>
+                            </svg>
+                            <span>+7 (967) 777-77-77</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 pt-4 border-t border-gray-200 text-center text-sm text-gray-400">
+                <p class="text-sm text-muted">© 2025 BuildMate. Все права защищены.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript файлы -->
+    <script src="/static/js/utils.js"></script>
+    <script src="/static/js/theme-switcher.js"></script>
+    <script src="/static/js/calculator.js"></script>
+    <script src="/static/js/animations.js"></script>
+
+    <!-- Отладочный скрипт -->
+    <script>
+        console.log("JavaScript загружен");
+    </script>
+</body>
+
+</html>

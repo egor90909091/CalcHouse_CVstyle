@@ -1,0 +1,265 @@
+/* main.css - Основные стили сайта */
+
+:root {
+    /* Общие переменные */
+    --accent-color: #3182ce;
+    --accent-hover: #2c5282;
+    --transition-speed: 0.3s;
+    --primary-color: #3b82f6;
+    --primary-dark: #2563eb;
+    --secondary-color: #6b7280;
+
+    /* Шрифты */
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-bold: 600;
+    --letter-spacing: -0.01em;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+    transition: background-color var(--transition-speed) ease;
+}
+
+/* Типографика */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.text-lg,
+.text-xl,
+.text-2xl,
+.text-3xl,
+.text-4xl,
+.font-bold,
+.font-semibold {
+    font-weight: 600;
+    letter-spacing: -0.01em;
+}
+
+/* Стили для текста */
+.text-primary {
+    transition: color var(--transition-speed) ease;
+}
+
+.text-secondary {
+    transition: color var(--transition-speed) ease;
+}
+
+.text-muted {
+    transition: color var(--transition-speed) ease;
+}
+
+.text-accent {
+    color: var(--accent-color);
+    transition: color var(--transition-speed) ease;
+}
+
+/* Hero секция */
+.hero-section {
+    background-color: transparent;
+    background-size: cover;
+    background-position: center;
+    background-image: url('/static/images/229338451_11049421.png');
+    padding: 4rem 0;
+    min-height: 400px;
+    position: relative;
+    z-index: 1;
+}
+
+.hero-section::before {
+    display: none;
+}
+
+.hero-content {
+    max-width: 450px;
+    border-radius: 0.5rem;
+    transition: background-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+}
+
+/* Кнопки */
+.btn-primary {
+    background-color: var(--accent-color);
+    color: white;
+    transition: all var(--transition-speed) ease;
+}
+
+.btn-primary:hover {
+    background-color: var(--accent-hover);
+    box-shadow: 0 4px 8px var(--shadow-color);
+}
+
+/* Карточки */
+.card {
+    border-radius: 0.5rem;
+    transition: all var(--transition-speed) ease;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+}
+
+/* Секции */
+.section {
+    transition: background-color var(--transition-speed) ease;
+}
+
+/* Формы и поля ввода */
+label {
+    font-weight: 500;
+    transition: color var(--transition-speed) ease;
+}
+
+input,
+select {
+    transition: all var(--transition-speed) ease;
+}
+
+/* Футер */
+footer {
+    padding: 2rem 0;
+    margin-top: 3rem;
+    transition: all var(--transition-speed) ease;
+}
+
+footer h3,
+footer h4 {
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+footer p,
+footer a,
+footer li {
+    transition: color var(--transition-speed) ease;
+}
+
+footer a:hover {
+    text-decoration: underline;
+}
+
+.footer-brand {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.footer-description {
+    max-width: 20rem;
+    margin-bottom: 1.5rem;
+}
+
+.footer-nav-title,
+.footer-contact-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.footer-nav-links li {
+    margin-bottom: 0.5rem;
+}
+
+.footer-contact-info {
+    margin-bottom: 1.5rem;
+}
+
+.footer-contact-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.footer-contact-icon {
+    margin-right: 0.5rem;
+    color: var(--accent-color);
+}
+
+/* Стили для страницы подбора мебели */
+.upload-section {
+    transition: all 0.3s ease;
+}
+
+.drop-zone {
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.drop-zone.dragover {
+    background-color: rgba(59, 130, 246, 0.1);
+    border-color: var(--primary-color);
+}
+
+.preview-section {
+    transition: all 0.3s ease;
+}
+
+.preview-section img {
+    max-height: 400px;
+    object-fit: contain;
+}
+
+.analyze-btn {
+    transition: all 0.3s ease;
+}
+
+.analyze-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.result-section {
+    transition: all 0.3s ease;
+}
+
+/* Анимации */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease forwards;
+}
+
+/* Адаптивные стили */
+@media (max-width: 640px) {
+    .drop-zone {
+        min-height: 150px;
+        padding: 1rem;
+    }
+
+    .preview-section img {
+        max-height: 300px;
+    }
+}

@@ -1,0 +1,175 @@
+/* print.css - Стили для печати результатов */
+
+@media print {
+
+    /* Общие настройки страницы */
+    @page {
+        size: A4;
+        margin: 1.5cm;
+    }
+
+    body {
+        background-color: white !important;
+        color: black !important;
+        font-size: 12pt;
+        font-family: 'Arial', sans-serif;
+        line-height: 1.5;
+    }
+
+    /* Скрываем элементы, не нужные для печати */
+    .no-print {
+        display: none !important;
+    }
+
+    /* Скрываем верхнюю полоску и надпись BuildMate */
+    .print-logo,
+    .print-header {
+        display: none !important;
+    }
+
+    /* Показываем только элементы для печати */
+    .print-only {
+        display: block !important;
+    }
+
+    /* Стилизация шапки для печати - оставляем только заголовок расчета */
+    .print-header h2 {
+        font-size: 18pt;
+        margin: 0;
+        text-align: center;
+        padding-top: 1cm;
+    }
+
+    /* Мета-информация для печати */
+    .print-meta {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 1cm;
+        font-size: 9pt;
+        color: #666;
+        margin-top: 0.5cm;
+    }
+
+    .print-date,
+    .print-number {
+        margin: 0;
+    }
+
+    /* Схема дома для печати */
+    .print-house-schema {
+        text-align: center;
+        margin-bottom: 1cm;
+        page-break-inside: avoid;
+    }
+
+    /* Информация о расчете */
+    .print-info {
+        display: none !important;
+    }
+
+    /* Убираем водяной знак BuildMate */
+    .print-watermark {
+        display: none !important;
+    }
+
+    /* Стили для результатов расчета */
+    #results {
+        padding: 0;
+        margin: 0;
+    }
+
+    #results h4 {
+        font-size: 14pt;
+        margin-top: 0.5cm;
+        margin-bottom: 0.3cm;
+        color: #3182ce;
+        border-bottom: 1px solid #ccc;
+        padding-bottom: 0.2cm;
+        opacity: 1 !important;
+    }
+
+    #foundationMaterials,
+    #wallMaterials,
+    #roofMaterials {
+        margin-bottom: 0.5cm;
+        padding-left: 0.5cm;
+    }
+
+    .material-item {
+        display: grid;
+        grid-template-columns: 40% 20% 20% 20%;
+        margin-bottom: 0.3cm;
+    }
+
+    .material-item>div {
+        padding-right: 0.2cm;
+    }
+
+    .material-item>div:nth-child(1) {
+        text-align: left;
+    }
+
+    .material-item>div:nth-child(2),
+    .material-item>div:nth-child(3),
+    .material-item>div:nth-child(4) {
+        text-align: right;
+    }
+
+    .total-row {
+        border-top: 1px solid #ccc;
+        padding-top: 0.2cm;
+        font-weight: bold;
+    }
+
+    /* Избегаем разрывов внутри блоков */
+    .mb-6 {
+        page-break-inside: avoid;
+    }
+
+    /* Стиль для примечания */
+    .note-container {
+        margin-top: 1cm;
+        padding: 0.5cm;
+        border: 1px solid #ccc;
+        border-radius: 0.2cm;
+        font-size: 9pt;
+        background-color: #f9f9f9;
+    }
+
+    .note-container strong {
+        font-weight: bold;
+    }
+
+    /* Стиль для блока рекомендаций ИИ */
+    .ai-recommendations {
+        margin-top: 1.5cm;
+        padding: 0.8cm;
+        border: 1px solid #2d6ca2;
+        border-radius: 0.3cm;
+        background-color: #eef7fd;
+        page-break-inside: avoid;
+    }
+
+    .ai-recommendations-title {
+        font-size: 14pt;
+        font-weight: bold;
+        color: #2d6ca2;
+        margin-bottom: 0.5cm;
+    }
+
+    .ai-recommendation-item {
+        margin-bottom: 0.4cm;
+        display: flex;
+    }
+
+    .ai-recommendation-item:before {
+        content: '•';
+        margin-right: 0.3cm;
+        color: #2d6ca2;
+    }
+
+    /* Математическая доска не нужна для печати */
+    #loading-animation {
+        display: none !important;
+    }
+}
