@@ -10,6 +10,61 @@
         content="калькулятор строительных материалов, расчет материалов для дома, строительный калькулятор">
     <title>BuildMate</title>
 
+    <!-- Стили для надежного скрытия элементов -->
+    <style>
+        /* Гарантированное скрытие элементов с классом hidden */
+        .hidden {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            height: 0 !important;
+            overflow: hidden !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            position: absolute !important;
+            pointer-events: none !important;
+        }
+
+        /* Стили для блоков параметров стен */
+        .wall-params {
+            display: none;
+        }
+
+        /* Параметры для кирпичных стен */
+        .wall-params.brick-params {
+            display: block;
+        }
+
+        /* Параметры для деревянных стен */
+        .wall-params.wood-params {
+            display: none;
+        }
+
+        /* Параметры для блочных стен */
+        .wall-params.block-params {
+            display: none;
+        }
+
+        /* Параметры для монолитных стен */
+        .wall-params.concrete-params {
+            display: none;
+        }
+
+        /* Параметры для панельных стен */
+        .wall-params.panel-params {
+            display: none;
+        }
+
+        /* Стили для параметров этажей и полов */
+        .floor-params {
+            display: none;
+        }
+
+        .floor-params.wood-params {
+            display: block;
+        }
+    </style>
+
     <!-- Иконка сайта (домик) -->
     <link rel="icon"
         href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzAwNzREOSIgc3Ryb2tlPSJub25lIj48cGF0aCBkPSJNMTIgMi41TDMgOS43djExLjhoMTh2LTExLjhMMTIgMi41ek0xNiAxOC41aC0zdi0zaC0ydjNoLTNWMTNsNC0zLjQgNCAzLjR2NS41eiIvPjwvc3ZnPg==">
@@ -716,10 +771,10 @@
                         <!-- Параметры стен (появляются в зависимости от выбранного типа) -->
                         <div id="wallParams">
                             <!-- Кирпичные стены -->
-                            <div class="wall-params brick-params">
+                            <div class="wall-params brick-params brick-walls-section">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <!-- Заменяем скрытое поле на выпадающий список -->
-                                    <div>
+                                    <div class="brick-param">
                                         <label class="block text-gray-700 mb-2">Толщина кладки</label>
                                         <select name="brickThickness"
                                             class="w-full p-3 border border-gray-300 rounded-lg">
@@ -730,7 +785,7 @@
                                             <option value="0.64">2,5 кирпича</option>
                                         </select>
                                     </div>
-                                    <div>
+                                    <div class="brick-param">
                                         <label class="block text-gray-700 mb-2">Тип кирпича</label>
                                         <select name="brickType" class="w-full p-3 border border-gray-300 rounded-lg">
                                             <option value="solid">Керамический полнотелый</option>
@@ -742,13 +797,13 @@
                                 </div>
 
                                 <!-- Выбор материалов для кирпичных стен -->
-                                <div class="mt-6" style="margin-top: 26px;">
+                                <div class="mt-6 brick-param" style="margin-top: 26px;">
                                     <label class="block text-blue-700 text-2xl font-bold mb-3"
                                         style="font-size: 1.5rem; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">Дополнительные
-                                        материалы</label>
+                                        материалы для кирпича</label>
                                     <div class="grid grid-cols-1 gap-4 pt-2">
                                         <!-- Выбор раствора -->
-                                        <div>
+                                        <div class="brick-param">
                                             <label class="block mb-2 font-medium">Раствор для кладки</label>
                                             <select name="brick_mortar"
                                                 class="w-full p-3 border border-gray-300 rounded-lg">
@@ -759,7 +814,7 @@
                                         </div>
 
                                         <!-- Выбор утеплителя -->
-                                        <div>
+                                        <div class="brick-param">
                                             <label class="block mb-2 font-medium">Утеплитель</label>
                                             <select name="brick_insulation"
                                                 class="w-full p-3 border border-gray-300 rounded-lg">
@@ -773,9 +828,9 @@
                             </div>
 
                             <!-- Деревянные стены -->
-                            <div class="wall-params wood-params hidden">
+                            <div class="wall-params wood-params wood-walls-section hidden">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
+                                    <div class="wood-param">
                                         <label class="block text-gray-700 mb-2">Тип дерева</label>
                                         <select name="woodType" class="w-full p-3 border border-gray-300 rounded-lg">
                                             <option value="timber">Брус</option>
@@ -783,7 +838,7 @@
                                             <option value="glued_beam">Клееный брус</option>
                                         </select>
                                     </div>
-                                    <div>
+                                    <div class="wood-param">
                                         <label class="block text-gray-700 mb-2">Размер сечения (мм)</label>
                                         <select name="woodSize" class="w-full p-3 border border-gray-300 rounded-lg">
                                             <option value="150">150x150</option>
@@ -794,10 +849,10 @@
                                 </div>
 
                                 <!-- Выбор материалов для деревянных стен (замена чекбоксов на селект) -->
-                                <div class="mt-6" style="margin-top: 26px;">
+                                <div class="mt-6 wood-param" style="margin-top: 26px;">
                                     <label class="block text-blue-700 text-2xl font-bold mb-3"
                                         style="font-size: 1.5rem; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">Дополнительные
-                                        материалы</label>
+                                        материалы для дерева</label>
                                     <select name="wood_materials" class="w-full p-3 border border-gray-300 rounded-lg">
                                         <option value="none">Без дополнительных материалов</option>
                                         <option value="wall_insulation" selected>Утеплитель для стен</option>
@@ -918,11 +973,144 @@
                         <!-- Количество этажей -->
                         <div>
                             <label class="block text-gray-700 mb-2">Количество этажей</label>
-                            <select name="floors" class="w-full p-3 border border-gray-300 rounded-lg" required>
+                            <select name="floors" id="floorsSelect" class="w-full p-3 border border-gray-300 rounded-lg"
+                                required>
                                 <option value="1">1 этаж</option>
                                 <option value="2">2 этажа</option>
                                 <option value="3">3 этажа</option>
                             </select>
+                        </div>
+
+                        <!-- Тип межэтажного перекрытия -->
+                        <div id="floorTypeContainer" style="display: none;">
+                            <label class="block text-blue-700 text-2xl font-bold mb-3"
+                                style="font-size: 1.5rem; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">Тип межэтажного
+                                перекрытия</label>
+                            <select name="floor_type" id="floorType"
+                                class="w-full p-3 border border-gray-300 rounded-lg">
+                                <option value="wood">Деревянное перекрытие</option>
+                                <option value="concrete">Монолитное железобетонное</option>
+                                <option value="slab">Плитное перекрытие</option>
+                                <option value="prefab">Сборное железобетонное</option>
+                                <option value="steel">Металлическое перекрытие</option>
+                            </select>
+
+                            <!-- Параметры пола -->
+                            <div id="floorParams" class="mt-6">
+                                <!-- Деревянное перекрытие -->
+                                <div class="floor-params wood-params">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                        <div>
+                                            <label class="block text-gray-700 mb-2">Тип балок</label>
+                                            <select name="beam_type"
+                                                class="w-full p-3 border border-gray-300 rounded-lg">
+                                                <option value="pine">Сосна</option>
+                                                <option value="oak">Дуб</option>
+                                                <option value="larch">Лиственница</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-gray-700 mb-2">Сечение балок (мм)</label>
+                                            <select name="beam_size"
+                                                class="w-full p-3 border border-gray-300 rounded-lg">
+                                                <option value="150">150x50</option>
+                                                <option value="200" selected>200x50</option>
+                                                <option value="250">250x50</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Монолитное железобетонное перекрытие -->
+                                <div class="floor-params concrete-params hidden">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                        <div>
+                                            <label class="block text-gray-700 mb-2">Класс бетона</label>
+                                            <select name="concrete_class"
+                                                class="w-full p-3 border border-gray-300 rounded-lg">
+                                                <option value="B20">B20</option>
+                                                <option value="B25" selected>B25</option>
+                                                <option value="B30">B30</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-gray-700 mb-2">Толщина плиты (см)</label>
+                                            <input type="number" name="concrete_thickness"
+                                                class="w-full p-3 border border-gray-300 rounded-lg" min="10" max="30"
+                                                step="1" value="20">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Плитное перекрытие -->
+                                <div class="floor-params slab-params hidden">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                        <div>
+                                            <label class="block text-gray-700 mb-2">Тип плит</label>
+                                            <select name="slab_type"
+                                                class="w-full p-3 border border-gray-300 rounded-lg">
+                                                <option value="hollow_core">Пустотные</option>
+                                                <option value="solid" selected>Сплошные</option>
+                                                <option value="ribbed">Ребристые</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-gray-700 mb-2">Толщина плиты (см)</label>
+                                            <select name="slab_thickness"
+                                                class="w-full p-3 border border-gray-300 rounded-lg">
+                                                <option value="16">16 см</option>
+                                                <option value="20" selected>20 см</option>
+                                                <option value="22">22 см</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Сборное железобетонное перекрытие -->
+                                <div class="floor-params prefab-params hidden">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                        <div>
+                                            <label class="block text-gray-700 mb-2">Тип панелей</label>
+                                            <select name="panel_type"
+                                                class="w-full p-3 border border-gray-300 rounded-lg">
+                                                <option value="standard">Стандартные</option>
+                                                <option value="reinforced" selected>Усиленные</option>
+                                                <option value="lightweight">Облегченные</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-gray-700 mb-2">Размер панелей</label>
+                                            <select name="panel_size"
+                                                class="w-full p-3 border border-gray-300 rounded-lg">
+                                                <option value="small">Малые (до 3м)</option>
+                                                <option value="medium" selected>Средние (3-6м)</option>
+                                                <option value="large">Крупные (более 6м)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Металлическое перекрытие -->
+                                <div class="floor-params steel-params hidden">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                        <div>
+                                            <label class="block text-gray-700 mb-2">Тип профиля</label>
+                                            <select name="beam_profile"
+                                                class="w-full p-3 border border-gray-300 rounded-lg">
+                                                <option value="i_beam">Двутавр</option>
+                                                <option value="channel" selected>Швеллер</option>
+                                                <option value="angle">Уголок</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-gray-700 mb-2">Шаг между балками (м)</label>
+                                            <input type="number" name="beam_spacing"
+                                                class="w-full p-3 border border-gray-300 rounded-lg" min="0.3" max="1.5"
+                                                step="0.1" value="0.6">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
 
                         <!-- Упрощенная часть с крышей -->

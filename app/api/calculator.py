@@ -87,6 +87,19 @@ async def calculate_materials(
             "total_cost": result.total_cost,
         }
 
+        # Добавляем материалы для пола, если есть этажи > 1
+        if data.floors > 1 and data.floor_type and result.materials.floors:
+            response["floors"] = [
+                {
+                    "name": item.name,
+                    "quantity": item.quantity,
+                    "unit": item.unit,
+                    "price": item.price,
+                    "total_cost": item.total_cost,
+                }
+                for item in result.materials.floors
+            ]
+
         return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -1279,6 +1292,23 @@ async def form_calculate_materials(
             "total_cost": result.total_cost,
         }
 
+        # Добавляем материалы для пола, если есть этажи > 1
+        if (
+            calculator_input.floors > 1
+            and calculator_input.floor_type
+            and result.materials.floors
+        ):
+            response["floors"] = [
+                {
+                    "name": item.name,
+                    "quantity": item.quantity,
+                    "unit": item.unit,
+                    "price": item.price,
+                    "total_cost": item.total_cost,
+                }
+                for item in result.materials.floors
+            ]
+
         return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка расчета: {str(e)}")
@@ -1298,6 +1328,105 @@ async def _convert_form_data_to_calculator_input(
         if not isinstance(form_data.get("floors"), list)
         else int(form_data.get("floors", [1])[0])
     )
+
+    # Добавляем обработку типа межэтажного перекрытия для домов больше 1 этажа
+    floor_type = None
+    floor_params = None
+
+    if floors > 1:
+        floor_type_value = form_data.get("floor_type", "wood")
+        if isinstance(floor_type_value, list):
+            floor_type = floor_type_value[0] if floor_type_value else "wood"
+        else:
+            floor_type = floor_type_value
+
+        # Заполняем параметры пола в зависимости от типа
+        floor_params = {}
+        if floor_type == "wood":
+            # Проверка типа балок
+            beam_type_value = form_data.get("beam_type", "pine")
+            if isinstance(beam_type_value, list):
+                beam_type = beam_type_value[0] if beam_type_value else "pine"
+            else:
+                beam_type = beam_type_value
+
+            # Проверка размера балок
+            beam_size_value = form_data.get("beam_size", "200")
+            if isinstance(beam_size_value, list):
+                beam_size = beam_size_value[0] if beam_size_value else "200"
+            else:
+                beam_size = beam_size_value
+
+            floor_params = {
+                "beam_type": beam_type,
+                "beam_size": beam_size,
+                "beam_spacing": 0.6,  # Значение по умолчанию
+            }
+        elif floor_type == "concrete":
+            # Проверка класса бетона
+            concrete_class_value = form_data.get("concrete_class", "B25")
+            if isinstance(concrete_class_value, list):
+                concrete_class = (
+                    concrete_class_value[0] if concrete_class_value else "B25"
+                )
+            else:
+                concrete_class = concrete_class_value
+
+            floor_params = {
+                "concrete_class": concrete_class,
+                "concrete_thickness": safe_float(
+                    form_data.get("concrete_thickness", 20)
+                )
+                / 100,  # Переводим см в метры
+            }
+        elif floor_type == "slab":
+            # Проверка типа плит
+            slab_type_value = form_data.get("slab_type", "solid")
+            if isinstance(slab_type_value, list):
+                slab_type = slab_type_value[0] if slab_type_value else "solid"
+            else:
+                slab_type = slab_type_value
+
+            # Проверка толщины плит
+            slab_thickness_value = form_data.get("slab_thickness", "20")
+            if isinstance(slab_thickness_value, list):
+                slab_thickness = (
+                    slab_thickness_value[0] if slab_thickness_value else "20"
+                )
+            else:
+                slab_thickness = slab_thickness_value
+
+            floor_params = {"slab_type": slab_type, "slab_thickness": slab_thickness}
+        elif floor_type == "prefab":
+            # Проверка типа панелей
+            panel_type_value = form_data.get("panel_type", "reinforced")
+            if isinstance(panel_type_value, list):
+                panel_type = panel_type_value[0] if panel_type_value else "reinforced"
+            else:
+                panel_type = panel_type_value
+
+            # Проверка размера панелей
+            panel_size_value = form_data.get("panel_size", "medium")
+            if isinstance(panel_size_value, list):
+                panel_size = panel_size_value[0] if panel_size_value else "medium"
+            else:
+                panel_size = panel_size_value
+
+            floor_params = {"panel_type": panel_type, "panel_size": panel_size}
+        elif floor_type == "steel":
+            # Проверка типа профиля
+            beam_profile_value = form_data.get("beam_profile", "channel")
+            if isinstance(beam_profile_value, list):
+                beam_profile = (
+                    beam_profile_value[0] if beam_profile_value else "channel"
+                )
+            else:
+                beam_profile = beam_profile_value
+
+            floor_params = {
+                "beam_profile": beam_profile,
+                "beam_spacing": safe_float(form_data.get("beam_spacing", 0.6)),
+            }
 
     # Фундамент
     foundation_type_value = form_data.get("foundationType", "strip")
@@ -1609,6 +1738,8 @@ async def _convert_form_data_to_calculator_input(
         foundation_params=foundation_params,
         wall_material=WallMaterial(wall_material),
         wall_params=wall_params,
+        floor_type=floor_type,
+        floor_params=floor_params,
         roof_type=RoofType(roof_type),
         roof_construction=RoofConstruction(roof_construction),
         roof_angle=roof_params["angle"],

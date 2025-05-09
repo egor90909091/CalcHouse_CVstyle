@@ -32,6 +32,52 @@
             /* Красивые многослойные тени */
         }
 
+        /* Стили для кнопок мебели, использующие переменные из theme.css */
+        .furniture-item {
+            background-color: var(--card-bg) !important;
+            border-color: var(--border-color) !important;
+            color: var(--primary-text) !important;
+            transition: all 0.3s ease;
+        }
+
+        .furniture-item:hover {
+            background-color: var(--input-bg) !important;
+            border-color: var(--border-color) !important;
+            box-shadow: 0 2px 8px var(--shadow-color) !important;
+        }
+
+        /* Стили для контейнера с результатами */
+        #selectedFurnitureContainer>div {
+            background-color: var(--card-bg) !important;
+            border-color: var(--border-color) !important;
+            color: var(--primary-text) !important;
+        }
+
+        /* Стили для выпадающего списка */
+        #roomSelect {
+            background-color: var(--input-bg) !important;
+            color: var(--primary-text) !important;
+            border-color: var(--border-color) !important;
+        }
+
+        /* Стили для карточек результатов */
+        .furniture-result-item a {
+            background-color: var(--card-bg) !important;
+            border-color: var(--border-color) !important;
+        }
+
+        .furniture-result-item a:hover {
+            box-shadow: 0 4px 12px var(--shadow-color) !important;
+        }
+
+        .furniture-result-item p {
+            color: var(--secondary-text) !important;
+        }
+
+        .furniture-result-item p.font-bold {
+            color: var(--primary-text) !important;
+        }
+
         html.dark-theme #dropZone {
             border-color: #4b5563 !important;
             background-color: rgba(30, 41, 59, 0.5) !important;
@@ -98,6 +144,42 @@
 
         html.dark-theme #analysisResults a {
             color: #60a5fa !important;
+        }
+
+        /* Стили для текста в темной теме */
+        html.dark-theme label[for="roomSelect"],
+        html.dark-theme option,
+        html.dark-theme #furnitureListContainer h4 {
+            color: #ffffff !important;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Обеспечиваем высокий контраст для выпадающего списка */
+        html.dark-theme #roomSelect {
+            color: #ffffff !important;
+            font-weight: 500;
+        }
+
+        /* Делаем заголовки и метки более заметными */
+        html.dark-theme label {
+            font-weight: 600;
+        }
+
+        html.dark-theme #furnitureListContainer h4 {
+            font-weight: 700;
+        }
+
+        /* Стилизация выпадающего списка в темной теме */
+        html.dark-theme select option {
+            background-color: #2d3748;
+            color: #ffffff;
+        }
+
+        /* Добавляем более заметную обводку для элементов формы в фокусе */
+        html.dark-theme select:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.25);
+            outline: none;
         }
     </style>
 </head>
@@ -189,6 +271,129 @@
                     </div>
 
                     <input type="file" id="fileInput" hidden accept="image/jpeg,image/png,image/webp">
+                </div>
+
+                <!-- Выбор комнаты (отдельный блок) -->
+                <div class="mt-6 border-t pt-4 border-gray-200 dark:border-gray-700">
+                    <label for="roomSelect"
+                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Выберите
+                        комнату:</label>
+                    <select id="roomSelect"
+                        class="w-full py-2 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-primary focus:border-primary transition-colors duration-200 shadow-sm">
+                        <option value="Зал">Зал</option>
+                        <option value="Спальня">Спальня</option>
+                        <option value="Ванная">Ванная</option>
+                        <option value="Туалетная комната">Туалетная комната</option>
+                        <option value="Прихожая">Прихожая</option>
+                    </select>
+                </div>
+
+                <!-- Контейнер для списка мебели -->
+                <div id="furnitureListContainer" class="mt-6">
+                    <h4 class="text-lg font-medium text-gray-800 dark:text-gray-200 mb-4">Доступная мебель</h4>
+
+                    <!-- Мебель для Зала (отображается по умолчанию) -->
+                    <div data-room="Зал" class="furniture-room-section">
+                        <div class="flex flex-wrap gap-3">
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="sofa">Диван</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="coffee_table">Журнальный стол</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="tv_stand">ТВ тумба</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="armchair">Кресло</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="bookshelf">Книжный шкаф</button>
+                        </div>
+                    </div>
+
+                    <!-- Мебель для Спальни (скрыта по умолчанию) -->
+                    <div data-room="Спальня" class="furniture-room-section hidden">
+                        <div class="flex flex-wrap gap-3">
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="bed">Кровать</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="nightstand">Прикроватная тумба</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="wardrobe">Шкаф</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="dresser">Комод</button>
+                        </div>
+                    </div>
+
+                    <!-- Мебель для Ванной (скрыта по умолчанию) -->
+                    <div data-room="Ванная" class="furniture-room-section hidden">
+                        <div class="flex flex-wrap gap-3">
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="vanity">Тумба с раковиной</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="bathroom_cabinet">Шкафчик</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="shower_cabin">Душевая кабина</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="bathtub">Ванна</button>
+                        </div>
+                    </div>
+
+                    <!-- Мебель для Туалетной комнаты (скрыта по умолчанию) -->
+                    <div data-room="Туалетная комната" class="furniture-room-section hidden">
+                        <div class="flex flex-wrap gap-3">
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="toilet">Унитаз</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="small_cabinet">Тумба</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="sink">Раковина</button>
+                        </div>
+                    </div>
+
+                    <!-- Мебель для Прихожей (скрыта по умолчанию) -->
+                    <div data-room="Прихожая" class="furniture-room-section hidden">
+                        <div class="flex flex-wrap gap-3">
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="coat_rack">Вешалка</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="shoe_cabinet">Обувница</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="console_table">Консоль</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="bench">Банкетка</button>
+                        </div>
+                    </div>
+
+                    <!-- Контейнер для результатов выбора мебели -->
+                    <div id="selectedFurnitureContainer"
+                        class="mt-6 hidden overflow-hidden transition-all duration-300">
+                        <div
+                            class="p-5 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+                            <h5 id="selectedFurnitureTitle" class="font-medium mb-3 text-gray-900 dark:text-gray-100">
+                            </h5>
+                            <div id="selectedFurnitureContent" class="text-sm text-gray-600 dark:text-gray-400">
+                                <p>Загрузка вариантов мебели...</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 

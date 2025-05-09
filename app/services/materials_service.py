@@ -264,22 +264,32 @@ class MaterialsService:
             roof_materials, "roof", data.roof_type.value
         )
 
-        # Общая стоимость всех материалов
+        # Расчет материалов для пола (перекрытия)
+        floor_materials = []
+        if data.floors > 1 and data.floor_type:
+            floor_materials = self._calculate_floor_materials(data, house_params)
+            # Расчет стоимости материалов пола
+            floor_materials = self._calculate_materials_cost(
+                floor_materials, "floors", data.floor_type
+            )
+
+        # Расчет общей стоимости
         total_cost = self._calculate_total_cost(
-            foundation_materials, wall_materials, roof_materials
+            foundation_materials, wall_materials, roof_materials, floor_materials
         )
 
-        # Формирование итогового результата
-        result = MaterialsCalculationResult(
-            materials=MaterialsResult(
-                foundation=foundation_materials,
-                walls=wall_materials,
-                roof=roof_materials,
-            ),
+        # Преобразуем результаты из словаря в объект MaterialsResult
+        materials_result = MaterialsResult(
+            foundation=foundation_materials,
+            walls=wall_materials,
+            floors=floor_materials,
+            roof=roof_materials,
+        )
+
+        return MaterialsCalculationResult(
+            materials=materials_result,
             total_cost=total_cost,
         )
-
-        return result
 
     def _calculate_house_parameters(
         self, data: MaterialsCalculatorInput
@@ -1691,33 +1701,269 @@ class MaterialsService:
         foundation_materials: List[MaterialItem],
         wall_materials: List[MaterialItem],
         roof_materials: List[MaterialItem],
+        floor_materials: List[MaterialItem] = None,
     ) -> float:
         """
-        Расчет общей стоимости всех материалов.
+        Расчет общей стоимости строительства.
 
         Args:
-            foundation_materials: Материалы фундамента
-            wall_materials: Материалы стен
-            roof_materials: Материалы кровли
+            foundation_materials: Список материалов для фундамента
+            wall_materials: Список материалов для стен
+            roof_materials: Список материалов для кровли
+            floor_materials: Список материалов для межэтажных перекрытий
 
         Returns:
-            float: Общая стоимость всех материалов
+            float: Общая стоимость строительства
         """
         total_cost = 0.0
 
-        # Суммируем стоимость материалов фундамента
-        for material in foundation_materials:
-            if hasattr(material, "total_cost"):
-                total_cost += material.total_cost
+        # Учитываем стоимость материалов фундамента
+        for item in foundation_materials:
+            if item.total_cost:
+                total_cost += item.total_cost
 
-        # Суммируем стоимость материалов стен
-        for material in wall_materials:
-            if hasattr(material, "total_cost"):
-                total_cost += material.total_cost
+        # Учитываем стоимость материалов стен
+        for item in wall_materials:
+            if item.total_cost:
+                total_cost += item.total_cost
 
-        # Суммируем стоимость материалов кровли
-        for material in roof_materials:
-            if hasattr(material, "total_cost"):
-                total_cost += material.total_cost
+        # Учитываем стоимость материалов кровли
+        for item in roof_materials:
+            if item.total_cost:
+                total_cost += item.total_cost
 
-        return round(total_cost, 2)
+        # Учитываем стоимость материалов пола, если есть
+        if floor_materials:
+            for item in floor_materials:
+                if item.total_cost:
+                    total_cost += item.total_cost
+
+        return total_cost
+
+    def _calculate_floor_materials(
+        self, data: MaterialsCalculatorInput, house_params: Dict[str, float]
+    ) -> List[MaterialItem]:
+        """
+        Расчет материалов для межэтажных перекрытий.
+
+        Args:
+            data: Входные данные для расчета
+            house_params: Рассчитанные параметры дома
+
+        Returns:
+            List[MaterialItem]: Список материалов для межэтажных перекрытий
+        """
+        result = []
+        floor_area = house_params["area"]  # площадь пола каждого этажа
+
+        # Рассчитываем перекрытия только если этажей больше 1
+        if data.floors <= 1 or not data.floor_type:
+            return result
+
+        # Получаем количество перекрытий (на 1 меньше, чем этажей)
+        floor_count = data.floors - 1
+
+        # Деревянное перекрытие
+        if data.floor_type == "wood":
+            beam_type = data.floor_params.get("beam_type", "pine")
+            beam_size = data.floor_params.get("beam_size", "200")
+
+            # Объем балок (примерно 0.05-0.1 кубометров на кв.метр перекрытия)
+            beam_volume_per_sqm = 0.08
+            beam_volume = floor_area * beam_volume_per_sqm * floor_count
+
+            result.append(
+                MaterialItem(
+                    name="Балки деревянные",
+                    quantity=beam_volume,
+                    unit="м³",
+                    detail=f"Тип: {beam_type}, размер: {beam_size}x50 мм",
+                )
+            )
+
+            # Доска половая (на площадь перекрытия)
+            result.append(
+                MaterialItem(
+                    name="Доска половая", quantity=floor_area * floor_count, unit="м²"
+                )
+            )
+
+            # Утеплитель для пола
+            result.append(
+                MaterialItem(
+                    name="Утеплитель для пола",
+                    quantity=floor_area * floor_count,
+                    unit="м²",
+                )
+            )
+
+            # Пароизоляция
+            result.append(
+                MaterialItem(
+                    name="Пароизоляция", quantity=floor_area * floor_count, unit="м²"
+                )
+            )
+
+        # Монолитное железобетонное перекрытие
+        elif data.floor_type == "concrete":
+            concrete_class = data.floor_params.get("concrete_class", "B25")
+            concrete_thickness = data.floor_params.get("concrete_thickness", 0.2)
+
+            # Объем бетона
+            concrete_volume = floor_area * concrete_thickness * floor_count
+
+            result.append(
+                MaterialItem(
+                    name=f"Бетон {concrete_class}",
+                    quantity=concrete_volume,
+                    unit="м³",
+                    detail=f"Толщина перекрытия: {concrete_thickness * 100} см",
+                )
+            )
+
+            # Арматура (примерно 80 кг на кубометр бетона)
+            rebar_weight = concrete_volume * 80
+
+            result.append(
+                MaterialItem(name="Арматура", quantity=rebar_weight, unit="кг")
+            )
+
+            # Опалубка
+            result.append(
+                MaterialItem(
+                    name="Опалубка", quantity=floor_area * floor_count, unit="м²"
+                )
+            )
+
+            # Пароизоляция
+            result.append(
+                MaterialItem(
+                    name="Пароизоляция", quantity=floor_area * floor_count, unit="м²"
+                )
+            )
+
+        # Плитное перекрытие
+        elif data.floor_type == "slab":
+            slab_type = data.floor_params.get("slab_type", "solid")
+            slab_thickness = data.floor_params.get("slab_thickness", "20")
+
+            # Количество плит (примерно 1 плита на 4 кв.метра)
+            slabs_count = math.ceil(floor_area * floor_count / 4)
+
+            result.append(
+                MaterialItem(
+                    name="Плиты перекрытия",
+                    quantity=slabs_count,
+                    unit="шт",
+                    detail=f"Тип: {slab_type}, толщина: {slab_thickness} см",
+                )
+            )
+
+            # Цементно-песчаный раствор (примерно 0.05 кубометров на кв.метр)
+            mortar_volume = floor_area * 0.05 * floor_count
+
+            result.append(
+                MaterialItem(
+                    name="Цементно-песчаный раствор", quantity=mortar_volume, unit="м³"
+                )
+            )
+
+            # Герметик для швов (примерно 0.2 литра на кв.метр)
+            sealing_amount = floor_area * 0.2 * floor_count
+
+            result.append(
+                MaterialItem(
+                    name="Герметик для швов", quantity=sealing_amount, unit="л"
+                )
+            )
+
+        # Сборное железобетонное перекрытие
+        elif data.floor_type == "prefab":
+            panel_type = data.floor_params.get("panel_type", "reinforced")
+            panel_size = data.floor_params.get("panel_size", "medium")
+
+            # Количество панелей (в зависимости от размера)
+            panels_per_sqm = 0.2  # примерно 1 панель на 5 кв.метров для средних
+            if panel_size == "small":
+                panels_per_sqm = 0.3  # примерно 1 панель на 3.3 кв.метра для малых
+            elif panel_size == "large":
+                panels_per_sqm = 0.125  # примерно 1 панель на 8 кв.метров для больших
+
+            panels_count = math.ceil(floor_area * panels_per_sqm * floor_count)
+
+            result.append(
+                MaterialItem(
+                    name="Железобетонные панели",
+                    quantity=panels_count,
+                    unit="шт",
+                    detail=f"Тип: {panel_type}, размер: {panel_size}",
+                )
+            )
+
+            # Цементно-песчаный раствор (примерно 0.04 кубометров на кв.метр)
+            mortar_volume = floor_area * 0.04 * floor_count
+
+            result.append(
+                MaterialItem(
+                    name="Цементно-песчаный раствор", quantity=mortar_volume, unit="м³"
+                )
+            )
+
+            # Герметик для швов (примерно 0.15 литра на кв.метр)
+            sealing_amount = floor_area * 0.15 * floor_count
+
+            result.append(
+                MaterialItem(
+                    name="Герметик для швов", quantity=sealing_amount, unit="л"
+                )
+            )
+
+        # Металлическое перекрытие
+        elif data.floor_type == "steel":
+            beam_profile = data.floor_params.get("beam_profile", "channel")
+            beam_spacing = data.floor_params.get("beam_spacing", 0.6)
+
+            # Количество балок (в зависимости от шага)
+            beams_per_meter = 1 / beam_spacing
+            perimeter = 2 * (
+                math.sqrt(floor_area) + math.sqrt(floor_area)
+            )  # Примерный периметр
+            beams_count = math.ceil(perimeter * beams_per_meter)
+
+            # Вес металлических балок (примерно 50 кг на погонный метр)
+            beam_length = math.sqrt(floor_area)  # Примерная длина балки
+            beam_weight = beams_count * beam_length * 50 / 1000  # в тоннах
+
+            result.append(
+                MaterialItem(
+                    name="Металлические балки",
+                    quantity=beam_weight,
+                    unit="т",
+                    detail=f"Тип профиля: {beam_profile}, шаг: {beam_spacing} м",
+                )
+            )
+
+            # Профнастил
+            result.append(
+                MaterialItem(
+                    name="Профнастил", quantity=floor_area * floor_count, unit="м²"
+                )
+            )
+
+            # Саморезы (примерно 20 шт на кв.метр)
+            screws_count = math.ceil(floor_area * 20 * floor_count)
+
+            result.append(
+                MaterialItem(name="Саморезы", quantity=screws_count, unit="шт")
+            )
+
+            # Бетонная стяжка (толщина примерно 5 см = 0.05 м)
+            concrete_volume = floor_area * 0.05 * floor_count
+
+            result.append(
+                MaterialItem(
+                    name="Бетонная стяжка", quantity=concrete_volume, unit="м³"
+                )
+            )
+
+        return result

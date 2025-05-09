@@ -12,6 +12,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const resultSection = document.getElementById('resultSection');
     const analysisResults = document.getElementById('analysisResults');
 
+    // Элементы для выбора мебели
+    const roomSelect = document.getElementById('roomSelect');
+    const furnitureSections = document.querySelectorAll('.furniture-room-section');
+    const furnitureItems = document.querySelectorAll('.furniture-item');
+    const selectedFurnitureContainer = document.getElementById('selectedFurnitureContainer');
+    const selectedFurnitureTitle = document.getElementById('selectedFurnitureTitle');
+    const selectedFurnitureContent = document.getElementById('selectedFurnitureContent');
+
     let lastRequestTime = 0;
     const requestInterval = 6000; // 6 секунд между запросами
 
@@ -126,6 +134,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Скрываем индикатор анализа
             analyzingStatus.classList.add('hidden');
+
+            // Сохраняем результаты для использования при выборе мебели
+            window.analysisResults = result.predicted_class;
+
         } catch (error) {
             showError(error.message);
             // В случае ошибки также скрываем индикатор
@@ -169,5 +181,225 @@ document.addEventListener('DOMContentLoaded', () => {
         analysisResults.innerHTML = '';
         analysisResults.appendChild(errorDiv);
         resultSection.classList.remove('hidden');
+    }
+
+    // ======== НОВЫЙ КОД: ФУНКЦИОНАЛЬНОСТЬ ВЫБОРА МЕБЕЛИ ========
+
+    // Словарь доступных стилей (соответствует STYLE_DICT на сервере)
+    const availableStyles = [
+        "Asian", "Boho", "Contemporary", "Country", "Eclectic",
+        "Ecostyle", "English Style", "Futurism", "Loft",
+        "Mediterranean (Coastal)", "Minimalism", "Modern",
+        "Neoclassicism", "Provence", "Rustic", "Scandinavian", "Victorian"
+    ];
+
+    // Словарь для преобразования data-type в поисковые термины
+    const furnitureSearchTerms = {
+        // Зал
+        "sofa": "диван",
+        "coffee_table": "журнальный стол",
+        "tv_stand": "тумба для тв",
+        "armchair": "кресло",
+        "bookshelf": "книжный шкаф",
+
+        // Спальня
+        "bed": "кровать",
+        "nightstand": "прикроватная тумба",
+        "wardrobe": "шкаф для одежды",
+        "dresser": "комод",
+
+        // Ванная
+        "vanity": "тумба с раковиной",
+        "bathroom_cabinet": "шкаф для ванной",
+        "shower_cabin": "душевая кабина",
+        "bathtub": "ванна",
+
+        // Туалетная комната
+        "toilet": "унитаз",
+        "small_cabinet": "тумба для туалета",
+        "sink": "раковина",
+
+        // Прихожая
+        "coat_rack": "вешалка для одежды",
+        "shoe_cabinet": "обувница",
+        "console_table": "консоль прихожая",
+        "bench": "банкетка прихожая"
+    };
+
+    // Переключение комнат при выборе из выпадающего списка
+    if (roomSelect) {
+        console.log("Инициализация переключателя комнат");
+        roomSelect.addEventListener('change', function () {
+            const selectedRoom = this.value;
+            console.log(`Выбрана комната: ${selectedRoom}`);
+
+            // Скрыть все секции мебели
+            furnitureSections.forEach(section => {
+                section.classList.add('hidden');
+            });
+
+            // Показать секцию для выбранной комнаты
+            const activeSection = document.querySelector(`.furniture-room-section[data-room="${selectedRoom}"]`);
+            if (activeSection) {
+                activeSection.classList.remove('hidden');
+            }
+
+            // Скрыть контейнер с результатами, если он был открыт
+            if (selectedFurnitureContainer) {
+                selectedFurnitureContainer.classList.add('hidden');
+            }
+        });
+    }
+
+    // Инициализация - показываем мебель для комнаты, выбранной по умолчанию
+    if (roomSelect) {
+        const initialRoom = roomSelect.value;
+        const initialRoomSection = document.querySelector(`.furniture-room-section[data-room="${initialRoom}"]`);
+        if (initialRoomSection) {
+            initialRoomSection.classList.remove('hidden');
+        }
+    }
+
+    // Добавление обработчиков событий для кнопок мебели
+    if (furnitureItems && furnitureItems.length > 0) {
+        console.log(`Найдено ${furnitureItems.length} элементов мебели`);
+
+        furnitureItems.forEach(item => {
+            item.addEventListener('click', handleFurnitureSelection);
+        });
+    } else {
+        console.error("Не найдено элементов мебели на странице");
+    }
+
+    // Функция обработки выбора мебели
+    function handleFurnitureSelection() {
+        console.log("Нажата кнопка мебели:", this.textContent);
+
+        // Получаем тип мебели из атрибута data-type
+        const furnitureType = this.getAttribute('data-type');
+        const furnitureName = this.textContent;
+
+        // Используем поисковый термин
+        const furnitureSearchTerm = furnitureSearchTerms[furnitureType] || furnitureType;
+
+        // Получаем стиль из результатов анализа
+        let currentStyle = 'Modern'; // Значение по умолчанию
+
+        // Если есть результаты анализа, берем стиль из них
+        if (window.analysisResults && window.analysisResults.name) {
+            // Приводим первую букву к верхнему регистру для соответствия формату
+            const detectedStyle = window.analysisResults.name.charAt(0).toUpperCase() +
+                window.analysisResults.name.slice(1);
+
+            // Проверяем наличие в списке доступных стилей
+            if (availableStyles.includes(detectedStyle)) {
+                currentStyle = detectedStyle;
+            } else {
+                // Для близких совпадений (например, "modern" и "Modern")
+                const matchingStyle = availableStyles.find(
+                    s => s.toLowerCase() === window.analysisResults.name.toLowerCase()
+                );
+                if (matchingStyle) {
+                    currentStyle = matchingStyle;
+                }
+            }
+        }
+
+        console.log(`Поиск мебели: стиль ${currentStyle}, тип ${furnitureSearchTerm}`);
+
+        // Показываем название выбранной мебели
+        if (selectedFurnitureTitle) {
+            selectedFurnitureTitle.textContent = furnitureName;
+        }
+
+        // Показываем контейнер результатов, если он был скрыт
+        if (selectedFurnitureContainer) {
+            selectedFurnitureContainer.classList.remove('hidden');
+        }
+
+        // Показываем индикатор загрузки
+        if (selectedFurnitureContent) {
+            selectedFurnitureContent.innerHTML = `
+                <div class="flex flex-col items-center py-4">
+                    <div class="w-10 h-10 mb-3 relative">
+                        <div class="w-full h-full border-2 rounded-full" style="border-color: var(--border-color)"></div>
+                        <div class="w-full h-full border-t-2 rounded-full absolute top-0 left-0 animate-spin" style="border-color: var(--accent-color, #60a5fa)"></div>
+                    </div>
+                    <p style="color: var(--secondary-text)">Загрузка вариантов мебели...</p>
+                </div>
+            `;
+        }
+
+        // Отправляем запрос к API
+        fetch('/api/furniture/search', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                style: currentStyle,
+                furniture: furnitureSearchTerm,
+                max_items: 6
+            })
+        })
+            .then(response => {
+                // Логируем ответ для отладки
+                console.log('Response status:', response.status);
+
+                // Если ответ не 200 OK, пробуем получить текст ошибки
+                if (!response.ok) {
+                    return response.text().then(text => {
+                        console.error('Error response:', text);
+                        throw new Error(`Server error: ${response.status} ${text}`);
+                    });
+                }
+
+                return response.json();
+            })
+            .then(data => {
+                console.log('Получен ответ от API:', data);
+
+                if (data.status === 'success' && data.data) {
+                    // Отображаем результаты
+                    let resultsHTML = '';
+
+                    // Проверяем, есть ли данные
+                    const furnitureItems = Object.entries(data.data);
+
+                    if (furnitureItems.length > 0) {
+                        resultsHTML = '<div class="grid grid-cols-2 gap-3">';
+                        furnitureItems.forEach(([link, itemData]) => {
+                            resultsHTML += `
+                            <div class="furniture-result-item overflow-hidden">
+                                <a href="${link}" target="_blank" rel="noopener noreferrer" class="block rounded-lg shadow-sm border transition-all duration-300">
+                                    <div class="p-2">
+                                        <img src="${itemData.image_url}" alt="Мебель" class="rounded w-full h-auto mb-2 object-cover">
+                                        <p class="text-xs mb-1 truncate">${furnitureName}</p>
+                                        <p class="text-xs font-bold">${itemData.price} ₽</p>
+                                    </div>
+                                </a>
+                            </div>
+                        `;
+                        });
+                        resultsHTML += '</div>';
+                    } else {
+                        resultsHTML = '<p class="text-center py-4">Не найдено подходящей мебели для этого стиля.</p>';
+                    }
+
+                    if (selectedFurnitureContent) {
+                        selectedFurnitureContent.innerHTML = resultsHTML;
+                    }
+                } else {
+                    if (selectedFurnitureContent) {
+                        selectedFurnitureContent.innerHTML = '<p>Ошибка при загрузке данных. Пожалуйста, попробуйте позже.</p>';
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('API request error:', error);
+                if (selectedFurnitureContent) {
+                    selectedFurnitureContent.innerHTML = '<p>Произошла ошибка при запросе данных.</p>';
+                }
+            });
     }
 }); 

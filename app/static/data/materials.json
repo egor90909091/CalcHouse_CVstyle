@@ -487,6 +487,133 @@
             "unit": "шт"
         }
     },
+    "floors": {
+        "wood": {
+            "name": "Деревянное перекрытие",
+            "price_per_sqm": 3000,
+            "unit": "м²",
+            "materials": {
+                "beams": {
+                    "name": "Балки деревянные",
+                    "price": 15000,
+                    "unit": "м³"
+                },
+                "boards": {
+                    "name": "Доска половая",
+                    "price": 950,
+                    "unit": "м²"
+                },
+                "insulation": {
+                    "name": "Утеплитель для пола",
+                    "price": 350,
+                    "unit": "м²"
+                },
+                "vapor_barrier": {
+                    "name": "Пароизоляция",
+                    "price": 80,
+                    "unit": "м²"
+                }
+            }
+        },
+        "concrete": {
+            "name": "Монолитное железобетонное перекрытие",
+            "price_per_sqm": 4500,
+            "unit": "м²",
+            "materials": {
+                "concrete": {
+                    "name": "Бетон B25",
+                    "price": 5500,
+                    "unit": "м³"
+                },
+                "rebar": {
+                    "name": "Арматура",
+                    "price": 75,
+                    "unit": "кг"
+                },
+                "formwork": {
+                    "name": "Опалубка",
+                    "price": 250,
+                    "unit": "м²"
+                },
+                "vapor_barrier": {
+                    "name": "Пароизоляция",
+                    "price": 80,
+                    "unit": "м²"
+                }
+            }
+        },
+        "slab": {
+            "name": "Плитное перекрытие",
+            "price_per_sqm": 4200,
+            "unit": "м²",
+            "materials": {
+                "slabs": {
+                    "name": "Плиты перекрытия",
+                    "price": 3800,
+                    "unit": "шт"
+                },
+                "mortar": {
+                    "name": "Цементно-песчаный раствор",
+                    "price": 4100,
+                    "unit": "м³"
+                },
+                "sealing": {
+                    "name": "Герметик для швов",
+                    "price": 450,
+                    "unit": "л"
+                }
+            }
+        },
+        "prefab": {
+            "name": "Сборное железобетонное перекрытие",
+            "price_per_sqm": 3800,
+            "unit": "м²",
+            "materials": {
+                "panels": {
+                    "name": "Железобетонные панели",
+                    "price": 5200,
+                    "unit": "шт"
+                },
+                "mortar": {
+                    "name": "Цементно-песчаный раствор",
+                    "price": 4100,
+                    "unit": "м³"
+                },
+                "sealing": {
+                    "name": "Герметик для швов",
+                    "price": 450,
+                    "unit": "л"
+                }
+            }
+        },
+        "steel": {
+            "name": "Металлическое перекрытие",
+            "price_per_sqm": 5500,
+            "unit": "м²",
+            "materials": {
+                "beams": {
+                    "name": "Металлические балки",
+                    "price": 95000,
+                    "unit": "т"
+                },
+                "decking": {
+                    "name": "Профнастил",
+                    "price": 850,
+                    "unit": "м²"
+                },
+                "screws": {
+                    "name": "Саморезы",
+                    "price": 4.5,
+                    "unit": "шт"
+                },
+                "concrete_filling": {
+                    "name": "Бетонная стяжка",
+                    "price": 4500,
+                    "unit": "м³"
+                }
+            }
+        }
+    },
     "work": {
         "base_rate": 5000,
         "floor_coefficient": {

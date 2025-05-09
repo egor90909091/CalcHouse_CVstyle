@@ -240,43 +240,34 @@ document.addEventListener('DOMContentLoaded', function () {
     // Обработчик для переключения параметров стен в зависимости от выбранного материала
     const wallMaterialSelect = document.getElementById('wallMaterial');
     if (wallMaterialSelect) {
-        // Функция для переключения видимых параметров стен
-        function showWallParams() {
-            const selectedValue = wallMaterialSelect.value;
+        wallMaterialSelect.addEventListener('change', function () {
+            const selectedValue = this.value;
+            console.log("Выбран тип стен:", selectedValue);
 
-            logDebug(`Переключение параметров стен на: ${selectedValue}`);
-
-            // Скрываем все параметры
-            document.querySelectorAll('.wall-params').forEach(elem => {
-                elem.classList.add('hidden');
-                logDebug(`Скрыт элемент: ${elem.className}`);
+            // Сначала явно скрываем все параметры стен
+            document.querySelectorAll('.wall-params').forEach(div => {
+                div.style.display = 'none';
+                div.classList.add('hidden');
+                console.log(`Скрыт блок: ${div.className}`);
             });
 
-            // Показываем только параметры для выбранного материала
-            const targetClassName = `${selectedValue}-params`;
-            const targetParams = document.querySelector(`.wall-params.${targetClassName}`);
-
-            if (targetParams) {
-                targetParams.classList.remove('hidden');
-                logDebug(`Показан элемент: ${targetParams.className}`);
+            // Затем показываем только нужный блок
+            const targetElement = document.querySelector(`.wall-params.${selectedValue}-params`);
+            if (targetElement) {
+                targetElement.style.display = 'block';
+                targetElement.classList.remove('hidden');
+                console.log(`Показан блок: ${targetElement.className}`);
             } else {
-                logDebug(`Не найден элемент с классом: wall-params.${targetClassName}`);
-                // Пробуем найти по другому селектору
-                const alternativeParams = document.querySelector(`.${targetClassName}`);
-                if (alternativeParams) {
-                    alternativeParams.classList.remove('hidden');
-                    logDebug(`Показан элемент (альтернативный поиск): ${alternativeParams.className}`);
-                } else {
-                    logDebug(`Не найден элемент даже по упрощенному классу: ${targetClassName}`);
-                }
+                console.error(`Не найден блок для типа стен: ${selectedValue}`);
             }
-        }
 
-        // Вызываем функцию сразу для установки начального состояния
-        showWallParams();
+            // Проверяем, что все нужные элементы видны
+            setTimeout(logVisibleFormElements, 100);
+        });
 
-        // Добавляем обработчик изменения
-        wallMaterialSelect.addEventListener('change', showWallParams);
+        // Вызываем функцию, чтобы установить начальное состояние
+        const event = new Event('change');
+        wallMaterialSelect.dispatchEvent(event);
 
         logDebug("Добавлен обработчик изменения материала стен");
     } else {
@@ -552,6 +543,35 @@ document.addEventListener('DOMContentLoaded', function () {
     setupRebarToggles();
 
     // Инициализация калькулятора...
+
+    // Обработчик изменения количества этажей
+    const floorsSelect = document.getElementById('floorsSelect');
+    if (floorsSelect) {
+        floorsSelect.addEventListener('change', function () {
+            const floors = parseInt(this.value);
+            const floorTypeContainer = document.getElementById('floorTypeContainer');
+
+            if (floors > 1) {
+                floorTypeContainer.style.display = 'block';
+            } else {
+                floorTypeContainer.style.display = 'none';
+            }
+        });
+
+        // Вызываем событие change для инициализации видимости блока типа пола
+        floorsSelect.dispatchEvent(new Event('change'));
+    }
+
+    // Обработчик изменения типа пола
+    const floorTypeSelect = document.getElementById('floorType');
+    if (floorTypeSelect) {
+        floorTypeSelect.addEventListener('change', showFloorParams);
+        // Инициализируем видимость блоков параметров пола
+        showFloorParams();
+    }
+
+    // Проверяем дублирующиеся ID на странице
+    checkDuplicateIds();
 });
 
 /**
@@ -741,6 +761,37 @@ function getFormParams(form) {
 
     // Всегда задаем пустой массив для дополнительных опций
     params.additionalOptions = [];
+
+    // Добавляем параметры пола
+    if (parseInt(form.floors.value) > 1) {
+        params.floor_type = form.floor_type.value;
+
+        // Добавляем параметры в зависимости от типа пола
+        params.floor_params = {};
+
+        switch (params.floor_type) {
+            case 'wood':
+                params.floor_params.beam_type = form.beam_type.value;
+                params.floor_params.beam_size = form.beam_size.value;
+                break;
+            case 'concrete':
+                params.floor_params.concrete_class = form.concrete_class.value;
+                params.floor_params.concrete_thickness = form.concrete_thickness.value;
+                break;
+            case 'slab':
+                params.floor_params.slab_type = form.slab_type.value;
+                params.floor_params.slab_thickness = form.slab_thickness.value;
+                break;
+            case 'prefab':
+                params.floor_params.panel_type = form.panel_type.value;
+                params.floor_params.panel_size = form.panel_size.value;
+                break;
+            case 'steel':
+                params.floor_params.beam_profile = form.beam_profile.value;
+                params.floor_params.beam_spacing = form.beam_spacing.value;
+                break;
+        }
+    }
 
     return params;
 }
@@ -1284,6 +1335,10 @@ function showDetailedResults(detailedData, params) {
         return;
     }
 
+    // Адаптируем структуру данных: проверяем, есть ли свойство materials
+    // Это необходимо для совместимости с данными из showBasicResults
+    const materials = detailedData.materials || detailedData;
+
     // Скрываем анимацию загрузки только после задержки
     // Это даст возможность анимации полностью завершиться
     setTimeout(() => {
@@ -1294,23 +1349,23 @@ function showDetailedResults(detailedData, params) {
         }
 
         // Проверяем, что данные существуют и имеют правильную структуру
-        if (!detailedData) {
+        if (!materials) {
             logDebug("Ошибка: данные отсутствуют");
             return;
         }
 
-        if (!detailedData.foundation || !detailedData.walls || !detailedData.roof) {
+        if (!materials.foundation || !materials.walls || !materials.roof) {
             logDebug("Ошибка: неполные данные о материалах");
             // Если данные отсутствуют, создаем пустые массивы
-            if (!detailedData.foundation) detailedData.foundation = [];
-            if (!detailedData.walls) detailedData.walls = [];
-            if (!detailedData.roof) detailedData.roof = [];
+            if (!materials.foundation) materials.foundation = [];
+            if (!materials.walls) materials.walls = [];
+            if (!materials.roof) materials.roof = [];
         }
 
         logDebug("Размеры массивов: " +
-            "foundation=" + (detailedData.foundation ? detailedData.foundation.length : 0) +
-            ", walls=" + (detailedData.walls ? detailedData.walls.length : 0) +
-            ", roof=" + (detailedData.roof ? detailedData.roof.length : 0));
+            "foundation=" + (materials.foundation ? materials.foundation.length : 0) +
+            ", walls=" + (materials.walls ? materials.walls.length : 0) +
+            ", roof=" + (materials.roof ? materials.roof.length : 0));
 
         // Через увеличенную задержку показываем результаты
         // Общая задержка около 3-4 секунд для завершения анимации
@@ -1321,13 +1376,13 @@ function showDetailedResults(detailedData, params) {
             const roofTitle = document.getElementById('roof-title');
 
             // Проверяем непустоту данных перед отображением
-            const hasFoundationData = detailedData.foundation && detailedData.foundation.length > 0;
-            const hasWallsData = detailedData.walls && detailedData.walls.length > 0;
-            const hasRoofData = detailedData.roof && detailedData.roof.length > 0;
+            const hasFoundationData = materials.foundation && materials.foundation.length > 0;
+            const hasWallsData = materials.walls && materials.walls.length > 0;
+            const hasRoofData = materials.roof && materials.roof.length > 0;
 
             // Если данных нет, добавляем пустые заполнители
             if (!hasFoundationData) {
-                detailedData.foundation = [{
+                materials.foundation = [{
                     name: "Данные отсутствуют",
                     quantity: 0,
                     unit: "",
@@ -1337,7 +1392,7 @@ function showDetailedResults(detailedData, params) {
             }
 
             if (!hasWallsData) {
-                detailedData.walls = [{
+                materials.walls = [{
                     name: "Данные отсутствуют",
                     quantity: 0,
                     unit: "",
@@ -1347,7 +1402,7 @@ function showDetailedResults(detailedData, params) {
             }
 
             if (!hasRoofData) {
-                detailedData.roof = [{
+                materials.roof = [{
                     name: "Данные отсутствуют",
                     quantity: 0,
                     unit: "",
@@ -1362,8 +1417,8 @@ function showDetailedResults(detailedData, params) {
                     foundationTitle.classList.remove('opacity-0');
                     foundationTitle.classList.add('transition-opacity', 'duration-500');
                 }
-                logDebug("Заполняем раздел фундамента", detailedData.foundation);
-                fillSection(foundationMaterials, detailedData.foundation);
+                logDebug("Заполняем раздел фундамента", materials.foundation);
+                fillSection(foundationMaterials, materials.foundation);
                 logDebug("Заполнен раздел фундамента");
             }, 300);
 
@@ -1372,8 +1427,8 @@ function showDetailedResults(detailedData, params) {
                     wallsTitle.classList.remove('opacity-0');
                     wallsTitle.classList.add('transition-opacity', 'duration-500');
                 }
-                logDebug("Заполняем раздел стен", detailedData.walls);
-                fillSection(wallMaterials, detailedData.walls);
+                logDebug("Заполняем раздел стен", materials.walls);
+                fillSection(wallMaterials, materials.walls);
                 logDebug("Заполнен раздел стен");
             }, 800);
 
@@ -1382,8 +1437,8 @@ function showDetailedResults(detailedData, params) {
                     roofTitle.classList.remove('opacity-0');
                     roofTitle.classList.add('transition-opacity', 'duration-500');
                 }
-                logDebug("Заполняем раздел крыши", detailedData.roof);
-                fillSection(roofMaterials, detailedData.roof);
+                logDebug("Заполняем раздел крыши", materials.roof);
+                fillSection(roofMaterials, materials.roof);
                 logDebug("Заполнен раздел крыши");
             }, 1300);
 
@@ -1393,9 +1448,9 @@ function showDetailedResults(detailedData, params) {
                 let totalCost = 0;
 
                 // Суммируем все разделы
-                ['foundation', 'walls', 'roof'].forEach(section => {
-                    if (detailedData[section]) {
-                        detailedData[section].forEach(item => {
+                ['foundation', 'walls', 'roof', 'floors'].forEach(section => {
+                    if (materials[section]) {
+                        materials[section].forEach(item => {
                             if (item.total_cost) {
                                 totalCost += item.total_cost;
                             }
@@ -1443,6 +1498,44 @@ function showDetailedResults(detailedData, params) {
             preparePrintView();
         }, 2000); // Задержка 2 секунды вместо 5.2 секунд
     }, 1500); // Задержка 1.5 секунды вместо 2.8 секунд
+
+    // Заполняем данные о материалах сразу (без задержки)
+    // Используем адаптивную структуру
+    const materialsData = detailedData.materials || detailedData;
+    fillSection(document.getElementById('foundationMaterials'), materialsData.foundation);
+    fillSection(document.getElementById('wallMaterials'), materialsData.walls);
+    fillSection(document.getElementById('roofMaterials'), materialsData.roof);
+
+    // Добавляем отображение материалов для пола, если дом многоэтажный
+    if (params.floors > 1 && materialsData.floors && materialsData.floors.length > 0) {
+        // Создаем контейнер для материалов пола, если его нет
+        let floorSection = document.getElementById('floorMaterials');
+        if (!floorSection) {
+            const floorTitle = document.createElement('h4');
+            floorTitle.id = 'floor-title';
+            floorTitle.className = 'text-lg font-semibold mb-3 opacity-0';
+            floorTitle.textContent = 'Межэтажные перекрытия:';
+
+            floorSection = document.createElement('div');
+            floorSection.id = 'floorMaterials';
+            floorSection.className = 'space-y-2 pl-4';
+
+            // Вставляем элементы перед секцией кровли
+            const roofTitle = document.getElementById('roof-title');
+            const roofSection = roofTitle.parentNode;
+            roofSection.parentNode.insertBefore(floorTitle, roofSection);
+            roofSection.parentNode.insertBefore(floorSection, roofSection);
+
+            // Анимируем появление заголовка
+            setTimeout(() => {
+                floorTitle.classList.add('opacity-100');
+                floorTitle.classList.add('animated');
+            }, 100);
+        }
+
+        // Заполняем секцию материалами
+        fillSection(floorSection, materialsData.floors);
+    }
 }
 
 /**
@@ -1466,6 +1559,7 @@ function showBasicResults(params) {
     const foundation = [];
     const walls = [];
     const roof = [];
+    const floorMaterials = [];
 
     // Простые тестовые данные (вместо сложных расчетов)
     // Фундамент
@@ -1542,36 +1636,105 @@ function showBasicResults(params) {
         total_cost: area * 0.03 * 15000
     });
 
-    // Возвращаем результаты
+    // Расчет материалов для пола (межэтажных перекрытий) для домов больше 1 этажа
+    if (floors > 1) {
+        // Деревянное перекрытие
+        floorMaterials.push({
+            name: "Балки деревянные для перекрытия",
+            quantity: area * 0.08 * (floors - 1),
+            unit: "м³",
+            price: 15000,
+            total_cost: area * 0.08 * (floors - 1) * 15000
+        });
+
+        floorMaterials.push({
+            name: "Доска половая",
+            quantity: area * (floors - 1),
+            unit: "м²",
+            price: 800,
+            total_cost: area * (floors - 1) * 800
+        });
+
+        floorMaterials.push({
+            name: "Утеплитель для пола",
+            quantity: area * (floors - 1),
+            unit: "м²",
+            price: 450,
+            total_cost: area * (floors - 1) * 450
+        });
+    }
+
+    // Возвращаем результаты в формате, соответствующем API
     return {
-        foundation: foundation.length > 0 ? foundation : [
-            {
-                name: "Материалы для выбранного типа фундамента (JS расчет)",
-                quantity: 1,
-                unit: "компл.",
-                price: 50000,
-                total_cost: 50000
-            }
-        ],
-        walls: walls.length > 0 ? walls : [
-            {
-                name: "Материалы для выбранного типа стен",
-                quantity: 1,
-                unit: "компл.",
-                price: 70000,
-                total_cost: 70000
-            }
-        ],
-        roof: roof.length > 0 ? roof : [
-            {
-                name: "Материалы для выбранного типа кровли",
-                quantity: 1,
-                unit: "компл.",
-                price: 60000,
-                total_cost: 60000
-            }
-        ]
+        materials: {
+            foundation: foundation.length > 0 ? foundation : [
+                {
+                    name: "Материалы для выбранного типа фундамента (JS расчет)",
+                    quantity: 1,
+                    unit: "компл.",
+                    price: 50000,
+                    total_cost: 50000
+                }
+            ],
+            walls: walls.length > 0 ? walls : [
+                {
+                    name: "Материалы для выбранного типа стен",
+                    quantity: 1,
+                    unit: "компл.",
+                    price: 70000,
+                    total_cost: 70000
+                }
+            ],
+            roof: roof.length > 0 ? roof : [
+                {
+                    name: "Материалы для выбранного типа кровли",
+                    quantity: 1,
+                    unit: "компл.",
+                    price: 60000,
+                    total_cost: 60000
+                }
+            ],
+            floors: floorMaterials
+        },
+        total_cost: calculateTotalCost(foundation, walls, roof, floorMaterials)
     };
+}
+
+// Вспомогательная функция для расчета общей стоимости материалов
+function calculateTotalCost(foundation, walls, roof, floors) {
+    let totalCost = 0;
+
+    // Суммируем стоимость фундамента
+    foundation.forEach(item => {
+        if (item.total_cost) {
+            totalCost += item.total_cost;
+        }
+    });
+
+    // Суммируем стоимость стен
+    walls.forEach(item => {
+        if (item.total_cost) {
+            totalCost += item.total_cost;
+        }
+    });
+
+    // Суммируем стоимость крыши
+    roof.forEach(item => {
+        if (item.total_cost) {
+            totalCost += item.total_cost;
+        }
+    });
+
+    // Суммируем стоимость межэтажных перекрытий, если есть
+    if (floors && floors.length > 0) {
+        floors.forEach(item => {
+            if (item.total_cost) {
+                totalCost += item.total_cost;
+            }
+        });
+    }
+
+    return totalCost;
 }
 
 /**
@@ -2385,8 +2548,28 @@ document.addEventListener('DOMContentLoaded', function () {
     // Обновление видимости полей в зависимости от выбранного материала стен
     function updateWallMaterialFields() {
         const selectedValue = wallMaterialSelect.value;
+
+        // Отладочный код: проверка выбранного материала
+        console.log("Выбранный материал стен:", selectedValue);
+
+        // Скрываем все блоки параметров стен
         wallMaterialDivs.forEach(div => {
-            div.style.display = div.classList.contains(selectedValue) ? 'block' : 'none';
+            console.log("Скрываем блок:", div.className);
+            div.style.display = 'none';
+        });
+
+        // Показываем только блок для выбранного материала
+        wallMaterialDivs.forEach(div => {
+            if (div.classList.contains(selectedValue)) {
+                console.log("Показываем блок:", div.className);
+                div.style.display = 'block';
+            }
+        });
+
+        // Выводим текущее состояние блоков после переключения
+        console.log("Состояние блоков после переключения:");
+        wallMaterialDivs.forEach(div => {
+            console.log(`${div.className}: display = ${div.style.display}`);
         });
     }
 
@@ -2525,3 +2708,175 @@ function loadFormFromLocalStorage() {
         logDebug("Ошибка при загрузке из localStorage: " + error.message);
     }
 }
+
+// Функция для отображения параметров пола в зависимости от выбранного типа
+function showFloorParams() {
+    const floorType = document.getElementById('floorType').value;
+
+    // Скрываем все блоки параметров
+    document.querySelectorAll('.floor-params').forEach(block => {
+        block.classList.add('hidden');
+    });
+
+    // Показываем блок, соответствующий выбранному типу пола
+    const targetBlock = document.querySelector(`.${floorType}-params`);
+    if (targetBlock) {
+        targetBlock.classList.remove('hidden');
+    }
+}
+
+// Функция для проверки дублирующихся ID на странице
+function checkDuplicateIds() {
+    const allElements = document.querySelectorAll('[id]');
+    const idMap = {};
+    let duplicatesFound = false;
+
+    allElements.forEach(element => {
+        const id = element.getAttribute('id');
+        if (idMap[id]) {
+            console.error(`ОШИБКА: Найден дублирующийся ID: "${id}"`);
+            console.error('Первый элемент:', idMap[id]);
+            console.error('Дублирующийся элемент:', element);
+            duplicatesFound = true;
+        } else {
+            idMap[id] = element;
+        }
+    });
+
+    if (!duplicatesFound) {
+        console.log('Дублирующихся ID не найдено');
+    }
+
+    // Проверяем состояние блоков параметров стен
+    console.log('Проверка параметров стен:');
+    document.querySelectorAll('.wall-params').forEach(param => {
+        console.log(`${param.className}: display = ${window.getComputedStyle(param).display}, visibile = ${window.getComputedStyle(param).visibility}`);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    logDebug("DOM загружен. Инициализация калькулятора...");
+
+    // Проверяем дублирующиеся ID на странице
+    checkDuplicateIds();
+});
+
+// Функция для логирования всех видимых элементов формы
+function logVisibleFormElements() {
+    console.log("=== ВИДИМЫЕ ЭЛЕМЕНТЫ ФОРМЫ ===");
+
+    // Проверяем все input, select и textarea с видимым родителем
+    document.querySelectorAll('input:not([type="hidden"]), select, textarea').forEach(element => {
+        // Проверяем, видим ли элемент (не скрыт родительский элемент)
+        let isVisible = true;
+        let parent = element.parentElement;
+
+        while (parent) {
+            const style = window.getComputedStyle(parent);
+            if (style.display === 'none' || style.visibility === 'hidden' || parent.classList.contains('hidden')) {
+                isVisible = false;
+                break;
+            }
+            parent = parent.parentElement;
+        }
+
+        if (isVisible) {
+            // Определяем тип элемента
+            let label = '';
+            const prevLabel = element.previousElementSibling;
+            if (prevLabel && prevLabel.tagName === 'LABEL') {
+                label = prevLabel.textContent.trim();
+            }
+
+            console.log(`Видим элемент: ${element.tagName} name="${element.name}" id="${element.id || 'no-id'}" label="${label}"`);
+        }
+    });
+
+    // Проверяем все заголовки и подписи
+    document.querySelectorAll('label, h1, h2, h3, h4, h5, h6').forEach(element => {
+        // Проверяем, видим ли элемент
+        let isVisible = true;
+        let parent = element.parentElement;
+
+        while (parent && parent !== document.body) {
+            const style = window.getComputedStyle(parent);
+            if (style.display === 'none' || style.visibility === 'hidden' || parent.classList.contains('hidden')) {
+                isVisible = false;
+                break;
+            }
+            parent = parent.parentElement;
+        }
+
+        if (isVisible) {
+            console.log(`Видим заголовок: ${element.tagName} текст="${element.textContent.trim().substring(0, 50)}${element.textContent.length > 50 ? '...' : ''}"`);
+        }
+    });
+
+    console.log("=== КОНЕЦ СПИСКА ВИДИМЫХ ЭЛЕМЕНТОВ ===");
+}
+
+// Добавляем вызов функции отладки после изменения материала стен
+wallMaterialSelect.addEventListener('change', function () {
+    // Ждем, пока DOM обновится
+    setTimeout(function () {
+        console.log(`Отладка после изменения материала стен на: ${wallMaterialSelect.value}`);
+        logVisibleFormElements();
+    }, 100);
+});
+
+// Функция для проверки селекторов параметров стен
+function checkWallParamsSelectors() {
+    console.log("=== ПРОВЕРКА СЕЛЕКТОРОВ ПАРАМЕТРОВ СТЕН ===");
+
+    // Проверяем все возможные материалы стен
+    const materials = ['brick', 'wood', 'block', 'concrete', 'panel'];
+
+    materials.forEach(material => {
+        // Проверяем селектор .wall-params.[material]-params
+        const selector1 = `.wall-params.${material}-params`;
+        const elements1 = document.querySelectorAll(selector1);
+        console.log(`Селектор "${selector1}" найдено элементов: ${elements1.length}`);
+
+        if (elements1.length > 0) {
+            elements1.forEach((el, index) => {
+                console.log(`  ${index + 1}. classList: "${el.className}", display: "${window.getComputedStyle(el).display}", hidden: ${el.classList.contains('hidden')}`);
+                // Выводим первые дочерние элементы для проверки
+                Array.from(el.children).slice(0, 2).forEach((child, idx) => {
+                    console.log(`    - Дочерний элемент ${idx + 1}: ${child.tagName}, класс: "${child.className}"`);
+                });
+            });
+        }
+
+        // Проверяем селектор .[material]-params
+        const selector2 = `.${material}-params`;
+        const elements2 = document.querySelectorAll(selector2);
+        console.log(`Селектор "${selector2}" найдено элементов: ${elements2.length}`);
+
+        if (elements2.length > 0 && (elements2.length !== elements1.length)) {
+            elements2.forEach((el, index) => {
+                // Проверяем, является ли этот элемент wall-params
+                const isWallParam = el.classList.contains('wall-params');
+                if (!isWallParam) {
+                    console.log(`  ${index + 1}. classList: "${el.className}", не является wall-params!`);
+
+                    // Проверяем родительский элемент
+                    const parent = el.parentElement;
+                    if (parent) {
+                        console.log(`    Родитель: tagName: ${parent.tagName}, класс: "${parent.className}"`);
+                    }
+                }
+            });
+        }
+    });
+
+    console.log("=== КОНЕЦ ПРОВЕРКИ СЕЛЕКТОРОВ ===");
+}
+
+// Запускаем проверку после загрузки DOM
+document.addEventListener('DOMContentLoaded', function () {
+    // Проверяем селекторы после полной загрузки страницы
+    setTimeout(checkWallParamsSelectors, 500);
+
+    // Проверяем видимые элементы
+    setTimeout(logVisibleFormElements, 600);
+});

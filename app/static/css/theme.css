@@ -23,6 +23,8 @@
     --results-value: #1a202c;
     --footer-text: #2d3748;
     --footer-title: #1a202c;
+    --accent-color: #3b82f6;
+    /* Синий акцентный цвет для светлой темы */
 }
 
 /* Темная тема */
@@ -48,6 +50,8 @@
     --results-value: #ffffff;
     --footer-text: #e2e8f0;
     --footer-title: #ffffff;
+    --accent-color: #60a5fa;
+    /* Светло-синий акцентный цвет для темной темы */
 }
 
 /* Применение темы к элементам */
