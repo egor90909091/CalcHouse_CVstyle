@@ -3,11 +3,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const dropZone = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
     const selectFileBtn = document.getElementById('selectFileBtn');
-    const changeFileBtn = document.getElementById('changeFileBtn');
     const emptyState = document.getElementById('emptyState');
     const previewState = document.getElementById('previewState');
     const imagePreview = document.getElementById('imagePreview');
-    const previewOverlay = document.getElementById('previewOverlay');
+    const imageContainer = document.getElementById('imageContainer');
     const analyzingStatus = document.getElementById('analyzing-status');
     const resultSection = document.getElementById('resultSection');
     const analysisResults = document.getElementById('analysisResults');
@@ -19,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectedFurnitureContainer = document.getElementById('selectedFurnitureContainer');
     const selectedFurnitureTitle = document.getElementById('selectedFurnitureTitle');
     const selectedFurnitureContent = document.getElementById('selectedFurnitureContent');
+    const clearSelectionBtn = document.getElementById('clearSelectionBtn');
 
     let lastRequestTime = 0;
     const requestInterval = 6000; // 6 секунд между запросами
@@ -49,11 +49,16 @@ document.addEventListener('DOMContentLoaded', () => {
         dropZone.classList.remove('border-primary', 'bg-gray-50');
     }
 
+    // Функция для сброса состояния загрузки изображения
+    function resetImageState() {
+        dropZone.classList.remove('has-image');
+    }
+
     // Обработка загрузки файла
     dropZone.addEventListener('drop', handleDrop, false);
     selectFileBtn.addEventListener('click', () => fileInput.click());
-    if (changeFileBtn) {
-        changeFileBtn.addEventListener('click', () => fileInput.click());
+    if (imageContainer) {
+        imageContainer.addEventListener('click', () => fileInput.click());
     }
     fileInput.addEventListener('change', handleFileSelect);
 
@@ -82,16 +87,15 @@ document.addEventListener('DOMContentLoaded', () => {
             // Устанавливаем новое изображение
             imagePreview.src = e.target.result;
 
-            // Переключаем на режим предпросмотра
-            emptyState.classList.add('hidden');
-            previewState.classList.remove('hidden');
+            // Добавляем класс для правильного отображения состояния
+            dropZone.classList.add('has-image');
 
             // Скрываем результаты, если они были показаны
             resultSection.classList.add('hidden');
 
-            // Показываем статус анализа
-            analyzingStatus.textContent = 'Анализ изображения...';
-            analyzingStatus.classList.remove('hidden');
+            // Скрываем статус анализа, но не показываем его текст
+            analyzingStatus.textContent = '';
+            analyzingStatus.classList.add('hidden');
 
             // Автоматически запускаем анализ
             analyzeImage(file);
@@ -140,8 +144,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             showError(error.message);
-            // В случае ошибки также скрываем индикатор
+            // В случае ошибки также скрываем индикатор и сбрасываем состояние
             analyzingStatus.classList.add('hidden');
+            resetImageState();
         }
     }
 
@@ -181,6 +186,9 @@ document.addEventListener('DOMContentLoaded', () => {
         analysisResults.innerHTML = '';
         analysisResults.appendChild(errorDiv);
         resultSection.classList.remove('hidden');
+
+        // Если произошла ошибка, сбрасываем состояние изображения
+        resetImageState();
     }
 
     // ======== НОВЫЙ КОД: ФУНКЦИОНАЛЬНОСТЬ ВЫБОРА МЕБЕЛИ ========
@@ -221,6 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Прихожая
         "coat_rack": "вешалка для одежды",
+        "mirror": "зеркало в комнату",
         "shoe_cabinet": "обувница",
         "console_table": "консоль прихожая",
         "bench": "банкетка прихожая"
@@ -265,141 +274,284 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log(`Найдено ${furnitureItems.length} элементов мебели`);
 
         furnitureItems.forEach(item => {
+            if (!item.dataset.label) {
+                item.dataset.label = item.textContent.trim();
+            }
             item.addEventListener('click', handleFurnitureSelection);
         });
     } else {
         console.error("Не найдено элементов мебели на странице");
     }
 
-    // Функция обработки выбора мебели
+    // Храним выбранные варианты для каждого типа мебели
+    const selectedFurnitureChoices = {};
+    let expandedSquare = null;
+    let expandedSquareOriginalParent = null;
+    let expandedSquareOriginalNext = null;
+
+    // Функция для создания грид-карточек внутри квадрата
+    function renderFurnitureGrid(squareBtn, furnitureName, furnitureType, itemsArr) {
+        // Сначала полностью очищаем контент
+        squareBtn.innerHTML = '';
+
+        const selected = selectedFurnitureChoices[furnitureType]?.link;
+        let cards = '';
+        itemsArr.forEach(([link, item], idx) => {
+            cards += `
+                <div class="furniture-carousel-card" style="margin-bottom:0.5rem;">
+                    <img src="${item.image_url}" alt="${furnitureName}">
+                    <div class="item-label">${furnitureName}</div>
+                    <div class="item-price">${item.price} ₽</div>
+                    <button class="select-btn${selected === link ? ' selected' : ''}" data-link="${link}" data-idx="${idx}" ${selected === link ? 'disabled' : ''}>${selected === link ? 'Выбрано' : 'Выбрать'}</button>
+                </div>
+            `;
+        });
+
+        // Добавляем новый контент
+        const gridContent = document.createElement('div');
+        gridContent.innerHTML = `
+            <button class="close-expand" title="Закрыть">×</button>
+            <div class="furniture-grid-cards">
+                ${cards}
+            </div>
+        `;
+        squareBtn.appendChild(gridContent);
+
+        // Кнопка закрытия
+        squareBtn.querySelector('.close-expand').addEventListener('click', (e) => {
+            e.stopPropagation();
+            collapseSquare(squareBtn);
+        });
+
+        // Кнопки выбора
+        squareBtn.querySelectorAll('.select-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                try {
+                    const idx = +btn.dataset.idx;
+                    if (itemsArr && itemsArr[idx]) {
+                        const [link, item] = itemsArr[idx];
+                        // Сохраняем выбор для данного типа мебели
+                        selectedFurnitureChoices[furnitureType] = {
+                            link,
+                            item,
+                            name: furnitureName
+                        };
+                        // Закрываем расширенный квадрат
+                        collapseSquare(squareBtn);
+                        // Обновляем отображение выбранных элементов
+                        updateSelectedSquare();
+                    }
+                } catch (error) {
+                    console.error('Ошибка при выборе элемента:', error);
+                    collapseSquare(squareBtn);
+                }
+            });
+        });
+    }
+
+    function expandSquare(squareBtn, furnitureName, furnitureType, itemsArr) {
+        // Схлопываем предыдущий, если есть
+        if (expandedSquare && expandedSquare !== squareBtn) {
+            collapseSquare(expandedSquare);
+        }
+
+        // Очистка содержимого кнопки перед расширением
+        squareBtn.innerHTML = '';
+
+        // Добавляем класс расширения прямо на месте
+        squareBtn.classList.add('expanded');
+        expandedSquare = squareBtn;
+
+        // Рендерим содержимое
+        renderFurnitureGrid(squareBtn, furnitureName, furnitureType, itemsArr);
+    }
+
+    function collapseSquare(squareBtn) {
+        if (!squareBtn) return;
+
+        // Очищаем содержимое и восстанавливаем исходную надпись
+        squareBtn.classList.remove('expanded');
+
+        // Безопасно восстанавливаем текст
+        if (squareBtn.dataset && squareBtn.dataset.label) {
+            squareBtn.innerHTML = squareBtn.dataset.label;
+        }
+
+        expandedSquare = null;
+    }
+
+    function updateSelectedSquare() {
+        const selectedSquare = document.getElementById('selectedFurnitureSquare');
+        const choices = Object.values(selectedFurnitureChoices);
+
+        if (!selectedSquare) return;
+
+        // Очищаем содержимое перед обновлением
+        selectedSquare.innerHTML = '';
+
+        // Управляем отображением кнопки очистки
+        if (choices.length > 0) {
+            clearSelectionBtn.classList.remove('hidden');
+
+            // Создаем элементы DOM вместо сложных строковых шаблонов
+            choices.forEach(choice => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'selected-item';
+
+                const img = document.createElement('img');
+                img.src = choice.item.image_url;
+                img.alt = choice.name;
+
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'item-label';
+                nameDiv.textContent = choice.name;
+
+                const priceDiv = document.createElement('div');
+                priceDiv.className = 'item-price';
+                priceDiv.textContent = `${choice.item.price} ₽`;
+
+                const link = document.createElement('a');
+                link.href = choice.link;
+                link.target = '_blank';
+                link.rel = 'noopener noreferrer';
+                link.className = 'select-btn';
+                link.style.marginTop = '0.7rem';
+                link.textContent = 'Перейти к товару';
+
+                itemDiv.appendChild(img);
+                itemDiv.appendChild(nameDiv);
+                itemDiv.appendChild(priceDiv);
+                itemDiv.appendChild(link);
+
+                selectedSquare.appendChild(itemDiv);
+            });
+
+            selectedSquare.classList.remove('hidden');
+        } else {
+            clearSelectionBtn.classList.add('hidden');
+
+            // Добавляем сообщение о пустом выборе
+            const emptyMessage = document.createElement('div');
+            emptyMessage.className = 'empty-selection-message';
+            emptyMessage.textContent = 'Здесь появятся выбранные вами товары';
+            selectedSquare.appendChild(emptyMessage);
+        }
+    }
+
+    // Функция очистки выбранных товаров
+    function clearSelectedItems() {
+        // Очищаем объект с выбранными товарами
+        Object.keys(selectedFurnitureChoices).forEach(key => {
+            delete selectedFurnitureChoices[key];
+        });
+
+        // Обновляем отображение
+        updateSelectedSquare();
+
+        // Снимаем выделение со всех кнопок
+        furnitureItems.forEach(item => item.classList.remove('selected'));
+
+        // Показываем уведомление
+        showNotification('Выбранные товары очищены');
+    }
+
+    // Добавляем обработчик для кнопки очистки
+    if (clearSelectionBtn) {
+        clearSelectionBtn.addEventListener('click', clearSelectedItems);
+    }
+
+    // Обновленная функция выбора мебели
     function handleFurnitureSelection() {
-        console.log("Нажата кнопка мебели:", this.textContent);
+        // Сначала снимаем выделение со всех кнопок
+        furnitureItems.forEach(item => item.classList.remove('selected'));
 
-        // Получаем тип мебели из атрибута data-type
+        // Выделяем текущую
+        this.classList.add('selected');
+
         const furnitureType = this.getAttribute('data-type');
-        const furnitureName = this.textContent;
-
-        // Используем поисковый термин
+        const furnitureName = this.textContent.trim();
         const furnitureSearchTerm = furnitureSearchTerms[furnitureType] || furnitureType;
 
-        // Получаем стиль из результатов анализа
-        let currentStyle = 'Modern'; // Значение по умолчанию
-
-        // Если есть результаты анализа, берем стиль из них
+        // Определяем текущий стиль
+        let currentStyle = 'Modern';
         if (window.analysisResults && window.analysisResults.name) {
-            // Приводим первую букву к верхнему регистру для соответствия формату
-            const detectedStyle = window.analysisResults.name.charAt(0).toUpperCase() +
-                window.analysisResults.name.slice(1);
-
-            // Проверяем наличие в списке доступных стилей
+            const detectedStyle = window.analysisResults.name.charAt(0).toUpperCase() + window.analysisResults.name.slice(1);
             if (availableStyles.includes(detectedStyle)) {
                 currentStyle = detectedStyle;
             } else {
-                // Для близких совпадений (например, "modern" и "Modern")
-                const matchingStyle = availableStyles.find(
-                    s => s.toLowerCase() === window.analysisResults.name.toLowerCase()
-                );
-                if (matchingStyle) {
-                    currentStyle = matchingStyle;
-                }
+                const matchingStyle = availableStyles.find(s => s.toLowerCase() === window.analysisResults.name.toLowerCase());
+                if (matchingStyle) currentStyle = matchingStyle;
             }
         }
 
-        console.log(`Поиск мебели: стиль ${currentStyle}, тип ${furnitureSearchTerm}`);
+        // Показываем индикатор загрузки внутри кнопки
+        const originalContent = this.innerHTML;
+        this.innerHTML = `<div class="flex flex-col items-center justify-center w-full h-full">
+            <div class="w-8 h-8 mb-2 border-2 border-gray-200 dark:border-gray-700 rounded-full animate-spin border-t-2 border-blue-500 dark:border-blue-400"></div>
+            <span style="color:var(--secondary-text)">Загрузка...</span>
+        </div>`;
 
-        // Показываем название выбранной мебели
-        if (selectedFurnitureTitle) {
-            selectedFurnitureTitle.textContent = furnitureName;
-        }
-
-        // Показываем контейнер результатов, если он был скрыт
-        if (selectedFurnitureContainer) {
-            selectedFurnitureContainer.classList.remove('hidden');
-        }
-
-        // Показываем индикатор загрузки
-        if (selectedFurnitureContent) {
-            selectedFurnitureContent.innerHTML = `
-                <div class="flex flex-col items-center py-4">
-                    <div class="w-10 h-10 mb-3 relative">
-                        <div class="w-full h-full border-2 rounded-full" style="border-color: var(--border-color)"></div>
-                        <div class="w-full h-full border-t-2 rounded-full absolute top-0 left-0 animate-spin" style="border-color: var(--accent-color, #60a5fa)"></div>
-                    </div>
-                    <p style="color: var(--secondary-text)">Загрузка вариантов мебели...</p>
-                </div>
-            `;
-        }
-
-        // Отправляем запрос к API
+        // Запрашиваем данные с сервера
         fetch('/api/furniture/search', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 style: currentStyle,
                 furniture: furnitureSearchTerm,
                 max_items: 6
             })
         })
-            .then(response => {
-                // Логируем ответ для отладки
-                console.log('Response status:', response.status);
-
-                // Если ответ не 200 OK, пробуем получить текст ошибки
-                if (!response.ok) {
-                    return response.text().then(text => {
-                        console.error('Error response:', text);
-                        throw new Error(`Server error: ${response.status} ${text}`);
-                    });
-                }
-
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
-                console.log('Получен ответ от API:', data);
-
                 if (data.status === 'success' && data.data) {
-                    // Отображаем результаты
-                    let resultsHTML = '';
-
-                    // Проверяем, есть ли данные
-                    const furnitureItems = Object.entries(data.data);
-
-                    if (furnitureItems.length > 0) {
-                        resultsHTML = '<div class="grid grid-cols-2 gap-3">';
-                        furnitureItems.forEach(([link, itemData]) => {
-                            resultsHTML += `
-                            <div class="furniture-result-item overflow-hidden">
-                                <a href="${link}" target="_blank" rel="noopener noreferrer" class="block rounded-lg shadow-sm border transition-all duration-300">
-                                    <div class="p-2">
-                                        <img src="${itemData.image_url}" alt="Мебель" class="rounded w-full h-auto mb-2 object-cover">
-                                        <p class="text-xs mb-1 truncate">${furnitureName}</p>
-                                        <p class="text-xs font-bold">${itemData.price} ₽</p>
-                                    </div>
-                                </a>
-                            </div>
-                        `;
-                        });
-                        resultsHTML += '</div>';
+                    const itemsArr = Object.entries(data.data);
+                    if (itemsArr.length > 0) {
+                        // Очищаем кнопку перед добавлением новых данных
+                        this.innerHTML = '';
+                        // Расширяем квадрат и показываем варианты
+                        expandSquare(this, furnitureName, furnitureType, itemsArr);
                     } else {
-                        resultsHTML = '<p class="text-center py-4">Не найдено подходящей мебели для этого стиля.</p>';
-                    }
+                        // Возвращаем кнопку в исходное состояние вместо показа "Нет вариантов"
+                        this.classList.remove('expanded');
+                        this.innerHTML = this.dataset.label;
 
-                    if (selectedFurnitureContent) {
-                        selectedFurnitureContent.innerHTML = resultsHTML;
+                        // Показываем временное уведомление
+                        showNotification('К сожалению, варианты не найдены');
                     }
                 } else {
-                    if (selectedFurnitureContent) {
-                        selectedFurnitureContent.innerHTML = '<p>Ошибка при загрузке данных. Пожалуйста, попробуйте позже.</p>';
-                    }
+                    // Аналогично восстанавливаем исходное состояние при ошибке
+                    this.classList.remove('expanded');
+                    this.innerHTML = this.dataset.label;
                 }
             })
-            .catch(error => {
-                console.error('API request error:', error);
-                if (selectedFurnitureContent) {
-                    selectedFurnitureContent.innerHTML = '<p>Произошла ошибка при запросе данных.</p>';
-                }
+            .catch(() => {
+                // И при сетевой ошибке тоже
+                this.classList.remove('expanded');
+                this.innerHTML = this.dataset.label;
             });
+    }
+
+    // Вспомогательная функция для показа уведомлений
+    function showNotification(message) {
+        const notification = document.createElement('div');
+        notification.className = 'notification fade-in';
+        notification.innerHTML = message;
+        notification.style.position = 'fixed';
+        notification.style.top = '10%';
+        notification.style.left = '50%';
+        notification.style.transform = 'translateX(-50%)';
+        notification.style.backgroundColor = 'rgba(0,0,0,0.7)';
+        notification.style.color = 'white';
+        notification.style.padding = '12px 20px';
+        notification.style.borderRadius = '8px';
+        notification.style.zIndex = '1000';
+        document.body.appendChild(notification);
+
+        // Удаляем уведомление через 3 секунды
+        setTimeout(() => {
+            notification.classList.add('fade-out');
+            setTimeout(() => document.body.removeChild(notification), 500);
+        }, 3000);
     }
 }); 

@@ -16,6 +16,21 @@
     --letter-spacing: -0.01em;
 }
 
+/* Глобальное правило для удаления псевдоэлементов у кнопок */
+button::after,
+button::before,
+.btn::after,
+.btn::before,
+[type="button"]::after,
+[type="button"]::before,
+[type="submit"]::after,
+[type="submit"]::before,
+[type="reset"]::after,
+[type="reset"]::before {
+    content: none !important;
+    display: none !important;
+}
+
 body {
     font-family: 'Inter', sans-serif;
     margin: 0;
