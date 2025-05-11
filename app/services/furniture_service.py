@@ -21,7 +21,9 @@ STYLE_DICT = {
     "Provence": "в стиле прованс",
     "Rustic": "дуб",
     "Scandinavian": "в скандинавском стиле",
-    "Victorian": "в викторианском стиле"
+    "Victorian": "в викторианском стиле",
+    "" :""
+
 }
 
 async def get_furniture_by_style(style: str, furniture: str, max_items: int = 5) -> Dict:

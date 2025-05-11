@@ -297,6 +297,7 @@
                         class="w-full py-2 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-primary focus:border-primary transition-colors duration-200 shadow-sm">
                         <option value="Зал">Зал</option>
                         <option value="Спальня">Спальня</option>
+                        <option value="Комната">Комната (с рабочим местом)</option>
                         <option value="Ванная">Ванная</option>
                         <option value="Туалетная комната">Туалетная комната</option>
                         <option value="Прихожая">Прихожая</option>
@@ -318,6 +319,8 @@
                             <button class="furniture-item furniture-square text-gray-800 dark:text-white"
                                 data-type="tv_stand">ТВ тумба</button>
                             <button class="furniture-item furniture-square text-gray-800 dark:text-white"
+                                data-type="tv">Телевизор</button>
+                            <button class="furniture-item furniture-square text-gray-800 dark:text-white"
                                 data-type="armchair">Кресло</button>
                             <button class="furniture-item furniture-square text-gray-800 dark:text-white"
                                 data-type="bookshelf">Книжный шкаф</button>
@@ -330,6 +333,9 @@
                             <button
                                 class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
                                 data-type="bed">Кровать</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="tv">Телевизор</button>
                             <button
                                 class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
                                 data-type="nightstand">Прикроватная тумба</button>
@@ -350,13 +356,13 @@
                                 data-type="vanity">Тумба с раковиной</button>
                             <button
                                 class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="faucet">Кран</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="bathroom_mirror">Зеркало</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
                                 data-type="bathroom_cabinet">Шкафчик</button>
-                            <button
-                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
-                                data-type="shower_cabin">Душевая кабина</button>
-                            <button
-                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
-                                data-type="bathtub">Ванна</button>
                         </div>
                     </div>
 
@@ -393,6 +399,53 @@
                             <button
                                 class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
                                 data-type="bench">Банкетка</button>
+                        </div>
+                    </div>
+
+                    <!-- Мебель для Комнаты с рабочим местом (скрыта по умолчанию) -->
+                    <div data-room="Комната" class="furniture-room-section hidden">
+                        <div class="flex flex-wrap gap-3">
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="desk">Рабочий стол</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="office_chair">Компьютерный стул</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="computer">Монитор/ПК</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="laptop">Ноутбук</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="bed">Кровать</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="shelf">Полка</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="table_lamp">Ночник</button>
+                        </div>
+                    </div>
+
+                    <!-- Новый контейнер для результатов поиска фурнитуры -->
+                    <div id="furnitureSearchResults" class="mt-6 hidden">
+                        <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mb-2">
+                            <h5 id="furnitureResultsTitle" class="font-medium mb-3 text-gray-900 dark:text-gray-100">
+                                Варианты фурнитуры
+                            </h5>
+                            <!-- Индикатор загрузки -->
+                            <div id="furnitureLoadingIndicator" class="flex justify-center items-center p-4 hidden">
+                                <div
+                                    class="w-8 h-8 border-2 border-gray-200 dark:border-gray-700 rounded-full animate-spin border-t-2 border-blue-500 dark:border-blue-400">
+                                </div>
+                                <span class="ml-3 text-sm text-gray-500 dark:text-gray-400">Загрузка вариантов...</span>
+                            </div>
+                            <!-- Контейнер для результатов -->
+                            <div id="furnitureResultsContent" class="furniture-grid-cards">
+                                <!-- Результаты будут добавлены динамически -->
+                            </div>
                         </div>
                     </div>
 
