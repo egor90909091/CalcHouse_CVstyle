@@ -1,9 +1,12 @@
 import json
 import os
 import logging
+import traceback
 from typing import Dict, List, Optional
 from pathlib import Path
-import requests
+import asyncio
+import aiohttp
+from async_lru import alru_cache
 from dotenv import load_dotenv
 from app.models.calculator import (
     RecommendationRequest,
@@ -15,19 +18,48 @@ from app.models.calculator import (
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Загрузка переменных окружения из .env файла
+# Загрузка переменных окружения
 load_dotenv()
 
-# Инициализация параметров DeepSeek API
+# Конфигурация API
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
+MAX_CONCURRENT_REQUESTS = int(os.getenv("MAX_CONCURRENT_REQUESTS", "5"))
+API_TIMEOUT = int(os.getenv("API_TIMEOUT", "300"))
+HTTP_TIMEOUT = int(os.getenv("HTTP_TIMEOUT", "240"))
+RETRY_ATTEMPTS = int(os.getenv("RETRY_ATTEMPTS", "3"))
+
+# Вывод информации о найденных переменных
+if DEEPSEEK_API_KEY:
+    logger.info(f"API ключ DeepSeek найден, длина: {len(DEEPSEEK_API_KEY)}")
+else:
+    logger.warning("API ключ DeepSeek не найден в переменных окружения")
+
+logger.info(
+    f"Настройки: concurrent_requests={MAX_CONCURRENT_REQUESTS}, retries={RETRY_ATTEMPTS}"
+)
+logger.info(f"Таймауты: API={API_TIMEOUT}с, HTTP={HTTP_TIMEOUT}с")
 
 
 class AIService:
     """Сервис для работы с ИИ-рекомендациями через DeepSeek API"""
 
+    _instance = None
+    _session = None
+    _workers = []
+
+    def __new__(cls):
+        """Реализация синглтона для AIService"""
+        if not cls._instance:
+            cls._instance = super().__new__(cls)
+        return cls._instance
+
     def __init__(self):
-        # Путь к файлу с заглушками рекомендаций (на случай отсутствия API ключа)
+        """Инициализация сервиса AI"""
+        if hasattr(self, "_initialized"):
+            return
+
+        # Путь к файлу с заглушками рекомендаций
         self.fallback_data_path = (
             Path(__file__).parent.parent
             / "static"
@@ -36,9 +68,10 @@ class AIService:
         )
         self.ensure_fallback_data()
 
-        # Создаем сессию requests с настройками таймаута
-        self.session = requests.Session()
-        self.session.timeout = (5, 30)  # (connect timeout, read timeout)
+        # Инициализация очереди запросов и семафора
+        self.request_queue = asyncio.Queue()
+        self.api_semaphore = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
+        self._initialized = True
 
         # Проверка наличия API ключа при инициализации
         if not DEEPSEEK_API_KEY:
@@ -48,14 +81,195 @@ class AIService:
         else:
             logger.info("Сервис AI инициализирован с DeepSeek API")
 
-    def __del__(self):
-        """Деструктор для корректного закрытия сессии при завершении работы сервиса."""
+    async def init_session(self):
+        """Инициализация общей сессии"""
+        if not self._session:
+            self._session = aiohttp.ClientSession(
+                timeout=aiohttp.ClientTimeout(
+                    total=HTTP_TIMEOUT,
+                    connect=30,
+                    sock_connect=30,
+                    sock_read=HTTP_TIMEOUT,
+                ),
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+                },
+            )
+            logger.info("Инициализирована общая HTTP сессия")
+
+    async def start_workers(self):
+        """Запуск обработчиков очереди"""
+        if not self._workers:
+            self._workers = [
+                asyncio.create_task(self._process_queue())
+                for _ in range(MAX_CONCURRENT_REQUESTS)
+            ]
+            logger.info(
+                f"Запущено {MAX_CONCURRENT_REQUESTS} воркеров обработки запросов"
+            )
+
+    async def _process_queue(self):
+        """Обработчик очереди с ретраями"""
         try:
-            if hasattr(self, "session") and self.session:
-                self.session.close()
-                logger.debug("Сессия AIService закрыта")
+            while True:
+                request_data, future = await self.request_queue.get()
+                try:
+                    result = await self._process_request_with_retry(request_data)
+                    future.set_result(result)
+                except Exception as e:
+                    logger.error(f"Ошибка при обработке запроса: {str(e)}")
+                    logger.debug(f"Трассировка: {traceback.format_exc()}")
+                    future.set_exception(e)
+                finally:
+                    self.request_queue.task_done()
+        except asyncio.CancelledError:
+            logger.info("Остановлен обработчик очереди")
         except Exception as e:
-            logger.error(f"Ошибка при закрытии сессии AIService: {str(e)}")
+            logger.error(f"Критическая ошибка в обработчике очереди: {str(e)}")
+            logger.error(f"Трассировка: {traceback.format_exc()}")
+
+    async def _process_request_with_retry(self, request_data):
+        """Обработка запроса с повторными попытками при ошибках"""
+        last_error = None
+
+        for attempt in range(RETRY_ATTEMPTS):
+            try:
+                async with self.api_semaphore:
+                    logger.info(f"Попытка запроса к API {attempt+1}/{RETRY_ATTEMPTS}")
+                    result = await self._make_ai_request(request_data)
+                    logger.info(f"Запрос успешно выполнен (попытка {attempt+1})")
+                    return result
+            except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+                last_error = e
+                if attempt == RETRY_ATTEMPTS - 1:
+                    # Это последняя попытка, ошибку пробрасываем дальше
+                    logger.error(f"Все попытки исчерпаны. Последняя ошибка: {str(e)}")
+                    raise
+
+                # Делаем экспоненциальную задержку между попытками
+                wait_time = 2**attempt
+                logger.warning(
+                    f"Ошибка запроса (попытка {attempt+1}/{RETRY_ATTEMPTS}): {str(e)}"
+                )
+                logger.warning(f"Повторная попытка через {wait_time} сек...")
+                await asyncio.sleep(wait_time)
+
+        # На всякий случай, хотя мы должны были выйти по raise выше
+        raise last_error or Exception("Превышено количество попыток")
+
+    @alru_cache(ttl=3600, maxsize=1000)
+    async def get_recommendations(
+        self, request: RecommendationRequest, optimization_focus: Optional[str] = None
+    ) -> RecommendationResponse:
+        """Получение рекомендаций с кэшированием"""
+        try:
+            if not DEEPSEEK_API_KEY:
+                logger.warning("API ключ DeepSeek не найден, используем заглушки")
+                return await self._get_fallback_recommendations(
+                    request, optimization_focus
+                )
+
+            # Инициализируем сессию и воркеры при первом запросе
+            await self.init_session()
+            await self.start_workers()
+
+            # Создаем промпт для DeepSeek
+            prompt = self._create_recommendation_prompt(request, optimization_focus)
+            logger.debug(f"Создан промпт: {prompt[:100]}...")
+
+            # Параметры запроса
+            payload = {
+                "model": "deepseek-chat",
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.5,
+                "max_tokens": 2500,
+            }
+
+            # Добавляем запрос в очередь и ждем результата
+            future = asyncio.Future()
+            await self.request_queue.put((payload, future))
+            logger.info(
+                f"Запрос добавлен в очередь. Текущая длина очереди: {self.request_queue.qsize()}"
+            )
+
+            try:
+                # Ожидаем результат с таймаутом
+                logger.info(
+                    f"Ожидаем ответ от DeepSeek API (таймаут: {API_TIMEOUT} сек)..."
+                )
+                start_time = asyncio.get_event_loop().time()
+                response_data = await asyncio.wait_for(future, timeout=API_TIMEOUT)
+                elapsed = asyncio.get_event_loop().time() - start_time
+                logger.info(f"Получен ответ от DeepSeek API за {elapsed:.2f} секунд")
+
+                # Парсим и форматируем ответ
+                return self._parse_api_response(response_data)
+
+            except asyncio.TimeoutError:
+                logger.error(
+                    f"Превышено время ожидания ответа от DeepSeek API (таймаут: {API_TIMEOUT} сек)"
+                )
+                return await self._get_fallback_recommendations(
+                    request, optimization_focus
+                )
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении рекомендаций: {str(e)}")
+            logger.error(f"Трассировка: {traceback.format_exc()}")
+            # В случае любой ошибки возвращаем заглушки
+            return await self._get_fallback_recommendations(request, optimization_focus)
+
+    async def _make_ai_request(self, payload):
+        """Выполнение запроса с общей сессией"""
+        try:
+            start_time = asyncio.get_event_loop().time()
+            logger.info(f"Отправка запроса к API (таймаут: {HTTP_TIMEOUT} сек)...")
+
+            async with self._session.post(
+                DEEPSEEK_API_URL, json=payload, raise_for_status=True
+            ) as response:
+                result = await response.json()
+                elapsed = asyncio.get_event_loop().time() - start_time
+                logger.info(f"Запрос к API выполнен успешно за {elapsed:.2f} секунд")
+                return result
+
+        except Exception as e:
+            elapsed = asyncio.get_event_loop().time() - start_time
+            logger.error(f"Ошибка при запросе к API ({elapsed:.2f} сек): {str(e)}")
+            raise
+
+    def _parse_api_response(self, response_data):
+        """Оптимизированный парсинг ответа API"""
+        try:
+            ai_response = response_data["choices"][0]["message"]["content"]
+            logger.info(f"Получен ответ от DeepSeek API: {ai_response[:100]}...")
+
+            # Извлекаем JSON из ответа
+            json_start = ai_response.find("{")
+            json_end = ai_response.rfind("}") + 1
+            if json_start == -1 or json_end == 0:
+                logger.error(f"JSON не найден в ответе: {ai_response[:200]}...")
+                raise ValueError("JSON не найден в ответе API")
+
+            json_data = ai_response[json_start:json_end]
+            ai_response_data = json.loads(json_data)
+
+            # Преобразуем ответ в структурированные рекомендации
+            recommendations = self._parse_ai_response(ai_response)
+
+            # Формируем сводку рекомендаций
+            summary = self._generate_summary(recommendations, ai_response_data)
+
+            # Создаем ответ
+            return RecommendationResponse(
+                recommendations=recommendations,
+                summary=summary,
+            )
+
+        except (KeyError, json.JSONDecodeError) as e:
+            logger.error(f"Ошибка парсинга ответа API: {str(e)}")
+            raise ValueError(f"Некорректный формат ответа API: {str(e)}")
 
     def ensure_fallback_data(self):
         """Создание файла с заглушками рекомендаций"""
@@ -233,117 +447,10 @@ class AIService:
             with open(self.fallback_data_path, "w", encoding="utf-8") as f:
                 json.dump(fallback_data, f, ensure_ascii=False, indent=4)
 
-    async def get_recommendations(
-        self, request: RecommendationRequest, optimization_focus: Optional[str] = None
-    ) -> RecommendationResponse:
-        """
-        Получение рекомендаций от DeepSeek API
-        """
-        try:
-            if not DEEPSEEK_API_KEY:
-                logger.warning(
-                    "API ключ DeepSeek не найден, используем заглушки рекомендаций"
-                )
-                return await self._get_fallback_recommendations(
-                    request, optimization_focus
-                )
-
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
-            }
-
-            # Создаем промпт для DeepSeek
-            prompt = self._create_recommendation_prompt(request, optimization_focus)
-
-            # Параметры запроса
-            payload = {
-                "model": "deepseek-chat",
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.5,
-                "max_tokens": 2500,
-            }
-
-            try:
-                # Выполняем запрос к DeepSeek API
-                logger.info(f"Отправка запроса к DeepSeek API...")
-                response = self.session.post(
-                    DEEPSEEK_API_URL, json=payload, headers=headers
-                )
-                response.raise_for_status()  # Проверка на ошибки HTTP
-
-            except requests.exceptions.RequestException as e:
-                logger.error(f"Ошибка запроса к DeepSeek API: {str(e)}")
-                return await self._get_fallback_recommendations(
-                    request, optimization_focus
-                )
-
-            except requests.exceptions.HTTPError as e:
-                logger.error(f"HTTP ошибка при запросе к DeepSeek API: {str(e)}")
-                return await self._get_fallback_recommendations(
-                    request, optimization_focus
-                )
-
-            except Exception as e:
-                logger.error(f"Неизвестная ошибка при запросе к DeepSeek API: {str(e)}")
-                return await self._get_fallback_recommendations(
-                    request, optimization_focus
-                )
-
-            # Получаем и обрабатываем ответ
-            response_data = response.json()
-
-            # Проверка на наличие необходимых данных в ответе
-            if "choices" not in response_data or not response_data["choices"]:
-                logger.error("Некорректный ответ от DeepSeek API")
-                return await self._get_fallback_recommendations(
-                    request, optimization_focus
-                )
-
-            ai_response = response_data["choices"][0]["message"]["content"]
-            logger.info(f"Получен ответ от DeepSeek API: {ai_response[:100]}...")
-
-            # Извлекаем JSON из ответа
-            json_start = ai_response.find("{")
-            json_end = ai_response.rfind("}") + 1
-            if json_start == -1 or json_end == 0:
-                logger.error(f"JSON не найден в ответе: {ai_response[:200]}...")
-                return await self._get_fallback_recommendations(
-                    request, optimization_focus
-                )
-
-            json_data = ai_response[json_start:json_end]
-            try:
-                ai_response_data = json.loads(json_data)
-            except json.JSONDecodeError:
-                logger.error(f"Не удалось распарсить JSON ответа")
-                return await self._get_fallback_recommendations(
-                    request, optimization_focus
-                )
-
-            # Преобразуем ответ в структурированные рекомендации
-            recommendations = self._parse_ai_response(ai_response)
-
-            # Формируем сводку рекомендаций
-            summary = self._generate_summary(recommendations, ai_response_data)
-
-            # Возвращаем структурированный ответ с рекомендациями
-            return RecommendationResponse(
-                recommendations=recommendations,
-                summary=summary,
-            )
-
-        except Exception as e:
-            logger.error(f"Ошибка при получении рекомендаций: {str(e)}")
-            # В случае любой ошибки возвращаем заглушки
-            return await self._get_fallback_recommendations(request, optimization_focus)
-
     def _create_recommendation_prompt(
         self, request: RecommendationRequest, optimization_focus: Optional[str]
     ) -> str:
-        """
-        Создание промпта для запроса к DeepSeek API
-        """
+        """Создание промпта для запроса к DeepSeek API"""
         # Базовая информация о доме
         calculator_data = request.calculator_data
 
@@ -439,9 +546,7 @@ class AIService:
         return prompt
 
     def _parse_ai_response(self, response_text: str) -> List[Recommendation]:
-        """
-        Парсинг ответа от DeepSeek API
-        """
+        """Парсинг ответа от DeepSeek API"""
         try:
             logger.info(f"Начат парсинг ответа AI длиной {len(response_text)} символов")
 
@@ -532,9 +637,7 @@ class AIService:
         recommendations: List[Recommendation],
         ai_response_data: Optional[Dict] = None,
     ) -> str:
-        """
-        Генерация краткого резюме на основе рекомендаций или использование готового summary из ответа DeepSeek
-        """
+        """Генерация краткого резюме на основе рекомендаций"""
         # Если есть готовое summary в ответе AI, используем его
         if ai_response_data and "summary" in ai_response_data:
             return ai_response_data.get("summary")
@@ -573,9 +676,7 @@ class AIService:
     async def _get_fallback_recommendations(
         self, request: RecommendationRequest, optimization_focus: Optional[str]
     ) -> RecommendationResponse:
-        """
-        Получение заглушек лайфхаков из локального файла или предопределенного списка
-        """
+        """Получение заглушек лайфхаков из локального файла"""
         try:
             logger.info("Подготовка заглушки лайфхака")
 
@@ -666,3 +767,18 @@ class AIService:
                 ],
                 summary="Полезный совет для строительства",
             )
+
+    async def close(self):
+        """Корректное завершение работы сервиса"""
+        if self._session:
+            await self._session.close()
+            logger.info("HTTP сессия закрыта")
+
+        for worker in self._workers:
+            worker.cancel()
+
+        if self._workers:
+            await asyncio.gather(*self._workers, return_exceptions=True)
+            logger.info(f"Остановлено {len(self._workers)} воркеров")
+
+        logger.info("Сервис AI корректно остановлен")
