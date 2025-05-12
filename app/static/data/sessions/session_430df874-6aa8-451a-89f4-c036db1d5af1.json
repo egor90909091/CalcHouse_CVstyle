@@ -1,0 +1,21 @@
+{
+  "created_at": 1747077542.804822,
+  "last_activity": 1747077686.627638,
+  "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 YaBrowser/25.4.0.0 Safari/537.36",
+  "ip": "127.0.0.1",
+  "request_history": [
+    {
+      "request_id": "b1813e9c-9ebc-4305-a59c-6a4a78e8f670",
+      "timestamp": "2025-05-13T00:21:26.627607",
+      "calculator_data": {
+        "area": 126.0,
+        "foundation_type": "strip",
+        "wall_material": "brick",
+        "roof_type": "metal",
+        "floors": 1
+      },
+      "summary": "Рекомендации по строительству одноэтажного кирпичного дома 126 м² с ленточным фундаментом и металлочерепичной кровлей",
+      "recommendation_count": 4
+    }
+  ]
+}

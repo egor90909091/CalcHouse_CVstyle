@@ -124,6 +124,26 @@ class RecommendationRequest(BaseModel):
     budget: Optional[float] = None
     priority: Optional[str] = None
 
+    def __hash__(self):
+        """Делаем класс хешируемым для использования в качестве ключа кэша"""
+        return hash(
+            (
+                hash(self.calculator_data.area),
+                hash(self.calculator_data.foundation_type),
+                hash(self.calculator_data.wall_material),
+                hash(self.calculator_data.floors),
+                hash(self.calculator_data.floor_type),
+                hash(self.calculator_data.roof_type),
+                (
+                    tuple(self.calculator_data.additional_options)
+                    if self.calculator_data.additional_options
+                    else None
+                ),
+                hash(self.budget),
+                hash(self.priority),
+            )
+        )
+
 
 # Новые модели для расчета материалов
 
