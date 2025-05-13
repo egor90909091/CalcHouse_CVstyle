@@ -25,6 +25,8 @@
     --footer-title: #1a202c;
     --accent-color: #3b82f6;
     /* Синий акцентный цвет для светлой темы */
+    --transition-speed: 0.3s;
+    --surface-accent: rgba(59, 130, 246, 0.1);
 }
 
 /* Темная тема */
@@ -52,6 +54,8 @@
     --footer-title: #ffffff;
     --accent-color: #60a5fa;
     /* Светло-синий акцентный цвет для темной темы */
+    --transition-speed: 0.3s;
+    --surface-accent: rgba(96, 165, 250, 0.2);
 }
 
 /* Применение темы к элементам */
@@ -445,4 +449,335 @@ footer li {
     gap: 1.2rem;
     justify-content: flex-start;
     margin-top: 1.5rem;
+}
+
+/* Анимация загрузки для API-запросов */
+.loader {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #60a5fa;
+    animation: spin 1s ease-in-out infinite;
+}
+
+/* Вариант для светлой темы */
+.light-theme .loader {
+    border: 2px solid rgba(0, 0, 0, 0.1);
+    border-top-color: #3b82f6;
+}
+
+/* Анимация вращения */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Состояние загрузки для блока рекомендаций ИИ */
+.ai-recommendations.loading {
+    position: relative;
+}
+
+.ai-recommendations.loading::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(26, 32, 44, 0.7);
+    /* Темная накладка */
+    border-radius: 0.5rem;
+    z-index: 5;
+}
+
+/* Вариант для светлой темы */
+.light-theme .ai-recommendations.loading::after {
+    background-color: rgba(237, 242, 247, 0.7);
+    /* Светлая накладка */
+}
+
+/* Стили для правильной темизации блока рекомендаций ИИ */
+.ai-recommendations {
+    background-color: var(--secondary-bg);
+    border-color: var(--accent-color);
+    transition: background-color var(--transition-speed) ease,
+        border-color var(--transition-speed) ease,
+        color var(--transition-speed) ease;
+}
+
+.ai-recommendations-title {
+    color: var(--accent-color);
+    transition: color var(--transition-speed) ease;
+}
+
+/* Красивая анимация загрузки для блока рекомендаций */
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 180px;
+    padding: 2rem 0;
+}
+
+.loading-text {
+    margin-top: 20px;
+    font-size: 0.9rem;
+    color: var(--secondary-text);
+    text-align: center;
+}
+
+/* Стильный спиннер с точкой */
+.fancy-spinner {
+    position: relative;
+    width: 64px;
+    height: 64px;
+}
+
+.fancy-spinner .ring {
+    position: absolute;
+    width: 64px;
+    height: 64px;
+    border: 3px solid transparent;
+    border-radius: 50%;
+}
+
+.fancy-spinner .ring:first-child {
+    border-top-color: var(--accent-color);
+    animation: fancySpinner 2s linear infinite;
+}
+
+.fancy-spinner .ring:nth-child(2) {
+    border-left-color: var(--accent-color);
+    animation: fancySpinner 2s linear infinite 0.5s;
+}
+
+.fancy-spinner .dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 10px;
+    height: 10px;
+    background-color: var(--accent-color);
+    border-radius: 50%;
+    animation: fancySpinnerDot 2s ease infinite;
+}
+
+@keyframes fancySpinner {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes fancySpinnerDot {
+
+    0%,
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: translate(-50%, -50%) scale(0.6);
+        opacity: 0.5;
+    }
+}
+
+/* Улучшенные стили для рекомендаций */
+.ai-recommendations-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.ai-recommendation-card {
+    padding: 16px;
+    border-radius: 8px;
+    background-color: var(--card-bg);
+    border-left: 4px solid var(--accent-color);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+}
+
+.light-theme .ai-recommendation-card {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.dark-theme .ai-recommendation-card {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.ai-recommendation-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.ai-rec-category {
+    display: inline-block;
+    padding: 3px 8px;
+    background-color: var(--accent-color);
+    color: white;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.ai-rec-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--primary-text);
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 6px;
+}
+
+.ai-rec-description {
+    color: var(--secondary-text);
+    font-size: 14px;
+    line-height: 1.6;
+    margin-bottom: 12px;
+}
+
+.ai-rec-impact {
+    font-size: 13px;
+    color: #38a169;
+    font-weight: 500;
+    padding: 5px 8px;
+    background-color: rgba(56, 161, 105, 0.1);
+    border-radius: 4px;
+    display: inline-block;
+}
+
+.dark-theme .ai-rec-impact {
+    color: #68d391;
+    background-color: rgba(104, 211, 145, 0.1);
+}
+
+.ai-summary {
+    padding: 16px;
+    background-color: var(--secondary-bg);
+    border: 1px solid var(--accent-color);
+    border-radius: 8px;
+    color: var(--primary-text);
+    font-size: 15px;
+    line-height: 1.6;
+    position: relative;
+    margin-bottom: 24px;
+}
+
+.ai-summary::before {
+    content: '📋 Сводка';
+    position: absolute;
+    top: -12px;
+    left: 16px;
+    padding: 2px 8px;
+    background-color: var(--card-bg);
+    color: var(--accent-color);
+    font-weight: 600;
+    font-size: 13px;
+    border-radius: 4px;
+    border: 1px solid var(--accent-color);
+}
+
+.ai-no-recommendations,
+.ai-error {
+    text-align: center;
+    padding: 30px;
+    color: var(--secondary-text);
+    background-color: var(--card-bg);
+    border-radius: 8px;
+    font-size: 15px;
+}
+
+.ai-error {
+    border-left: 4px solid #e53e3e;
+}
+
+/* Заголовок блока рекомендаций */
+.ai-recommendations-title {
+    position: relative;
+    font-size: 22px !important;
+    font-weight: 700;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    color: var(--primary-text);
+    border-bottom: 2px solid var(--accent-color);
+    display: inline-block;
+}
+
+.ai-recommendations-title::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 60%;
+    height: 2px;
+    background-color: var(--accent-color);
+}
+
+/* Стили обеспечения совместимости тем */
+.dark-theme .ai-recommendations .bg-white,
+.dark-theme .ai-recommendations .bg-gray-800,
+.dark-theme .ai-recommendations .bg-gray-700 {
+    background-color: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--primary-text) !important;
+}
+
+.dark-theme .ai-recommendations .text-white,
+.dark-theme .ai-recommendations .text-gray-300,
+.dark-theme .ai-recommendations .text-gray-700,
+.dark-theme .ai-recommendations .text-gray-800 {
+    color: var(--secondary-text) !important;
+}
+
+.dark-theme .ai-recommendations .text-blue-600,
+.dark-theme .ai-recommendations .text-blue-400 {
+    color: var(--accent-color) !important;
+}
+
+/* Исправление для цветов в самом HTML-файле */
+.ai-recommendations {
+    border-color: var(--accent-color) !important;
+    background-color: var(--secondary-bg) !important;
+}
+
+/* Дополнительные стили для theme-summary */
+.theme-summary {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+    color: var(--secondary-text);
+}
+
+.theme-rec-item {
+    background-color: var(--card-bg);
+    border-color: var(--border-color);
+    color: var(--primary-text);
+}
+
+.theme-rec-title {
+    color: var(--accent-color);
+}
+
+.theme-rec-text {
+    color: var(--secondary-text);
+}
+
+.theme-rec-impact {
+    color: #38a169;
+    /* Зеленый для текста с эффектом */
+}
+
+.dark-theme .theme-rec-impact {
+    color: #68d391;
+    /* Более светлый зеленый для темной темы */
 }

@@ -8,16 +8,82 @@ import time
 import asyncio
 from pathlib import Path
 import datetime
+from contextlib import asynccontextmanager
 
 from app.api import calculator, materials, recommendations, image_recognition
 from app.api.furniture import router as furniture_router
 from app.services.session_service import get_session_service
 from app.services.ai_service import AIService
 
+
+# Определяем lifespan контекстный менеджер вместо on_event
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Код запуска (аналог startup_event)
+    import logging
+
+    logger = logging.getLogger("main")
+    logger.info("Инициализация сервисов при запуске приложения...")
+
+    try:
+        # Инициализация AI сервиса
+        ai_service = AIService()
+
+        # Инициализируем сессию
+        await ai_service.init_session()
+
+        # Запускаем воркеры
+        await ai_service.start_workers()
+
+        logger.info("Все сервисы успешно инициализированы")
+    except Exception as e:
+        logger.error(f"Ошибка при инициализации сервисов: {str(e)}")
+        import traceback
+
+        logger.error(f"Трассировка: {traceback.format_exc()}")
+
+    # Передаем управление FastAPI на время работы приложения
+    yield
+
+    # Код завершения (аналог cleanup_sessions)
+    logger.info("Выполняется очистка сессий перед завершением работы...")
+
+    try:
+        # Корректное завершение работы AI сервиса
+        ai_service = AIService()
+        await ai_service.close()
+
+        # Закрываем все асинхронные задачи кроме текущей
+        tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+
+        # Отменяем задачи
+        for task in tasks:
+            task.cancel()
+
+        # Ожидаем завершения всех задач с обработкой исключений
+        if tasks:
+            try:
+                # Устанавливаем небольшой таймаут для завершения задач
+                await asyncio.wait(tasks, timeout=5.0)
+            except asyncio.CancelledError:
+                pass  # Игнорируем отмененные задачи
+
+        logger.info("Все асинхронные задачи завершены")
+    except Exception as e:
+        logger.error(f"Ошибка при очистке сессий: {str(e)}")
+        import traceback
+
+        logger.error(f"Трассировка: {traceback.format_exc()}")
+
+    logger.info("Очистка сессий завершена.")
+
+
+# Создаем экземпляр FastAPI с lifespan
 app = FastAPI(
     title="Строительный калькулятор",
     description="API для расчета стоимости строительства и получения рекомендаций",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 # Настройка CORS для взаимодействия с фронтендом
@@ -61,32 +127,6 @@ async def session_middleware(request: Request, call_next):
     return response
 
 
-# Инициализация сервисов при запуске приложения
-@app.on_event("startup")
-async def startup_event():
-    import logging
-
-    logger = logging.getLogger("main")
-    logger.info("Инициализация сервисов при запуске приложения...")
-
-    try:
-        # Инициализация AI сервиса
-        ai_service = AIService()
-
-        # Инициализируем сессию
-        await ai_service.init_session()
-
-        # Запускаем воркеры
-        await ai_service.start_workers()
-
-        logger.info("Все сервисы успешно инициализированы")
-    except Exception as e:
-        logger.error(f"Ошибка при инициализации сервисов: {str(e)}")
-        import traceback
-
-        logger.error(f"Трассировка: {traceback.format_exc()}")
-
-
 # Подключение статических файлов
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
@@ -123,39 +163,6 @@ def safe_float(value, default=0):
     return float(value) if value is not None else default
 
 
-# Очистка сессий перед завершением работы
-@app.on_event("shutdown")
-async def cleanup_sessions():
-    import logging
-
-    logger = logging.getLogger("main")
-    logger.info("Выполняется очистка сессий перед завершением работы...")
-
-    try:
-        # Корректное завершение работы AI сервиса
-        ai_service = AIService()
-        await ai_service.close()
-
-        # Закрываем все асинхронные задачи
-        session_service = get_session_service()
-        tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
-        for task in tasks:
-            task.cancel()
-
-        # Ожидаем завершения всех задач
-        if tasks:
-            await asyncio.gather(*tasks, return_exceptions=True)
-
-        logger.info("Все асинхронные задачи завершены")
-    except Exception as e:
-        logger.error(f"Ошибка при очистке сессий: {str(e)}")
-        import traceback
-
-        logger.error(f"Трассировка: {traceback.format_exc()}")
-
-    logger.info("Очистка сессий завершена.")
-
-
 if __name__ == "__main__":
     import uvicorn
     import signal
@@ -170,57 +177,25 @@ if __name__ == "__main__":
     )
     logger = logging.getLogger("main")
 
-    # Обработчик сигнала прерывания
-    def handle_shutdown(signum, frame):
-        logger.info("Получен сигнал прерывания, выполняем корректное завершение...")
-
-        # Закрываем все сессии и ресурсы
-        try:
-            # Отмена всех асинхронных задач
-            loop = asyncio.get_event_loop()
-
-            # Закрытие AI сервиса
-            ai_service = AIService()
-            loop.run_until_complete(ai_service.close())
-
-            # Остановка других задач
-            tasks = [
-                t for t in asyncio.all_tasks(loop) if t is not asyncio.current_task()
-            ]
-            for task in tasks:
-                task.cancel()
-
-            # Ожидаем завершения всех задач
-            if tasks:
-                loop.run_until_complete(asyncio.gather(*tasks, return_exceptions=True))
-
-            logger.info("Все асинхронные задачи завершены")
-
-            # Любые другие ресурсы, которые нужно освободить
-            logger.info("Все ресурсы корректно освобождены")
-        except Exception as e:
-            logger.error(f"Ошибка при закрытии ресурсов: {str(e)}")
-            import traceback
-
-            logger.error(f"Трассировка: {traceback.format_exc()}")
-
-        sys.exit(0)
-
-    # Регистрируем обработчики сигналов
-    signal.signal(signal.SIGINT, handle_shutdown)  # Ctrl+C
-    signal.signal(signal.SIGTERM, handle_shutdown)  # kill
-
     # Запускаем сервер с таймаутом для сокетов
     config = Config(
-        "main:app", host="0.0.0.0", port=8001, reload=True, timeout_keep_alive=15
+        "main:app",
+        host="0.0.0.0",
+        port=8001,
+        reload=True,
+        timeout_keep_alive=15,
+        timeout_graceful_shutdown=10,  # Увеличиваем время для корректного завершения
     )
-    server = uvicorn.Server(config)
 
-    try:
-        logger.info("Запуск сервера...")
-        server.run()
-    except KeyboardInterrupt:
-        logger.info(
-            "Прерывание с клавиатуры (Ctrl+C), выполняем корректное завершение..."
-        )
-        handle_shutdown(None, None)
+    logger.info("Запуск сервера...")
+
+    # Вместо запуска server.run() и регистрации обработчиков сигналов
+    # используем встроенные механизмы uvicorn
+    uvicorn.run(
+        app="main:app",
+        host="0.0.0.0",
+        port=8001,
+        reload=True,
+        timeout_keep_alive=15,
+        log_level="info",
+    )
