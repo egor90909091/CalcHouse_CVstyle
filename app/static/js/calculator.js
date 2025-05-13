@@ -214,6 +214,9 @@ function setupResultButtons() {
                 calculatorPanel.classList.remove('hidden');
                 calculatorPanel.classList.add('active');
 
+                // Сохраняем состояние интерфейса (показываем форму)
+                localStorage.setItem('calculatorUiState', 'form');
+
                 // Прокручиваем к форме
                 calculatorPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }
@@ -236,11 +239,21 @@ function setupResultButtons() {
 function loadFormValues() {
     // Загружаем из localStorage
     const savedParams = localStorage.getItem('calculatorParams');
+    // Проверяем, есть ли сохраненное состояние интерфейса
+    const savedUiState = localStorage.getItem('calculatorUiState');
 
     if (savedParams) {
         try {
             const params = JSON.parse(savedParams);
             applyFormValues(params);
+
+            // Если есть сохраненное состояние UI и оно указывает на то, что должны отображаться результаты
+            if (savedUiState === 'results') {
+                // Асинхронно восстанавливаем результаты
+                setTimeout(() => {
+                    restoreCalculationResults(params);
+                }, 100);
+            }
         } catch (e) {
             console.error("Ошибка при загрузке из localStorage:", e);
         }
@@ -310,6 +323,9 @@ async function handleFormSubmit(event) {
     // Сохраняем параметры 
     lastCalculationParams = params;
     localStorage.setItem('calculatorParams', JSON.stringify(params));
+
+    // Сохраняем состояние интерфейса (показываем результаты)
+    localStorage.setItem('calculatorUiState', 'results');
 
     // Проверяем обязательные поля
     if (!params.area) {
@@ -859,3 +875,52 @@ window.showDemoResults = function () {
     // Если у нас есть данные от API, показываем их
     // Если нет - ничего не делаем, пользователь сам повторит запрос
 };
+
+/**
+ * Восстанавливает отображение результатов расчета
+ */
+async function restoreCalculationResults(params) {
+    // Показываем панель результатов сразу
+    switchToResultsPanel();
+
+    try {
+        // Запрашиваем данные для восстановления результатов
+        // Показываем индикатор загрузки, но без анимации расчетов
+        const loadingAnimation = document.getElementById('loading-animation');
+        if (loadingAnimation) {
+            // Создаем простой индикатор загрузки вместо полной анимации
+            loadingAnimation.innerHTML = '<div class="simple-loading">Загрузка сохраненных результатов...</div>';
+            loadingAnimation.style.display = 'block';
+        }
+
+        // Загружаем данные с сервера
+        const data = await fetchDetailedMaterials(params);
+
+        // Сразу скрываем индикатор загрузки
+        if (loadingAnimation) {
+            loadingAnimation.style.display = 'none';
+        }
+
+        // Показываем восстановленные результаты без анимации
+        showDetailedResults(data, params);
+
+        // Показываем рекомендации ИИ
+        showAIRecommendations(params);
+    } catch (error) {
+        console.error("Ошибка при восстановлении результатов:", error);
+
+        // Если не удалось восстановить результаты, возвращаемся к форме
+        const calculatorPanel = document.querySelector('.calculator-panel');
+        const resultsPanel = document.querySelector('.results-panel');
+
+        if (calculatorPanel && resultsPanel) {
+            resultsPanel.classList.add('hidden');
+            resultsPanel.classList.remove('active');
+            calculatorPanel.classList.remove('hidden');
+            calculatorPanel.classList.add('active');
+        }
+
+        // Сбрасываем сохраненное состояние UI
+        localStorage.setItem('calculatorUiState', 'form');
+    }
+}

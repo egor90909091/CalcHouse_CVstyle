@@ -383,3 +383,33 @@
 .dark-theme .relative span {
     color: var(--secondary-text) !important;
 }
+
+/* Стиль для простого индикатора загрузки при восстановлении результатов */
+.simple-loading {
+    text-align: center;
+    padding: 20px;
+    font-size: 16px;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100px;
+}
+
+.simple-loading::after {
+    content: "";
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    margin-left: 10px;
+    border: 3px solid var(--text-secondary);
+    border-radius: 50%;
+    border-top-color: var(--primary);
+    animation: simple-spin 1s linear infinite;
+}
+
+@keyframes simple-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

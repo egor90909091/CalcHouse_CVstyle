@@ -692,7 +692,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // Создаем содержимое карточки
             cardElement.innerHTML = `
                 <img src="${item.image_url}" alt="${furnitureName}">
-                <div class="item-label text-gray-800 dark:text-gray-200">${furnitureName}</div>
                 <div class="item-price text-gray-900 dark:text-white font-medium">${item.price} ₽</div>
                 <button class="select-btn mt-2 w-full py-1.5 px-3 rounded-lg text-white bg-blue-500 hover:bg-blue-600 transition-colors ${isSelected ? 'bg-green-500 hover:bg-green-600' : ''}"
                         data-link="${link}" ${isSelected ? 'disabled' : ''}>
