@@ -1,48 +1,9 @@
 {
   "created_at": 1747077542.804822,
-  "last_activity": 1747124183.5020669,
+  "last_activity": 1747138526.576598,
   "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 YaBrowser/25.4.0.0 Safari/537.36",
   "ip": "127.0.0.1",
   "request_history": [
-    {
-      "request_id": "906c46e9-fbaf-4825-8c92-93f662e51c74",
-      "timestamp": "2025-05-13T12:36:10.742429",
-      "calculator_data": {
-        "area": 126.0,
-        "foundation_type": "strip",
-        "wall_material": "brick",
-        "roof_type": "metal",
-        "floors": 1
-      },
-      "summary": "Рекомендации по строительству одноэтажного кирпичного дома площадью 126 м² с ленточным фундаментом и металлочерепичной кровлей.",
-      "recommendation_count": 4
-    },
-    {
-      "request_id": "3cc5ad2f-9682-4a56-bd24-05a4fd45c40c",
-      "timestamp": "2025-05-13T12:36:10.744224",
-      "calculator_data": {
-        "area": 126.0,
-        "foundation_type": "strip",
-        "wall_material": "brick",
-        "roof_type": "metal",
-        "floors": 1
-      },
-      "summary": "Рекомендации по строительству одноэтажного кирпичного дома площадью 126 м² с ленточным фундаментом и металлочерепичной кровлей.",
-      "recommendation_count": 4
-    },
-    {
-      "request_id": "6f5915e7-2de0-4b61-8c60-66c207e71bc8",
-      "timestamp": "2025-05-13T12:36:39.590798",
-      "calculator_data": {
-        "area": 128.0,
-        "foundation_type": "strip",
-        "wall_material": "brick",
-        "roof_type": "metal",
-        "floors": 1
-      },
-      "summary": "Рекомендации по строительству одноэтажного кирпичного дома площадью 128 м² с ленточным фундаментом и металлочерепичной кровлей.",
-      "recommendation_count": 4
-    },
     {
       "request_id": "7a6f83ee-921b-4fa9-90f1-8543b1c1c01a",
       "timestamp": "2025-05-13T12:44:47.138016",
@@ -132,6 +93,45 @@
         "floors": 1
       },
       "summary": "Рекомендации по строительству одноэтажного кирпичного дома площадью 129.0 м² с ленточным фундаментом и металлочерепичной кровлей, ориентированные на эффективность и долговечность.",
+      "recommendation_count": 4
+    },
+    {
+      "request_id": "f5620c43-693b-49ec-b212-3819e32170b4",
+      "timestamp": "2025-05-13T13:33:30.998342",
+      "calculator_data": {
+        "area": 129.0,
+        "foundation_type": "strip",
+        "wall_material": "brick",
+        "roof_type": "metal",
+        "floors": 1
+      },
+      "summary": "Рекомендации включают оптимизацию планировки, выбор надежного ленточного фундамента, использование эффективной кладки кирпича и монтаж металлочерепицы с учетом долговечности.",
+      "recommendation_count": 4
+    },
+    {
+      "request_id": "8f080b71-ca1f-4861-97db-f6bbc4cc8a32",
+      "timestamp": "2025-05-13T17:15:17.212903",
+      "calculator_data": {
+        "area": 129.0,
+        "foundation_type": "strip",
+        "wall_material": "brick",
+        "roof_type": "metal",
+        "floors": 1
+      },
+      "summary": "Рекомендации включают общие советы по строительству одноэтажного кирпичного дома, выбору ленточного фундамента, кладке стен и монтажу кровли из металлочерепицы.",
+      "recommendation_count": 4
+    },
+    {
+      "request_id": "cbbd6397-c65f-4b1a-8339-d8a033239edc",
+      "timestamp": "2025-05-13T17:15:26.576566",
+      "calculator_data": {
+        "area": 121.0,
+        "foundation_type": "strip",
+        "wall_material": "brick",
+        "roof_type": "metal",
+        "floors": 1
+      },
+      "summary": "Рекомендации по строительству одноэтажного кирпичного дома площадью 121 м² с ленточным фундаментом и металлочерепичной кровлей.",
       "recommendation_count": 4
     }
   ]

@@ -181,7 +181,7 @@ if __name__ == "__main__":
     config = Config(
         "main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8000,
         reload=True,
         timeout_keep_alive=15,
         timeout_graceful_shutdown=10,  # Увеличиваем время для корректного завершения
@@ -194,7 +194,7 @@ if __name__ == "__main__":
     uvicorn.run(
         app="main:app",
         host="0.0.0.0",
-        port=8001,
+        port=8000,
         reload=True,
         timeout_keep_alive=15,
         log_level="info",

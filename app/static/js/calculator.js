@@ -292,6 +292,9 @@ function applyFormValues(params) {
 /**
  * Обрабатывает отправку формы
  */
+/**
+ * Обрабатывает отправку формы с правильным сбросом предыдущих результатов
+ */
 async function handleFormSubmit(event) {
     event.preventDefault();
 
@@ -314,8 +317,11 @@ async function handleFormSubmit(event) {
         return;
     }
 
-    // ИЗМЕНЕНИЯ: Сначала переключаемся на страницу результатов
+    // Переключаемся на панель результатов
     switchToResultsPanel();
+
+    // НОВОЕ: Предварительно очищаем все секции с результатами
+    clearAllResults();
 
     // Затем запускаем анимацию
     startCalculationAnimation();
@@ -355,7 +361,58 @@ async function handleFormSubmit(event) {
 }
 
 /**
- * Переключается на панель результатов
+ * Очищает все предыдущие результаты перед новым расчетом
+ */
+function clearAllResults() {
+    // Очистка результатов по категориям
+    const containers = [
+        document.getElementById('foundationMaterials'),
+        document.getElementById('wallMaterials'),
+        document.getElementById('roofMaterials'),
+        document.getElementById('floorMaterials'),
+        document.getElementById('ai-recommendations-content')
+    ];
+
+    containers.forEach(container => {
+        if (container) {
+            container.innerHTML = '';
+        }
+    });
+
+    // Скрываем заголовки до появления новых результатов
+    const titles = [
+        document.getElementById('foundation-title'),
+        document.getElementById('walls-title'),
+        document.getElementById('roof-title')
+    ];
+
+    titles.forEach(title => {
+        if (title) {
+            title.style.opacity = '0';
+        }
+    });
+
+    // Удаляем блок с общей стоимостью
+    const totalCostBlock = document.getElementById('total-cost-block');
+    if (totalCostBlock) {
+        totalCostBlock.remove();
+    }
+
+    // Также удаляем любые видимые элементы материалов
+    const visibleItems = document.querySelectorAll('.material-item.visible');
+    visibleItems.forEach(item => {
+        item.classList.remove('visible');
+    });
+
+    // Удаляем все строки результатов
+    const allMaterialItems = document.querySelectorAll('.material-item');
+    allMaterialItems.forEach(item => {
+        item.remove();
+    });
+}
+
+/**
+ * Переключается на панель результатов и сбрасывает предыдущие результаты
  */
 function switchToResultsPanel() {
     const calculatorPanel = document.querySelector('.calculator-panel');
@@ -371,7 +428,6 @@ function switchToResultsPanel() {
         resultsPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 }
-
 /**
  * Вспомогательная функция для ожидания завершения анимации
  */
