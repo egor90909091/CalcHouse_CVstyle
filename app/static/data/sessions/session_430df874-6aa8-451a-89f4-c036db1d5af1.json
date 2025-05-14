@@ -1,22 +1,9 @@
 {
   "created_at": 1747077542.804822,
-  "last_activity": 1747217949.382933,
+  "last_activity": 1747228035.332149,
   "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 YaBrowser/25.4.0.0 Safari/537.36",
   "ip": "127.0.0.1",
   "request_history": [
-    {
-      "request_id": "26480ebe-149d-4125-930f-e25a9234180c",
-      "timestamp": "2025-05-14T14:36:04.964676",
-      "calculator_data": {
-        "area": 122.0,
-        "foundation_type": "strip",
-        "wall_material": "concrete",
-        "roof_type": "metal",
-        "floors": 1
-      },
-      "summary": "Лайфхак для вашего строительства",
-      "recommendation_count": 1
-    },
     {
       "request_id": "c3c6f303-ba34-4d76-ba03-3a7642028e52",
       "timestamp": "2025-05-14T14:36:39.433145",
@@ -133,6 +120,19 @@
       },
       "summary": "Лайфхак для вашего строительства",
       "recommendation_count": 1
+    },
+    {
+      "request_id": "25480597-6dcd-489f-b05e-cbf7b53bdf43",
+      "timestamp": "2025-05-14T18:07:15.332001",
+      "calculator_data": {
+        "area": 123.0,
+        "foundation_type": "strip",
+        "wall_material": "brick",
+        "roof_type": "metal",
+        "floors": 1
+      },
+      "summary": "Рекомендации включают нестандартное решение для планировки дома, советы по усилению ленточного фундамента, оптимизацию кирпичной кладки и монтажа металлочерепицы.",
+      "recommendation_count": 4
     }
   ]
 }

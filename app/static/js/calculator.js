@@ -2,10 +2,98 @@
  * Упрощенный calculator.js - Отправляет данные в Python и управляет UI
  */
 
-// Глобальные переменные
+
+
+/**
+ * Глобальные переменные
+ */
 let lastCalculationParams = {};
 let animationCompleted = false;
 
+/**
+ * Сохраняет параметры калькулятора в localStorage
+ */
+function updateCalculatorParams() {
+    // Проверяем, что форма существует
+    const form = document.getElementById('calculatorForm');
+    if (!form) return;
+
+    try {
+        // Собираем данные формы
+        const formData = new FormData(form);
+        const params = {};
+
+        // Преобразуем FormData в объект
+        for (let [key, value] of formData.entries()) {
+            params[key] = value;
+        }
+
+        // Получаем состояние видимости блоков арматуры
+        const rebarParamsBlocks = document.querySelectorAll('[id$="-params"]');
+        rebarParamsBlocks.forEach(block => {
+            const id = block.id;
+            params[`${id}_visible`] = block.style.display !== 'none';
+        });
+
+        // Сохраняем параметры в localStorage
+        localStorage.setItem('calculatorParams', JSON.stringify(params));
+
+        console.log("Параметры калькулятора сохранены");
+    } catch (error) {
+        console.error("Ошибка при сохранении параметров:", error);
+    }
+}
+
+/**
+ * Функция для обновления статуса анимации
+ * Будет вызываться из animations.js
+ */
+window.updateAnimationStatus = function (status) {
+    console.log("Обновление статуса анимации:", status);
+    animationCompleted = status;
+};
+/**
+ * Сохраняет параметры калькулятора в localStorage
+ */
+function updateCalculatorParams() {
+    // Проверяем, что форма существует
+    const form = document.getElementById('calculatorForm');
+    if (!form) return;
+
+    try {
+        // Собираем данные формы
+        const formData = new FormData(form);
+        const params = {};
+
+        // Преобразуем FormData в объект
+        for (let [key, value] of formData.entries()) {
+            params[key] = value;
+        }
+
+        // Получаем состояние видимости блоков арматуры
+        const rebarParamsBlocks = document.querySelectorAll('[id$="-params"]');
+        rebarParamsBlocks.forEach(block => {
+            const id = block.id;
+            params[`${id}_visible`] = block.style.display !== 'none';
+        });
+
+        // Сохраняем параметры в localStorage
+        localStorage.setItem('calculatorParams', JSON.stringify(params));
+
+        console.log("Параметры калькулятора сохранены");
+    } catch (error) {
+        console.error("Ошибка при сохранении параметров:", error);
+    }
+}
+
+/**
+ * Функция для обновления статуса анимации
+ * Будет вызываться из animations.js
+ */
+window.updateAnimationStatus = function (status) {
+    console.log("Обновление статуса анимации:", status);
+    animationCompleted = status;
+};
 /**
  * Функция для обновления статуса анимации
  * Будет вызываться из animations.js
