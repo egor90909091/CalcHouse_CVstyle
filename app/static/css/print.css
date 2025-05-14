@@ -5,15 +5,35 @@
     /* Общие настройки страницы */
     @page {
         size: A4;
-        margin: 1.5cm;
+        margin-left: 0.7cm !important;
+        margin-right: 1.2cm !important;
+        /* Увеличиваем правое поле */
+        margin-top: 0.7cm !important;
+        margin-bottom: 0.7cm !important;
+    }
+
+    @page {
+        @bottom-right {
+            content: "Страница " counter(page) " из " counter(pages);
+            font-size: 8pt;
+        }
     }
 
     body {
         background-color: white !important;
         color: black !important;
-        font-size: 12pt;
+        font-size: 10pt;
+        /* Уменьшено с 12pt */
         font-family: 'Arial', sans-serif;
-        line-height: 1.5;
+        line-height: 1.3;
+        /* Уменьшено с 1.5 */
+    }
+
+    /* Правильное масштабирование для содержимого */
+    html,
+    body {
+        width: 21cm;
+        height: 29.7cm;
     }
 
     /* Скрываем элементы, не нужные для печати */
@@ -34,20 +54,25 @@
 
     /* Стилизация шапки для печати - оставляем только заголовок расчета */
     .print-header h2 {
-        font-size: 18pt;
+        font-size: 16pt;
+        /* Уменьшено с 18pt */
         margin: 0;
         text-align: center;
-        padding-top: 1cm;
+        padding-top: 0.5cm;
+        /* Уменьшено с 1cm */
     }
 
     /* Мета-информация для печати */
     .print-meta {
         display: flex;
         justify-content: space-between;
-        margin-bottom: 1cm;
-        font-size: 9pt;
+        margin-bottom: 0.5cm;
+        /* Уменьшено с 1cm */
+        font-size: 8pt;
+        /* Уменьшено с 9pt */
         color: #666;
-        margin-top: 0.5cm;
+        margin-top: 0.3cm;
+        /* Уменьшено с 0.5cm */
     }
 
     .print-date,
@@ -55,11 +80,9 @@
         margin: 0;
     }
 
-    /* Схема дома для печати */
+    /* Схема дома для печати - скрыта для экономии места */
     .print-house-schema {
-        text-align: center;
-        margin-bottom: 1cm;
-        page-break-inside: avoid;
+        display: none !important;
     }
 
     /* Информация о расчете */
@@ -74,98 +97,238 @@
 
     /* Стили для результатов расчета */
     #results {
-        padding: 0;
-        margin: 0;
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: 19cm;
     }
 
     #results h4 {
-        font-size: 14pt;
-        margin-top: 0.5cm;
-        margin-bottom: 0.3cm;
+        font-size: 12pt;
+        /* Уменьшено с 14pt */
+        margin-top: 0.3cm;
+        /* Уменьшено с 0.5cm */
+        margin-bottom: 0.2cm;
+        /* Уменьшено с 0.3cm */
         color: #3182ce;
         border-bottom: 1px solid #ccc;
-        padding-bottom: 0.2cm;
+        padding-bottom: 0.1cm;
+        /* Уменьшено с 0.2cm */
         opacity: 1 !important;
     }
 
+    /* Корректируем блоки материалов */
     #foundationMaterials,
     #wallMaterials,
-    #roofMaterials {
-        margin-bottom: 0.5cm;
-        padding-left: 0.5cm;
+    #roofMaterials,
+    #floorMaterials {
+        margin-bottom: 0.3cm;
+        /* Уменьшено с 0.5cm */
+        padding-left: 0.2cm !important;
+        /* Уменьшаем левый отступ */
+        padding-right: 1cm !important;
+        /* Увеличиваем правый отступ */
+        width: 100%;
+        max-width: 19cm;
+        page-break-inside: auto;
+        /* Разрешаем разрывы между разделами если необходимо */
     }
 
+    /* Изменим распределение колонок, сжав первую колонку и центральные колонки */
     .material-item {
         display: grid;
-        grid-template-columns: 40% 20% 20% 20%;
-        margin-bottom: 0.3cm;
+        grid-template-columns: 35% 20% 15% 30% !important;
+        /* Смещаем колонку стоимости левее */
+        margin-bottom: 0.15cm;
+        page-break-inside: avoid;
+        width: 100%;
+        /* Гарантируем полную ширину */
+        max-width: 19cm;
+        /* Ограничиваем максимальную ширину */
+        margin-left: 0;
+        /* Прижимаем к левому краю */
+        margin-right: auto;
+        /* Отступ справа автоматический */
+        padding-right: 1cm !important;
+        /* Принудительный отступ справа */
     }
 
+    /* Согласуем заголовки с новой структурой колонок */
+    .material-header {
+        grid-template-columns: 35% 20% 15% 30% !important;
+        font-weight: bold;
+        border-bottom: 1px solid #000;
+        margin-bottom: 0.2cm;
+        width: 100%;
+        max-width: 19cm;
+        margin-left: 0;
+        margin-right: auto;
+        padding-right: 1cm !important;
+        font-size: 9pt !important;
+    }
+
+    /* Обеспечиваем непереполнение текста в колонках */
     .material-item>div {
-        padding-right: 0.2cm;
+        white-space: nowrap;
+        /* Предотвращаем перенос цифр */
+        overflow: hidden;
+        /* Скрываем переполнение */
+        text-overflow: ellipsis;
+        /* Добавляем многоточие при переполнении */
     }
 
-    .material-item>div:nth-child(1) {
+    /* Оптимизируем длинные названия */
+    .material-item>div:first-child {
         text-align: left;
+        font-size: 9pt;
+        /* Уменьшаем для длинных названий */
+        overflow-wrap: break-word;
+        word-wrap: break-word;
+        white-space: normal !important;
+        /* Разрешаем перенос текста */
     }
 
     .material-item>div:nth-child(2),
     .material-item>div:nth-child(3),
     .material-item>div:nth-child(4) {
         text-align: right;
+        font-size: 9pt !important;
     }
 
+    /* Применяем тот же стиль к общей строке */
     .total-row {
         border-top: 1px solid #ccc;
-        padding-top: 0.2cm;
+        padding-top: 0.15cm;
+        /* Уменьшено с 0.2cm */
         font-weight: bold;
+        grid-template-columns: 35% 20% 15% 30% !important;
+        width: 100%;
+        max-width: 19cm;
+        padding-right: 1cm !important;
     }
 
-    /* Избегаем разрывов внутри блоков */
-    .mb-6 {
-        page-break-inside: avoid;
+    /* Управление разрывами страниц */
+    .mb-6,
+    .mt-6,
+    .my-6 {
+        margin-top: 0.25cm !important;
+        margin-bottom: 0.25cm !important;
+        page-break-inside: auto;
+        /* Разрешаем разрывы по необходимости */
     }
 
     /* Стиль для примечания */
     .note-container {
-        margin-top: 1cm;
-        padding: 0.5cm;
+        margin-top: 0.5cm;
+        /* Уменьшено с 1cm */
+        padding: 0.3cm;
+        /* Уменьшено с 0.5cm */
         border: 1px solid #ccc;
         border-radius: 0.2cm;
-        font-size: 9pt;
+        font-size: 8pt;
+        /* Уменьшено с 9pt */
         background-color: #f9f9f9;
+        max-width: 19cm;
     }
 
     .note-container strong {
         font-weight: bold;
     }
 
+    /* Дополнительно для итоговой суммы */
+    .total-cost-container {
+        border: 2px solid #000 !important;
+        padding: 0.2cm !important;
+        margin: 0.3cm 0 !important;
+        background-color: #f9f9f9 !important;
+        page-break-inside: avoid;
+        width: calc(100% - 1cm) !important;
+        /* Немного уже, чем основное содержимое */
+        max-width: 18cm !important;
+        margin-right: 1cm !important;
+    }
+
+    .total-cost-container h3 {
+        font-size: 11pt;
+        margin: 0 !important;
+    }
+
+    .total-cost-container span {
+        font-size: 12pt;
+        font-weight: bold;
+    }
+
     /* Стиль для блока рекомендаций ИИ */
     .ai-recommendations {
-        margin-top: 1.5cm;
-        padding: 0.8cm;
+        page-break-before: always;
+        /* Переносим на новую страницу */
+        margin-top: 0.2cm;
+        /* Уменьшено с 1.5cm */
+        padding: 0.5cm;
+        /* Уменьшено с 0.8cm */
         border: 1px solid #2d6ca2;
         border-radius: 0.3cm;
         background-color: #eef7fd;
-        page-break-inside: avoid;
+        max-width: 19cm;
     }
 
     .ai-recommendations-title {
-        font-size: 14pt;
+        font-size: 12pt;
+        /* Уменьшено с 14pt */
         font-weight: bold;
         color: #2d6ca2;
-        margin-bottom: 0.5cm;
+        margin-bottom: 0.3cm;
+        /* Уменьшено с 0.5cm */
     }
 
-    .ai-recommendation-item {
-        margin-bottom: 0.4cm;
-        display: flex;
+    /* Новый стиль для списка рекомендаций */
+    .ai-recommendations-list {
+        display: block;
+        /* Вместо flex для лучшей печати */
     }
 
-    .ai-recommendation-item:before {
-        content: '•';
-        margin-right: 0.3cm;
+    .ai-recommendation-card {
+        padding: 0.3cm;
+        /* Компактный вид */
+        margin-bottom: 0.3cm;
+        border-left: 3px solid #2d6ca2;
+        page-break-inside: avoid;
+        /* Избегаем разрывов внутри карточки */
+    }
+
+    .ai-rec-category {
+        font-size: 8pt;
+        display: inline-block;
+        padding: 2px 5px;
+        background-color: #2d6ca2;
+        color: white;
+        margin-bottom: 0.1cm;
+    }
+
+    .ai-rec-title {
+        font-size: 10pt;
+        font-weight: bold;
+        margin-bottom: 0.1cm;
+        padding-bottom: 0.05cm;
+        border-bottom: 1px solid #ccc;
+    }
+
+    .ai-rec-description {
+        font-size: 9pt;
+        line-height: 1.3;
+        margin-bottom: 0.1cm;
+    }
+
+    .ai-rec-impact {
+        font-size: 8pt;
         color: #2d6ca2;
+    }
+
+    .ai-summary {
+        font-size: 9pt;
+        padding: 0.3cm;
+        margin-bottom: 0.3cm;
+        border: 1px solid #2d6ca2;
+        page-break-inside: avoid;
     }
 
     /* Математическая доска не нужна для печати */

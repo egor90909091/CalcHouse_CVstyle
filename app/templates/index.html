@@ -835,34 +835,65 @@
                                         <select name="woodType" class="w-full p-3 border border-gray-300 rounded-lg">
                                             <option value="timber">Брус</option>
                                             <option value="round_log">Оцилиндрованное бревно</option>
-                                            <option value="glued_beam">Клееный брус</option>
                                         </select>
                                     </div>
                                     <div class="wood-param">
                                         <label class="block text-gray-700 mb-2">Размер сечения (мм)</label>
                                         <select name="woodSize" class="w-full p-3 border border-gray-300 rounded-lg">
                                             <option value="150">150x150</option>
+                                            <option value="160">160x160</option>
                                             <option value="200">200x200</option>
                                             <option value="250">250x250</option>
                                         </select>
                                     </div>
                                 </div>
 
-                                <!-- Выбор материалов для деревянных стен (замена чекбоксов на селект) -->
+                                <!-- Выбор материалов для деревянных стен (детальные опции) -->
                                 <div class="mt-6 wood-param" style="margin-top: 26px;">
                                     <label class="block text-blue-700 text-2xl font-bold mb-3"
                                         style="font-size: 1.5rem; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">Дополнительные
                                         материалы для дерева</label>
-                                    <select name="wood_materials" class="w-full p-3 border border-gray-300 rounded-lg">
-                                        <option value="none">Без дополнительных материалов</option>
-                                        <option value="wall_insulation" selected>Утеплитель для стен</option>
-                                        <option value="interlayer_insulation">Межвенцовый утеплитель</option>
-                                        <option value="both_insulation">Оба типа утеплителя</option>
-                                    </select>
+                                    <div class="grid grid-cols-1 gap-4 pt-2">
+                                        <!-- Выбор типа утеплителя -->
+                                        <div class="wood-param">
+                                            <label class="block mb-2 font-medium">Тип утеплителя для стен</label>
+                                            <select name="wood_insulation_type"
+                                                class="w-full p-3 border border-gray-300 rounded-lg">
+                                                <option value="insulation_mineral" selected>Минеральная вата</option>
+                                                <option value="insulation_foam">Пенополистирол</option>
+                                                <option value="insulation_basalt">Базальтовая вата</option>
+                                                <option value="insulation_ecowool">Эковата</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- Выбор межвенцового утеплителя -->
+                                        <div class="wood-param">
+                                            <label class="block mb-2 font-medium">Межвенцовый утеплитель</label>
+                                            <select name="wood_interlayer"
+                                                class="w-full p-3 border border-gray-300 rounded-lg">
+                                                <option value="jute" selected>Джутовый</option>
+                                                <option value="moss">Мох</option>
+                                                <option value="linen">Льняной</option>
+                                                <option value="synthetic">Синтетический</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- Выбор обработки -->
+                                        <div class="wood-param">
+                                            <label class="block mb-2 font-medium">Защитная обработка</label>
+                                            <select name="wood_treatment"
+                                                class="w-full p-3 border border-gray-300 rounded-lg">
+                                                <option value="none">Без обработки</option>
+                                                <option value="antiseptic" selected>Антисептик</option>
+                                                <option value="fire_retardant">Огнезащита</option>
+                                                <option value="complex">Комплексная защита</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
-                            <!-- Блочные стены -->
+                            <!-- Блочные стены (расширенные опции) -->
                             <div class="wall-params block-params hidden">
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
@@ -884,21 +915,50 @@
                                     </div>
                                 </div>
 
-                                <!-- Выбор материалов для блочных стен (замена чекбоксов на селект) -->
+                                <!-- Выбор материалов для блочных стен (детальные опции) -->
                                 <div class="mt-6" style="margin-top: 26px;">
                                     <label class="block text-blue-700 text-2xl font-bold mb-3"
                                         style="font-size: 1.5rem; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">Дополнительные
-                                        материалы</label>
-                                    <select name="block_materials" class="w-full p-3 border border-gray-300 rounded-lg">
-                                        <option value="none">Без дополнительных материалов</option>
-                                        <option value="adhesive" selected>Клей для блоков</option>
-                                        <option value="insulation">Утеплитель</option>
-                                        <option value="both">Клей и утеплитель</option>
-                                    </select>
+                                        материалы для блоков</label>
+                                    <div class="grid grid-cols-1 gap-4 pt-2">
+                                        <!-- Выбор клея -->
+                                        <div>
+                                            <label class="block mb-2 font-medium">Клей для блоков</label>
+                                            <select name="block_adhesive_type"
+                                                class="w-full p-3 border border-gray-300 rounded-lg">
+                                                <option value="adhesive_standard" selected>Стандартный клей</option>
+                                                <option value="adhesive_winter">Зимний клей</option>
+                                                <option value="adhesive_flex">Эластичный клей</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- Выбор утеплителя -->
+                                        <div>
+                                            <label class="block mb-2 font-medium">Утеплитель</label>
+                                            <select name="block_insulation_type"
+                                                class="w-full p-3 border border-gray-300 rounded-lg">
+                                                <option value="insulation_mineral" selected>Минеральная вата</option>
+                                                <option value="insulation_foam">Пенополистирол</option>
+                                                <option value="insulation_basalt">Базальтовая вата</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- Выбор армирования -->
+                                        <div>
+                                            <label class="block mb-2 font-medium">Армирование кладки</label>
+                                            <select name="block_reinforcement"
+                                                class="w-full p-3 border border-gray-300 rounded-lg">
+                                                <option value="none">Без армирования</option>
+                                                <option value="mesh" selected>Кладочная сетка</option>
+                                                <option value="rebar">Стержневая арматура</option>
+                                                <option value="fiber">Фиброволокно в клей</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
-                            <!-- Монолитные стены -->
+                            <!-- Монолитные стены (расширенные опции) -->
                             <div class="wall-params concrete-params hidden">
                                 <!-- Содержимое для монолитных стен -->
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -919,23 +979,51 @@
                                     </div>
                                 </div>
 
-                                <!-- Выбор материалов для монолитных стен (замена чекбоксов на селект) -->
+                                <!-- Выбор материалов для монолитных стен (детальные опции) -->
                                 <div class="mt-6" style="margin-top: 26px;">
                                     <label class="block text-blue-700 text-2xl font-bold mb-3"
                                         style="font-size: 1.5rem; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">Дополнительные
-                                        материалы</label>
-                                    <select name="concrete_materials"
-                                        class="w-full p-3 border border-gray-300 rounded-lg">
-                                        <option value="none">Без дополнительных материалов</option>
-                                        <option value="rebar">Арматура для стен</option>
-                                        <option value="formwork">Опалубка для стен</option>
-                                        <option value="insulation">Утеплитель</option>
-                                        <option value="all" selected>Все материалы</option>
-                                    </select>
+                                        материалы для монолита</label>
+                                    <div class="grid grid-cols-1 gap-4 pt-2">
+                                        <!-- Выбор типа арматуры -->
+                                        <div>
+                                            <label class="block mb-2 font-medium">Арматура для стен</label>
+                                            <select name="concrete_rebar_type"
+                                                class="w-full p-3 border border-gray-300 rounded-lg">
+                                                <option value="rebar_a300">Арматура A300</option>
+                                                <option value="rebar_a400" selected>Арматура A400</option>
+                                                <option value="rebar_a500">Арматура A500</option>
+                                                <option value="rebar_composite">Композитная арматура</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- Выбор опалубки -->
+                                        <div>
+                                            <label class="block mb-2 font-medium">Опалубка для стен</label>
+                                            <select name="concrete_formwork_type"
+                                                class="w-full p-3 border border-gray-300 rounded-lg">
+                                                <option value="formwork_wood" selected>Съёмная деревянная</option>
+                                                <option value="formwork_metal">Съёмная металлическая</option>
+                                                <option value="formwork_permanent">Несъёмная опалубка</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- Выбор утеплителя -->
+                                        <div>
+                                            <label class="block mb-2 font-medium">Утеплитель</label>
+                                            <select name="concrete_insulation_type"
+                                                class="w-full p-3 border border-gray-300 rounded-lg">
+                                                <option value="insulation_mineral" selected>Минеральная вата</option>
+                                                <option value="insulation_foam">Пенополистирол</option>
+                                                <option value="insulation_basalt">Базальтовая вата</option>
+                                                <option value="insulation_none">Без утепления</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
-                            <!-- Панельные стены -->
+                            <!-- Панельные стены (расширенные опции) -->
                             <div class="wall-params panel-params hidden">
                                 <!-- Содержимое для панельных стен -->
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -955,17 +1043,36 @@
                                     </div>
                                 </div>
 
-                                <!-- Выбор материалов для панельных стен (замена чекбоксов на селект) -->
+                                <!-- Выбор материалов для панельных стен (детальные опции) -->
                                 <div class="mt-6" style="margin-top: 26px;">
                                     <label class="block text-blue-700 text-2xl font-bold mb-3"
                                         style="font-size: 1.5rem; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">Дополнительные
-                                        материалы</label>
-                                    <select name="panel_materials" class="w-full p-3 border border-gray-300 rounded-lg">
-                                        <option value="none">Без дополнительных материалов</option>
-                                        <option value="mounting_kit">Монтажный комплект</option>
-                                        <option value="sealant">Герметик для швов</option>
-                                        <option value="both" selected>Монтажный комплект и герметик</option>
-                                    </select>
+                                        материалы для панелей</label>
+                                    <div class="grid grid-cols-1 gap-4 pt-2">
+                                        <!-- Выбор герметика для швов -->
+                                        <div>
+                                            <label class="block mb-2 font-medium">Герметик для швов</label>
+                                            <select name="panel_sealant_type"
+                                                class="w-full p-3 border border-gray-300 rounded-lg">
+                                                <option value="sealant_silicone" selected>Силиконовый</option>
+                                                <option value="sealant_polyurethane">Полиуретановый</option>
+                                                <option value="sealant_acrylic">Акриловый</option>
+                                                <option value="sealant_ms">MS-полимерный</option>
+                                            </select>
+                                        </div>
+
+                                        <!-- Выбор дополнительной изоляции стыков -->
+                                        <div>
+                                            <label class="block mb-2 font-medium">Изоляция стыков</label>
+                                            <select name="panel_joint_insulation"
+                                                class="w-full p-3 border border-gray-300 rounded-lg">
+                                                <option value="none">Без дополнительной изоляции</option>
+                                                <option value="foam" selected>Монтажная пена</option>
+                                                <option value="mineral">Минеральная вата</option>
+                                                <option value="tape">Герметизирующая лента</option>
+                                            </select>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

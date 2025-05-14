@@ -45,9 +45,25 @@
     transition: opacity 0.3s ease, display 0.3s ease;
 }
 
-.foundation-params.hidden,
-.wall-params.hidden {
+/* Важный фикс: Переопределение стилей для параметров стен */
+.wall-params {
     display: none;
+}
+
+.wall-params.brick-params {
+    display: block;
+}
+
+.wall-params.wood-params,
+.wall-params.block-params,
+.wall-params.concrete-params,
+.wall-params.panel-params {
+    display: none;
+}
+
+/* Скрытие и отображение параметров стен */
+.wall-params.hidden {
+    display: none !important;
 }
 
 /* Результаты расчета */

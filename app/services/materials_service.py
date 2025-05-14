@@ -1333,15 +1333,6 @@ class MaterialsService:
                 )
             )
 
-            # Монтажные материалы
-            materials.append(
-                MaterialItem(
-                    name="Монтажный комплект (метизы, сварка)",
-                    quantity=panel_count,
-                    unit="компл.",
-                )
-            )
-
             # Герметик для швов
             materials.append(
                 MaterialItem(

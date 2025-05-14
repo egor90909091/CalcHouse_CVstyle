@@ -25,6 +25,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // Инициализация формы
     setupForm();
 
+    // Инициализация обработчиков для дополнительных параметров стен
+    initCalculator();
+
     // Установка значений из URL, если они есть
     loadFormValues();
 });
@@ -46,12 +49,33 @@ function initializeSwitchers() {
     // Инициализация переключателя фундамента
     const foundationTypeSelect = document.getElementById('foundationType');
     if (foundationTypeSelect) {
-        foundationTypeSelect.addEventListener('change', function () {
-            switchFoundationParams(this.value);
-        });
-        // Вызываем сразу для установки начального состояния
+        // Сначала устанавливаем начальное состояние без обработчика события
+        // чтобы избежать дублирования с setupFormChangeListeners
         switchFoundationParams(foundationTypeSelect.value);
     }
+
+    // Инициализация переключателей арматуры (шестеренки)
+    const rebarToggles = document.querySelectorAll('.rebar-toggle');
+    rebarToggles.forEach(toggle => {
+        toggle.addEventListener('click', function () {
+            // Получаем ID соответствующего блока параметров арматуры
+            const toggleId = this.id;
+            const paramsId = toggleId.replace('-toggle', '-params');
+            const paramsBlock = document.getElementById(paramsId);
+
+            if (paramsBlock) {
+                // Показываем или скрываем блок параметров
+                if (paramsBlock.style.display === 'none') {
+                    paramsBlock.style.display = 'grid';
+                } else {
+                    paramsBlock.style.display = 'none';
+                }
+
+                // Сохраняем состояние в localStorage
+                updateCalculatorParams();
+            }
+        });
+    });
 
     // Инициализация переключателя количества этажей
     const floorsSelect = document.getElementById('floorsSelect');
@@ -95,15 +119,53 @@ function initializeSwitchers() {
  * Переключает видимость параметров в зависимости от типа стен
  */
 function switchWallParams(wallType) {
-    // Скрываем все блоки параметров стен
+    console.log("Переключение на тип стен:", wallType);
+
+    // Сначала скрываем все блоки параметров стен (удаляем любые классы, которые могут включать отображение)
     document.querySelectorAll('.wall-params').forEach(div => {
+        console.log("Скрываю блок:", div.className);
         div.style.display = 'none';
+        div.classList.add('hidden');
     });
 
-    // Показываем только блок для выбранного материала
-    const targetBlock = document.querySelector(`.wall-params.${wallType}-params`);
-    if (targetBlock) {
-        targetBlock.style.display = 'block';
+    // Собираем все возможные селекторы для разных типов стен
+    const selectors = [
+        `.wall-params.${wallType}-params`,
+        `#${wallType}Params`,
+        `.${wallType}-walls-section`
+    ];
+
+    // Проходим по селекторам и пытаемся найти целевой блок
+    let targetFound = false;
+    for (const selector of selectors) {
+        const targetBlock = document.querySelector(selector);
+        if (targetBlock) {
+            console.log("Найден целевой блок по селектору:", selector);
+            targetBlock.style.display = 'block';
+            targetBlock.classList.remove('hidden');
+            targetFound = true;
+
+            // После отображения блока параметров, убедимся что вложенные элементы тоже видны
+            const nestedParams = targetBlock.querySelectorAll('select, input');
+            if (nestedParams.length > 0) {
+                console.log(`Найдено ${nestedParams.length} вложенных параметров`);
+            }
+
+            break;
+        }
+    }
+
+    if (!targetFound) {
+        console.warn("⚠️ Не найден блок параметров для типа стен:", wallType);
+        console.warn("Доступные блоки стен:");
+        document.querySelectorAll('.wall-params').forEach(div => {
+            console.warn(" - " + div.className);
+        });
+    }
+
+    // Вызываем обработчики для новых параметров
+    if (typeof setupWallMaterialsHandlers === 'function') {
+        setupWallMaterialsHandlers();
     }
 }
 
@@ -237,6 +299,11 @@ function setupResultButtons() {
  * Загружает значения формы из URL или localStorage
  */
 function loadFormValues() {
+    // Очищаем все параметры фундамента перед загрузкой сохраненных значений
+    document.querySelectorAll('.foundation-type').forEach(div => {
+        div.style.display = 'none';
+    });
+
     // Загружаем из localStorage
     const savedParams = localStorage.getItem('calculatorParams');
     // Проверяем, есть ли сохраненное состояние интерфейса
@@ -245,6 +312,18 @@ function loadFormValues() {
     if (savedParams) {
         try {
             const params = JSON.parse(savedParams);
+
+            // Важно: сначала устанавливаем тип фундамента и переключаем связанные поля
+            if (params.foundationType) {
+                const foundationTypeSelect = document.getElementById('foundationType');
+                if (foundationTypeSelect) {
+                    foundationTypeSelect.value = params.foundationType;
+                    switchFoundationParams(params.foundationType);
+                    console.log("Восстановлен тип фундамента:", params.foundationType);
+                }
+            }
+
+            // Затем применяем все остальные значения
             applyFormValues(params);
 
             // Если есть сохраненное состояние UI и оно указывает на то, что должны отображаться результаты
@@ -269,6 +348,16 @@ function loadFormValues() {
             params[key] = value;
         });
 
+        // Важно: сначала устанавливаем тип фундамента и переключаем связанные поля
+        if (params.foundationType) {
+            const foundationTypeSelect = document.getElementById('foundationType');
+            if (foundationTypeSelect) {
+                foundationTypeSelect.value = params.foundationType;
+                switchFoundationParams(params.foundationType);
+            }
+        }
+
+        // Затем применяем все остальные значения
         applyFormValues(params);
     }
 }
@@ -279,6 +368,9 @@ function loadFormValues() {
 function applyFormValues(params) {
     const form = document.getElementById('calculatorForm');
     if (!form) return;
+
+    // Временно отключаем автоматическое переключение для select элементов
+    const disableAutoSwitch = true;
 
     for (const [key, value] of Object.entries(params)) {
         const element = form.elements[key];
@@ -294,17 +386,81 @@ function applyFormValues(params) {
                 element.value = value;
             }
 
-            // Вызываем событие change для select-элементов
-            if (element.tagName === 'SELECT') {
+            // Вызываем событие change для select-элементов, кроме foundationType
+            // который уже был обработан в loadFormValues
+            if (element.tagName === 'SELECT' && key !== 'foundationType' && !disableAutoSwitch) {
                 element.dispatchEvent(new Event('change'));
+            }
+        }
+    }
+
+    // Применение дополнительных параметров для деревянных стен
+    if (params.wall_material === 'wood') {
+        // Применение новых параметров для деревянных стен
+        if (params.wood_insulation_type && document.querySelector('[name="wood_insulation_type"]')) {
+            document.querySelector('[name="wood_insulation_type"]').value = params.wood_insulation_type;
+        }
+
+        if (params.wood_interlayer && document.querySelector('[name="wood_interlayer"]')) {
+            document.querySelector('[name="wood_interlayer"]').value = params.wood_interlayer;
+        }
+
+        if (params.wood_treatment && document.querySelector('[name="wood_treatment"]')) {
+            document.querySelector('[name="wood_treatment"]').value = params.wood_treatment;
+        }
+    } else if (params.wall_material === 'block') {
+        // Применение новых параметров для блочных стен
+        if (params.block_adhesive_type && document.querySelector('[name="block_adhesive_type"]')) {
+            document.querySelector('[name="block_adhesive_type"]').value = params.block_adhesive_type;
+        }
+
+        if (params.block_insulation_type && document.querySelector('[name="block_insulation_type"]')) {
+            document.querySelector('[name="block_insulation_type"]').value = params.block_insulation_type;
+        }
+
+        if (params.block_reinforcement && document.querySelector('[name="block_reinforcement"]')) {
+            document.querySelector('[name="block_reinforcement"]').value = params.block_reinforcement;
+        }
+    } else if (params.wall_material === 'concrete') {
+        // Применение новых параметров для монолитных стен
+        if (params.concrete_rebar_type && document.querySelector('[name="concrete_rebar_type"]')) {
+            document.querySelector('[name="concrete_rebar_type"]').value = params.concrete_rebar_type;
+        }
+
+        if (params.concrete_formwork_type && document.querySelector('[name="concrete_formwork_type"]')) {
+            document.querySelector('[name="concrete_formwork_type"]').value = params.concrete_formwork_type;
+        }
+
+        if (params.concrete_insulation_type && document.querySelector('[name="concrete_insulation_type"]')) {
+            document.querySelector('[name="concrete_insulation_type"]').value = params.concrete_insulation_type;
+        }
+    } else if (params.wall_material === 'panel') {
+        // Применение новых параметров для панельных стен
+        if (params.panel_mounting_type && document.querySelector('[name="panel_mounting_type"]')) {
+            document.querySelector('[name="panel_mounting_type"]').value = params.panel_mounting_type;
+        }
+
+        if (params.panel_sealant_type && document.querySelector('[name="panel_sealant_type"]')) {
+            document.querySelector('[name="panel_sealant_type"]').value = params.panel_sealant_type;
+        }
+
+        if (params.panel_joint_insulation && document.querySelector('[name="panel_joint_insulation"]')) {
+            document.querySelector('[name="panel_joint_insulation"]').value = params.panel_joint_insulation;
+        }
+    }
+
+    // Восстанавливаем состояние видимости блоков арматуры
+    for (const [key, value] of Object.entries(params)) {
+        if (key.endsWith('_visible')) {
+            const blockId = key.replace('_visible', '');
+            const block = document.getElementById(blockId);
+            if (block) {
+                block.style.display = value === 'true' || value === true ? 'grid' : 'none';
             }
         }
     }
 }
 
-/**
- * Обрабатывает отправку формы
- */
 /**
  * Обрабатывает отправку формы с правильным сбросом предыдущих результатов
  */
@@ -444,6 +600,7 @@ function switchToResultsPanel() {
         resultsPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 }
+
 /**
  * Вспомогательная функция для ожидания завершения анимации
  */
@@ -619,11 +776,11 @@ function fillSection(container, items) {
     const headerRow = document.createElement('div');
     headerRow.className = 'grid grid-cols-4 gap-2 mb-3 font-semibold material-header';
     headerRow.innerHTML = `
-        <div>Наименование</div>
-        <div class="text-right">Количество</div>
-        <div class="text-right">Цена за ед.</div>
-        <div class="text-right">Стоимость</div>
-    `;
+    <div>Наименование</div>
+    <div class="text-right">Количество</div>
+    <div class="text-right">Цена за ед.</div>
+    <div class="text-right">Стоимость</div>
+`;
     container.appendChild(headerRow);
 
     // Добавляем материалы
@@ -635,16 +792,29 @@ function fillSection(container, items) {
         const materialRow = document.createElement('div');
         materialRow.className = 'grid grid-cols-4 gap-2 mb-2 material-item';
 
+        // Форматируем название материала
+        let itemName = item.name;
+
+        // Замена sip_panels на панели
+        if (itemName.includes('sip_panels')) {
+            itemName = itemName.replace('sip_panels', 'панели');
+        }
+
+        // Форматирование размеров бруса без десятичных знаков
+        if (itemName.includes('x') && itemName.includes('.0')) {
+            itemName = itemName.replace(/(\d+)\.0/g, '$1');
+        }
+
         // Используем готовую стоимость из данных
         const totalCost = item.total_cost || 0;
         sectionTotal += totalCost;
 
         materialRow.innerHTML = `
-            <div>${item.name}</div>
-            <div class="font-semibold text-right">${item.quantity} ${item.unit || ''}</div>
-            <div class="font-semibold text-right">${item.price ? `${item.price} ₽` : '—'}</div>
-            <div class="font-semibold text-right">${Math.round(totalCost).toLocaleString('ru-RU')} ₽</div>
-        `;
+    <div>${itemName}</div>
+    <div class="font-semibold text-right">${item.quantity} ${item.unit || ''}</div>
+    <div class="font-semibold text-right">${item.price ? `${item.price} ₽` : '—'}</div>
+    <div class="font-semibold text-right">${Math.round(totalCost).toLocaleString('ru-RU')} ₽</div>
+`;
 
         container.appendChild(materialRow);
 
@@ -659,10 +829,15 @@ function fillSection(container, items) {
         const totalRow = document.createElement('div');
         totalRow.className = 'grid grid-cols-4 gap-2 mt-4 pt-2 font-bold material-item total-row';
         totalRow.innerHTML = `
-            <div style="grid-column: 1 / 4">Итого по разделу:</div>
-            <div class="text-right">${Math.round(sectionTotal).toLocaleString('ru-RU')} ₽</div>
-        `;
+    <div style="grid-column: 1 / 4">Итого по разделу:</div>
+    <div class="text-right">${Math.round(sectionTotal).toLocaleString('ru-RU')} ₽</div>
+`;
         container.appendChild(totalRow);
+
+        // Делаем строку с итогом сразу видимой
+        setTimeout(() => {
+            totalRow.classList.add('visible');
+        }, 100);
     }
 }
 
@@ -692,16 +867,18 @@ function displayTotalCost(totalCost) {
 
     // Обновляем сумму
     totalBlock.innerHTML = `
-        <div class="flex justify-between items-center">
-            <h3 class="text-xl font-bold">Общая стоимость материалов:</h3>
-            <span class="text-2xl font-bold">${Math.round(totalCost).toLocaleString('ru-RU')} ₽</span>
-        </div>
-    `;
+    <div class="flex justify-between items-center">
+        <h3 class="text-xl font-bold">Общая стоимость материалов:</h3>
+        <span class="text-2xl font-bold">${Math.round(totalCost).toLocaleString('ru-RU')} ₽</span>
+    </div>
+`;
 }
-
 
 /**
  * Запрашивает рекомендации от ИИ с улучшенным визуальным оформлением
+ */
+/**
+ * Запрашивает рекомендации от ИИ с упрощенным визуальным оформлением
  */
 function showAIRecommendations(params) {
     const recommendationsContainer = document.querySelector('.ai-recommendations');
@@ -723,31 +900,31 @@ function showAIRecommendations(params) {
         heading.classList.remove('text-blue-400');
 
         heading.innerHTML = `
-            <div class="flex items-center">
-                <span>Рекомендации ИИ-ассистента</span>
-                <div class="loader ml-2"></div>
-            </div>
-        `;
+    <div class="flex items-center">
+        <span>Рекомендации ИИ-ассистента</span>
+        <div class="loader ml-2"></div>
+    </div>
+`;
     }
 
     // Очищаем контейнер и показываем красивую анимацию загрузки
     contentContainer.innerHTML = `
-        <div class="loading-container">
-            <div class="fancy-spinner">
-                <div class="ring"></div>
-                <div class="ring"></div>
-                <div class="dot"></div>
-            </div>
-            <p class="loading-text">Анализ проекта и подготовка рекомендаций...</p>
+    <div class="loading-container">
+        <div class="fancy-spinner">
+            <div class="ring"></div>
+            <div class="ring"></div>
+            <div class="dot"></div>
         </div>
-    `;
+        <p class="loading-text">Анализ проекта и подготовка рекомендаций...</p>
+    </div>
+`;
 
     // Готовим параметры запроса
     const requestBody = {
         calculator_data: {
             area: parseFloat(params.area) || 0,
             foundation_type: params.foundationType || "strip",
-            wall_material: params.wallMaterial || "brick",
+            wall_material: params.wall_material || "brick",
             floors: parseInt(params.floors) || 1,
             roof_type: params.roofType || "metal"
         },
@@ -782,7 +959,7 @@ function showAIRecommendations(params) {
 
             // Добавляем рекомендации
             if (data.recommendations && data.recommendations.length > 0) {
-                // Добавляем общую сводку
+                // Добавляем общую сводку без заголовка "сводка"
                 if (data.summary) {
                     const summaryDiv = document.createElement('div');
                     summaryDiv.className = 'ai-summary mb-4 p-4 rounded-lg border theme-summary';
@@ -798,12 +975,12 @@ function showAIRecommendations(params) {
                     const recDiv = document.createElement('div');
                     recDiv.className = 'ai-recommendation-card';
 
+                    // Упрощенный HTML без блока категории
                     recDiv.innerHTML = `
-                        <div class="ai-rec-category">${rec.category || 'Рекомендация'}</div>
-                        <h3 class="ai-rec-title">${rec.title || 'Рекомендация'}</h3>
-                        <div class="ai-rec-description">${rec.description || ''}</div>
-                        ${rec.impact ? `<div class="ai-rec-impact">${rec.impact}</div>` : ''}
-                    `;
+        <h3 class="ai-rec-title">${rec.title || 'Рекомендация'}</h3>
+        <div class="ai-rec-description">${rec.description || ''}</div>
+        ${rec.impact ? `<div class="ai-rec-impact">${rec.impact}</div>` : ''}
+    `;
 
                     recommendationsDiv.appendChild(recDiv);
                 });
@@ -837,11 +1014,14 @@ function preparePrintView() {
     // Текущая дата
     const currentDate = new Date();
     const formattedDate = currentDate.toLocaleDateString('ru-RU');
+    console.log("Установка даты печати:", formattedDate);
 
     // Установка даты для печати
     const printDateElement = document.getElementById('print-date');
     if (printDateElement) {
         printDateElement.textContent = formattedDate;
+    } else {
+        console.warn("Элемент print-date не найден");
     }
 
     // Добавляем атрибут даты к контейнеру результатов
@@ -849,6 +1029,13 @@ function preparePrintView() {
     if (resultsElement) {
         resultsElement.setAttribute('data-print-date', formattedDate);
     }
+
+    // Проверка содержимого всех print-date элементов на странице
+    document.querySelectorAll('[id="print-date"]').forEach((el, i) => {
+        console.log(`print-date элемент ${i}:`, el.textContent);
+        // Принудительно устанавливаем для всех найденных элементов
+        el.textContent = formattedDate;
+    });
 }
 
 /**
@@ -923,4 +1110,234 @@ async function restoreCalculationResults(params) {
         // Сбрасываем сохраненное состояние UI
         localStorage.setItem('calculatorUiState', 'form');
     }
+}
+
+/**
+ * Настраивает обработчики событий изменения для всех полей формы
+ */
+function setupFormChangeListeners() {
+    const form = document.getElementById('calculatorForm');
+    if (!form) return;
+
+    // Особые обработчики для ключевых селектов с автоматическим сохранением
+    const foundationTypeSelect = document.getElementById('foundationType');
+    if (foundationTypeSelect) {
+        foundationTypeSelect.addEventListener('change', function () {
+            console.log(`Изменение типа фундамента: ${this.value}`);
+            // Сначала переключаем видимые параметры
+            switchFoundationParams(this.value);
+            // Затем сохраняем состояние
+            updateCalculatorParams();
+        });
+    }
+
+    // Добавляем обработчики для всех селектов (выпадающих списков)
+    const selects = form.querySelectorAll('select');
+    selects.forEach(select => {
+        // Пропускаем foundationType, так как для него отдельный обработчик выше
+        if (select.id === 'foundationType') return;
+
+        select.addEventListener('change', function () {
+            console.log(`Изменение значения в селекте ${select.name}: ${select.value}`);
+            updateCalculatorParams();
+        });
+    });
+
+    // Добавляем обработчики для всех инпутов (текстовых полей, числовых, чекбоксы)
+    const inputs = form.querySelectorAll('input');
+    inputs.forEach(input => {
+        // Для текстовых и числовых полей используем событие input
+        // Для чекбоксов и радио-кнопок - change
+        const eventType = (input.type === 'checkbox' || input.type === 'radio') ? 'change' : 'input';
+
+        input.addEventListener(eventType, function () {
+            console.log(`Изменение значения в поле ${input.name}: ${input.value}`);
+            updateCalculatorParams();
+        });
+    });
+
+    console.log("Установлены обработчики для сохранения параметров формы");
+}
+
+/**
+ * Инициализирует калькулятор
+ */
+function initCalculator() {
+    // Обработчики для дополнительных параметров стен
+    setupWallMaterialsHandlers();
+
+    // Добавляем обработчики для сохранения параметров формы
+    setupFormChangeListeners();
+}
+
+/**
+ * Настраивает обработчики событий для всех типов материалов стен
+ */
+function setupWallMaterialsHandlers() {
+    // Деревянные стены - дополнительные параметры
+    if (document.querySelector('[name="wood_insulation_type"]')) {
+        document.querySelector('[name="wood_insulation_type"]').addEventListener('change', function (e) {
+            updateCalculatorParams();
+        });
+    }
+
+    if (document.querySelector('[name="wood_interlayer"]')) {
+        document.querySelector('[name="wood_interlayer"]').addEventListener('change', function (e) {
+            updateCalculatorParams();
+        });
+    }
+
+    if (document.querySelector('[name="wood_treatment"]')) {
+        document.querySelector('[name="wood_treatment"]').addEventListener('change', function (e) {
+            updateCalculatorParams();
+        });
+    }
+
+    // Блочные стены - дополнительные параметры
+    if (document.querySelector('[name="block_adhesive_type"]')) {
+        document.querySelector('[name="block_adhesive_type"]').addEventListener('change', function (e) {
+            updateCalculatorParams();
+        });
+    }
+
+    if (document.querySelector('[name="block_insulation_type"]')) {
+        document.querySelector('[name="block_insulation_type"]').addEventListener('change', function (e) {
+            updateCalculatorParams();
+        });
+    }
+
+    if (document.querySelector('[name="block_reinforcement"]')) {
+        document.querySelector('[name="block_reinforcement"]').addEventListener('change', function (e) {
+            updateCalculatorParams();
+        });
+    }
+
+    // Монолитные стены - дополнительные параметры
+    if (document.querySelector('[name="concrete_rebar_type"]')) {
+        document.querySelector('[name="concrete_rebar_type"]').addEventListener('change', function (e) {
+            updateCalculatorParams();
+        });
+    }
+
+    if (document.querySelector('[name="concrete_formwork_type"]')) {
+        document.querySelector('[name="concrete_formwork_type"]').addEventListener('change', function (e) {
+            updateCalculatorParams();
+        });
+    }
+
+    if (document.querySelector('[name="concrete_insulation_type"]')) {
+        document.querySelector('[name="concrete_insulation_type"]').addEventListener('change', function (e) {
+            updateCalculatorParams();
+        });
+    }
+
+    // Панельные стены - дополнительные параметры
+    if (document.querySelector('[name="panel_mounting_type"]')) {
+        document.querySelector('[name="panel_mounting_type"]').addEventListener('change', function (e) {
+            updateCalculatorParams();
+        });
+    }
+
+    if (document.querySelector('[name="panel_sealant_type"]')) {
+        document.querySelector('[name="panel_sealant_type"]').addEventListener('change', function (e) {
+            updateCalculatorParams();
+        });
+    }
+
+    if (document.querySelector('[name="panel_joint_insulation"]')) {
+        document.querySelector('[name="panel_joint_insulation"]').addEventListener('change', function (e) {
+            updateCalculatorParams();
+        });
+    }
+}
+
+/**
+ * Собирает параметры из формы калькулятора
+ */
+function getCalculatorParams() {
+    const form = document.getElementById('calculatorForm');
+    if (!form) return {};
+
+    const formData = new FormData(form);
+    const params = {};
+
+    // Собираем данные формы
+    for (let [key, value] of formData.entries()) {
+        params[key] = value;
+    }
+
+    // Получаем состояние видимости блоков арматуры
+    const rebarParamsBlocks = document.querySelectorAll('[id$="-params"]');
+    rebarParamsBlocks.forEach(block => {
+        const id = block.id;
+        params[`${id}_visible`] = block.style.display !== 'none';
+    });
+
+    // Обновление для включения всех дополнительных опций стен
+    if (params.wall_material === 'wood') {
+        params.woodSize = document.querySelector('[name="woodSize"]').value;
+
+        // Добавление новых параметров для деревянных стен
+        if (document.querySelector('[name="wood_insulation_type"]')) {
+            params.wood_insulation_type = document.querySelector('[name="wood_insulation_type"]').value;
+        }
+
+        if (document.querySelector('[name="wood_interlayer"]')) {
+            params.wood_interlayer = document.querySelector('[name="wood_interlayer"]').value;
+        }
+
+        if (document.querySelector('[name="wood_treatment"]')) {
+            params.wood_treatment = document.querySelector('[name="wood_treatment"]').value;
+        }
+    } else if (params.wall_material === 'block') {
+        params.blockType = document.querySelector('[name="blockType"]').value;
+        params.blockThickness = document.querySelector('[name="blockThickness"]').value;
+
+        // Добавление новых параметров для блочных стен
+        if (document.querySelector('[name="block_adhesive_type"]')) {
+            params.block_adhesive_type = document.querySelector('[name="block_adhesive_type"]').value;
+        }
+
+        if (document.querySelector('[name="block_insulation_type"]')) {
+            params.block_insulation_type = document.querySelector('[name="block_insulation_type"]').value;
+        }
+
+        if (document.querySelector('[name="block_reinforcement"]')) {
+            params.block_reinforcement = document.querySelector('[name="block_reinforcement"]').value;
+        }
+    } else if (params.wall_material === 'concrete') {
+        params.concreteThickness = document.querySelector('[name="concreteThickness"]').value;
+        params.concreteClass = document.querySelector('[name="concreteClass"]').value;
+
+        // Добавление новых параметров для монолитных стен
+        if (document.querySelector('[name="concrete_rebar_type"]')) {
+            params.concrete_rebar_type = document.querySelector('[name="concrete_rebar_type"]').value;
+        }
+
+        if (document.querySelector('[name="concrete_formwork_type"]')) {
+            params.concrete_formwork_type = document.querySelector('[name="concrete_formwork_type"]').value;
+        }
+
+        if (document.querySelector('[name="concrete_insulation_type"]')) {
+            params.concrete_insulation_type = document.querySelector('[name="concrete_insulation_type"]').value;
+        }
+    } else if (params.wall_material === 'panel') {
+        params.panelType = document.querySelector('[name="panelType"]').value;
+        params.panelThickness = document.querySelector('[name="panelThickness"]').value;
+
+        // Добавление новых параметров для панельных стен
+        if (document.querySelector('[name="panel_mounting_type"]')) {
+            params.panel_mounting_type = document.querySelector('[name="panel_mounting_type"]').value;
+        }
+
+        if (document.querySelector('[name="panel_sealant_type"]')) {
+            params.panel_sealant_type = document.querySelector('[name="panel_sealant_type"]').value;
+        }
+
+        if (document.querySelector('[name="panel_joint_insulation"]')) {
+            params.panel_joint_insulation = document.querySelector('[name="panel_joint_insulation"]').value;
+        }
+    }
+
+    return params;
 }

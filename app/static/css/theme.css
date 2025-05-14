@@ -591,7 +591,7 @@ footer li {
     }
 }
 
-/* Улучшенные стили для рекомендаций */
+/* Улучшенные стили для рекомендаций с изменениями */
 .ai-recommendations-list {
     display: flex;
     flex-direction: column;
@@ -605,6 +605,7 @@ footer li {
     border-left: 4px solid var(--accent-color);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
     transition: all 0.3s ease;
+    margin-bottom: 12px;
 }
 
 .light-theme .ai-recommendation-card {
@@ -620,15 +621,9 @@ footer li {
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
 }
 
+/* Скрываем блок категории */
 .ai-rec-category {
-    display: inline-block;
-    padding: 3px 8px;
-    background-color: var(--accent-color);
-    color: white;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 500;
-    margin-bottom: 8px;
+    display: none !important;
 }
 
 .ai-rec-title {
@@ -662,6 +657,7 @@ footer li {
     background-color: rgba(104, 211, 145, 0.1);
 }
 
+/* Удаляем метку "Сводка" с иконкой блокнота */
 .ai-summary {
     padding: 16px;
     background-color: var(--secondary-bg);
@@ -670,22 +666,14 @@ footer li {
     color: var(--primary-text);
     font-size: 15px;
     line-height: 1.6;
-    position: relative;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
+    position: static;
 }
 
+/* Убираем псевдоэлемент с блокнотом */
 .ai-summary::before {
-    content: '📋 Сводка';
-    position: absolute;
-    top: -12px;
-    left: 16px;
-    padding: 2px 8px;
-    background-color: var(--card-bg);
-    color: var(--accent-color);
-    font-weight: 600;
-    font-size: 13px;
-    border-radius: 4px;
-    border: 1px solid var(--accent-color);
+    content: none !important;
+    display: none !important;
 }
 
 .ai-no-recommendations,

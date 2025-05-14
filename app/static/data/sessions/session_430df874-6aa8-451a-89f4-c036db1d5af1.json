@@ -1,138 +1,138 @@
 {
   "created_at": 1747077542.804822,
-  "last_activity": 1747140120.7849321,
+  "last_activity": 1747217949.382933,
   "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 YaBrowser/25.4.0.0 Safari/537.36",
   "ip": "127.0.0.1",
   "request_history": [
     {
-      "request_id": "f5620c43-693b-49ec-b212-3819e32170b4",
-      "timestamp": "2025-05-13T13:33:30.998342",
+      "request_id": "26480ebe-149d-4125-930f-e25a9234180c",
+      "timestamp": "2025-05-14T14:36:04.964676",
       "calculator_data": {
-        "area": 129.0,
+        "area": 122.0,
         "foundation_type": "strip",
-        "wall_material": "brick",
+        "wall_material": "concrete",
         "roof_type": "metal",
         "floors": 1
       },
-      "summary": "Рекомендации включают оптимизацию планировки, выбор надежного ленточного фундамента, использование эффективной кладки кирпича и монтаж металлочерепицы с учетом долговечности.",
+      "summary": "Лайфхак для вашего строительства",
+      "recommendation_count": 1
+    },
+    {
+      "request_id": "c3c6f303-ba34-4d76-ba03-3a7642028e52",
+      "timestamp": "2025-05-14T14:36:39.433145",
+      "calculator_data": {
+        "area": 122.0,
+        "foundation_type": "strip",
+        "wall_material": "concrete",
+        "roof_type": "metal",
+        "floors": 1
+      },
+      "summary": "Лайфхак для вашего строительства",
+      "recommendation_count": 1
+    },
+    {
+      "request_id": "a13a7e19-b2e5-4d1e-887b-6562ac79f633",
+      "timestamp": "2025-05-14T14:38:05.146873",
+      "calculator_data": {
+        "area": 122.0,
+        "foundation_type": "strip",
+        "wall_material": "concrete",
+        "roof_type": "metal",
+        "floors": 1
+      },
+      "summary": "Рекомендации по строительству одноэтажного дома из монолитного бетона площадью 122.0 м² с ленточным фундаментом и металлочерепичной кровлей.",
       "recommendation_count": 4
     },
     {
-      "request_id": "8f080b71-ca1f-4861-97db-f6bbc4cc8a32",
-      "timestamp": "2025-05-13T17:15:17.212903",
+      "request_id": "5192d17d-a11f-47c2-8709-f63d41a2eb9b",
+      "timestamp": "2025-05-14T14:41:13.667033",
       "calculator_data": {
-        "area": 129.0,
+        "area": 122.0,
         "foundation_type": "strip",
-        "wall_material": "brick",
+        "wall_material": "concrete",
         "roof_type": "metal",
         "floors": 1
       },
-      "summary": "Рекомендации включают общие советы по строительству одноэтажного кирпичного дома, выбору ленточного фундамента, кладке стен и монтажу кровли из металлочерепицы.",
+      "summary": "Рекомендации включают нестандартный совет по планировке дома, оптимизацию ленточного фундамента, улучшение характеристик стен из монолитного бетона и эффективное использование металлочерепицы для кровли.",
       "recommendation_count": 4
     },
     {
-      "request_id": "cbbd6397-c65f-4b1a-8339-d8a033239edc",
-      "timestamp": "2025-05-13T17:15:26.576566",
+      "request_id": "d862fb6f-79eb-4961-9c95-eda3324972b9",
+      "timestamp": "2025-05-14T14:42:08.702381",
       "calculator_data": {
-        "area": 121.0,
+        "area": 122.0,
         "foundation_type": "strip",
-        "wall_material": "brick",
+        "wall_material": "concrete",
         "roof_type": "metal",
         "floors": 1
       },
-      "summary": "Рекомендации по строительству одноэтажного кирпичного дома площадью 121 м² с ленточным фундаментом и металлочерепичной кровлей.",
+      "summary": "Рекомендации включают нестандартный совет по планировке дома, оптимизацию ленточного фундамента, улучшение характеристик стен из монолитного бетона и эффективное использование металлочерепицы для кровли.",
       "recommendation_count": 4
     },
     {
-      "request_id": "52d7368e-f544-4693-882a-507360e22105",
-      "timestamp": "2025-05-13T17:22:26.176254",
+      "request_id": "a8a7e92b-35ba-400e-8147-c73c43bf5017",
+      "timestamp": "2025-05-14T14:56:28.084767",
       "calculator_data": {
-        "area": 121.0,
+        "area": 123.0,
         "foundation_type": "strip",
-        "wall_material": "brick",
+        "wall_material": "panel",
         "roof_type": "metal",
         "floors": 1
       },
-      "summary": "Рекомендации включают оптимизацию планировки, выбор ленточного фундамента, кирпичных стен и металлочерепичной кровли для надежности и долговечности.",
+      "summary": "Рекомендации включают нестандартное решение для планировки дома, советы по ленточному фундаменту, панельным стенам и металлочерепичной кровле.",
       "recommendation_count": 4
     },
     {
-      "request_id": "2f032870-795a-400c-ad37-b948bde21887",
-      "timestamp": "2025-05-13T17:22:26.178408",
+      "request_id": "6d2356fa-0873-4d32-80f2-878d1fdd0c38",
+      "timestamp": "2025-05-14T14:56:55.843806",
       "calculator_data": {
-        "area": 121.0,
+        "area": 123.0,
         "foundation_type": "strip",
-        "wall_material": "brick",
+        "wall_material": "panel",
         "roof_type": "metal",
         "floors": 1
       },
-      "summary": "Рекомендации включают оптимизацию планировки, выбор ленточного фундамента, кирпичных стен и металлочерепичной кровли для надежности и долговечности.",
-      "recommendation_count": 4
+      "summary": "Лайфхак для вашего строительства",
+      "recommendation_count": 1
     },
     {
-      "request_id": "67729a1b-0f09-41c2-8557-f109d5bbf114",
-      "timestamp": "2025-05-13T17:22:30.558851",
+      "request_id": "8c56ac56-509f-421e-af69-88405d536535",
+      "timestamp": "2025-05-14T14:57:17.216260",
       "calculator_data": {
-        "area": 121.0,
+        "area": 123.0,
         "foundation_type": "strip",
-        "wall_material": "brick",
+        "wall_material": "wood",
         "roof_type": "metal",
         "floors": 1
       },
-      "summary": "Рекомендации включают оптимизацию планировки, выбор ленточного фундамента, кирпичных стен и металлочерепичной кровли для надежности и долговечности.",
-      "recommendation_count": 4
+      "summary": "Лайфхак для вашего строительства",
+      "recommendation_count": 1
     },
     {
-      "request_id": "bf3ff767-dab0-4dfa-9d15-cc921ee43132",
-      "timestamp": "2025-05-13T17:23:26.358119",
+      "request_id": "5447161f-86f0-46b9-b4ce-3f91341d1f8e",
+      "timestamp": "2025-05-14T15:01:48.201493",
       "calculator_data": {
-        "area": 121.0,
+        "area": 123.0,
         "foundation_type": "strip",
-        "wall_material": "brick",
+        "wall_material": "wood",
         "roof_type": "metal",
         "floors": 1
       },
-      "summary": "Рекомендации включают оптимизацию планировки, выбор ленточного фундамента, кирпичных стен и металлочерепичной кровли для надежности и долговечности.",
-      "recommendation_count": 4
+      "summary": "Лайфхак для вашего строительства",
+      "recommendation_count": 1
     },
     {
-      "request_id": "ef347300-effe-4222-9998-02f9fac5476d",
-      "timestamp": "2025-05-13T17:23:27.687262",
+      "request_id": "fc7c441e-aae7-4a8b-a695-0bf0ff84eeef",
+      "timestamp": "2025-05-14T15:19:09.382885",
       "calculator_data": {
-        "area": 121.0,
+        "area": 123.0,
         "foundation_type": "strip",
         "wall_material": "brick",
         "roof_type": "metal",
         "floors": 1
       },
-      "summary": "Рекомендации включают оптимизацию планировки, выбор ленточного фундамента, кирпичных стен и металлочерепичной кровли для надежности и долговечности.",
-      "recommendation_count": 4
-    },
-    {
-      "request_id": "ca2bc3fa-3327-4874-90fc-ce069d72e21b",
-      "timestamp": "2025-05-13T17:24:28.941764",
-      "calculator_data": {
-        "area": 126.0,
-        "foundation_type": "strip",
-        "wall_material": "brick",
-        "roof_type": "metal",
-        "floors": 1
-      },
-      "summary": "Рекомендации по строительству одноэтажного кирпичного дома площадью 126 м² с ленточным фундаментом и металлочерепичной кровлей.",
-      "recommendation_count": 4
-    },
-    {
-      "request_id": "b4f37d1b-6cfc-42b5-bdf9-0f220b1bf01e",
-      "timestamp": "2025-05-13T17:42:00.784862",
-      "calculator_data": {
-        "area": 126.0,
-        "foundation_type": "strip",
-        "wall_material": "brick",
-        "roof_type": "metal",
-        "floors": 1
-      },
-      "summary": "Рекомендации по строительству одноэтажного кирпичного дома площадью 126 м² с ленточным фундаментом и металлочерепичной кровлей.",
-      "recommendation_count": 4
+      "summary": "Лайфхак для вашего строительства",
+      "recommendation_count": 1
     }
   ]
 }
