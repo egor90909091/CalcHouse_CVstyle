@@ -990,7 +990,7 @@ function showAIRecommendations(params) {
         heading.innerHTML = `
     <div class="flex items-center">
         <span>Рекомендации ИИ-ассистента</span>
-        <div class="loader ml-2"></div>
+        
     </div>
 `;
     }

@@ -1,74 +1,9 @@
 {
   "created_at": 1747077542.804822,
-  "last_activity": 1747228035.332149,
+  "last_activity": 1747252745.8760278,
   "user_agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 YaBrowser/25.4.0.0 Safari/537.36",
   "ip": "127.0.0.1",
   "request_history": [
-    {
-      "request_id": "c3c6f303-ba34-4d76-ba03-3a7642028e52",
-      "timestamp": "2025-05-14T14:36:39.433145",
-      "calculator_data": {
-        "area": 122.0,
-        "foundation_type": "strip",
-        "wall_material": "concrete",
-        "roof_type": "metal",
-        "floors": 1
-      },
-      "summary": "Лайфхак для вашего строительства",
-      "recommendation_count": 1
-    },
-    {
-      "request_id": "a13a7e19-b2e5-4d1e-887b-6562ac79f633",
-      "timestamp": "2025-05-14T14:38:05.146873",
-      "calculator_data": {
-        "area": 122.0,
-        "foundation_type": "strip",
-        "wall_material": "concrete",
-        "roof_type": "metal",
-        "floors": 1
-      },
-      "summary": "Рекомендации по строительству одноэтажного дома из монолитного бетона площадью 122.0 м² с ленточным фундаментом и металлочерепичной кровлей.",
-      "recommendation_count": 4
-    },
-    {
-      "request_id": "5192d17d-a11f-47c2-8709-f63d41a2eb9b",
-      "timestamp": "2025-05-14T14:41:13.667033",
-      "calculator_data": {
-        "area": 122.0,
-        "foundation_type": "strip",
-        "wall_material": "concrete",
-        "roof_type": "metal",
-        "floors": 1
-      },
-      "summary": "Рекомендации включают нестандартный совет по планировке дома, оптимизацию ленточного фундамента, улучшение характеристик стен из монолитного бетона и эффективное использование металлочерепицы для кровли.",
-      "recommendation_count": 4
-    },
-    {
-      "request_id": "d862fb6f-79eb-4961-9c95-eda3324972b9",
-      "timestamp": "2025-05-14T14:42:08.702381",
-      "calculator_data": {
-        "area": 122.0,
-        "foundation_type": "strip",
-        "wall_material": "concrete",
-        "roof_type": "metal",
-        "floors": 1
-      },
-      "summary": "Рекомендации включают нестандартный совет по планировке дома, оптимизацию ленточного фундамента, улучшение характеристик стен из монолитного бетона и эффективное использование металлочерепицы для кровли.",
-      "recommendation_count": 4
-    },
-    {
-      "request_id": "a8a7e92b-35ba-400e-8147-c73c43bf5017",
-      "timestamp": "2025-05-14T14:56:28.084767",
-      "calculator_data": {
-        "area": 123.0,
-        "foundation_type": "strip",
-        "wall_material": "panel",
-        "roof_type": "metal",
-        "floors": 1
-      },
-      "summary": "Рекомендации включают нестандартное решение для планировки дома, советы по ленточному фундаменту, панельным стенам и металлочерепичной кровле.",
-      "recommendation_count": 4
-    },
     {
       "request_id": "6d2356fa-0873-4d32-80f2-878d1fdd0c38",
       "timestamp": "2025-05-14T14:56:55.843806",
@@ -132,6 +67,71 @@
         "floors": 1
       },
       "summary": "Рекомендации включают нестандартное решение для планировки дома, советы по усилению ленточного фундамента, оптимизацию кирпичной кладки и монтажа металлочерепицы.",
+      "recommendation_count": 4
+    },
+    {
+      "request_id": "0df880b4-ff1d-46d8-af14-b649323d32cd",
+      "timestamp": "2025-05-14T18:28:44.858491",
+      "calculator_data": {
+        "area": 124.0,
+        "foundation_type": "column",
+        "wall_material": "brick",
+        "roof_type": "metal",
+        "floors": 1
+      },
+      "summary": "Рекомендации включают нестандартное решение для планировки дома, советы по столбчатому фундаменту, кирпичным стенам и металлочерепичной кровле.",
+      "recommendation_count": 4
+    },
+    {
+      "request_id": "c8e1e585-10e8-4129-aec2-2590b81183f9",
+      "timestamp": "2025-05-14T18:47:49.120911",
+      "calculator_data": {
+        "area": 124.0,
+        "foundation_type": "strip",
+        "wall_material": "brick",
+        "roof_type": "metal",
+        "floors": 1
+      },
+      "summary": "Рекомендации включают нестандартное решение для планировки дома, советы по усилению ленточного фундамента, оптимизацию кирпичных стен и монтаж металлочерепицы.",
+      "recommendation_count": 4
+    },
+    {
+      "request_id": "f0d229bf-3d4f-4e7d-bd36-a78c6daddc2f",
+      "timestamp": "2025-05-14T22:40:37.945122",
+      "calculator_data": {
+        "area": 124.0,
+        "foundation_type": "strip",
+        "wall_material": "brick",
+        "roof_type": "metal",
+        "floors": 1
+      },
+      "summary": "Рекомендации включают нестандартное решение для планировки дома, советы по ленточному фундаменту, кирпичным стенам и металлочерепичной кровле.",
+      "recommendation_count": 4
+    },
+    {
+      "request_id": "30b46269-a74a-4f41-b52b-70636bd0dfa7",
+      "timestamp": "2025-05-15T00:56:46.350088",
+      "calculator_data": {
+        "area": 124.0,
+        "foundation_type": "strip",
+        "wall_material": "brick",
+        "roof_type": "metal",
+        "floors": 1
+      },
+      "summary": "Рекомендации включают нестандартное решение для планировки дома, оптимизацию ленточного фундамента, улучшение кирпичных стен и монтаж металлочерепицы.",
+      "recommendation_count": 4
+    },
+    {
+      "request_id": "be16ed2d-e302-4031-b7b6-6c971d0a2313",
+      "timestamp": "2025-05-15T00:59:05.875037",
+      "calculator_data": {
+        "area": 124.0,
+        "foundation_type": "strip",
+        "wall_material": "brick",
+        "roof_type": "metal",
+        "floors": 1
+      },
+      "summary": "Рекомендации включают нестандартное решение для планировки дома, оптимизацию ленточного фундамента, улучшение кирпичных стен и монтаж металлочерепицы.",
       "recommendation_count": 4
     }
   ]
