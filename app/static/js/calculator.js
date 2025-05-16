@@ -883,9 +883,15 @@ function fillSection(container, items) {
         // Форматируем название материала
         let itemName = item.name;
 
-        // Замена sip_panels на панели
+        // Замена английских обозначений на русские
         if (itemName.includes('sip_panels')) {
-            itemName = itemName.replace('sip_panels', 'панели');
+            itemName = itemName.replace('sip_panels', 'СИП-панели');
+        } else if (itemName.includes('concrete_panels')) {
+            itemName = itemName.replace('concrete_panels', 'железобетонные панели');
+        } else if (itemName.includes('sandwich_panels')) {
+            itemName = itemName.replace('sandwich_panels', 'сэндвич-панели');
+        } else if (itemName.includes('panels')) {
+            itemName = itemName.replace('panels', 'панели');
         }
 
         // Форматирование размеров бруса без десятичных знаков

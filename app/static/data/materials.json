@@ -251,7 +251,7 @@
             "unit": "м²",
             "materials": {
                 "sip_panels": {
-                    "name": "SIP-панели",
+                    "name": "СИП-панели",
                     "price": 4750,
                     "unit": "шт"
                 },
