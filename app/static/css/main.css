@@ -278,3 +278,39 @@ footer a:hover {
         max-height: 300px;
     }
 }
+
+/* Стили для шапки и навигации */
+header {
+    transition: background-color var(--transition-speed) ease;
+    z-index: 100;
+    position: relative;
+}
+
+header nav {
+    display: flex !important;
+    /* Гарантируем, что навигация всегда видима */
+}
+
+header ul {
+    display: flex !important;
+}
+
+header a {
+    opacity: 0.8;
+    transition: opacity var(--transition-speed) ease;
+}
+
+header a:hover {
+    opacity: 1;
+}
+
+/* Исправления для темного и светлого режимов в шапке */
+html.dark-theme header h1,
+html.dark-theme header a {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+html.light-theme header h1,
+html.light-theme header a {
+    color: rgba(0, 0, 0, 0.9);
+}

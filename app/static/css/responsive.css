@@ -30,6 +30,181 @@
     .footer-brand {
         font-size: 1.3rem;
     }
+
+    /* Улучшенная адаптивность для таблиц результатов расчета */
+    .material-header {
+        font-size: 0.85rem !important;
+    }
+
+    .material-item {
+        font-size: 0.85rem !important;
+        line-height: 1.2;
+    }
+
+    .total-row {
+        font-size: 0.9rem !important;
+    }
+
+    .total-cost-container h3 {
+        font-size: 1rem !important;
+    }
+
+    .total-cost-container span {
+        font-size: 1.1rem !important;
+    }
+
+    /* Настройки ячеек таблицы */
+    .material-item div {
+        padding: 0.2rem 0;
+    }
+
+    /* Настройки высоты строк для материалов с длинными названиями */
+    .material-item {
+        min-height: 3.2rem;
+        height: auto;
+        display: grid;
+        align-items: center;
+    }
+
+    /* Все строки имеют рамку снизу для лучшего визуального разделения */
+    .material-item:not(.total-row) {
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        padding-bottom: 0.3rem;
+        margin-bottom: 0.3rem;
+    }
+
+    .dark-theme .material-item:not(.total-row) {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    /* Улучшенная адаптивность для страницы мебели */
+    .selected-item {
+        width: 160px;
+        /* Уменьшаем ширину карточек на мобильных */
+        padding: 0.8rem 1rem 1rem;
+        margin: 0.3rem;
+    }
+
+    .selected-item img {
+        width: 130px;
+        height: 130px;
+        margin-bottom: 0.7rem;
+    }
+
+    .selected-item .item-label {
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+        word-break: break-word;
+        /* Позволяет тексту переноситься, предотвращая наползание */
+        line-height: 1.2;
+    }
+
+    .selected-item .price {
+        font-size: 1.1rem;
+        margin-bottom: 0.7rem;
+    }
+
+    .furniture-carousel-card {
+        width: 140px;
+        /* Уменьшаем размер карточек в каталоге */
+    }
+
+    .furniture-carousel-card .item-label {
+        font-size: 0.85rem;
+        word-break: break-word;
+    }
+
+    .furniture-carousel-card .item-price {
+        font-size: 0.95rem;
+    }
+
+    #selectedFurnitureSquare {
+        gap: 0.7rem;
+        justify-content: space-around;
+    }
+
+    /* Мебель по категориям */
+    .furniture-item {
+        width: 140px;
+        height: 140px;
+        min-width: 140px;
+        min-height: 140px;
+        padding: 1rem;
+        font-size: 0.95rem;
+    }
+
+    /* Уменьшаем отступы между кнопками на мобильных */
+    .furniture-room-section .flex {
+        gap: 0.5rem;
+    }
+
+    .furniture-result-card {
+        width: 150px;
+    }
+}
+
+/* Дополнительные стили для очень маленьких экранов */
+@media (max-width: 375px) {
+    .selected-item {
+        width: 140px;
+        padding: 0.7rem 0.8rem 0.8rem;
+    }
+
+    .selected-item img {
+        width: 110px;
+        height: 110px;
+    }
+
+    .furniture-carousel-card {
+        width: 130px;
+    }
+
+    .furniture-item {
+        width: 120px;
+        height: 120px;
+        min-width: 120px;
+        min-height: 120px;
+        font-size: 0.9rem;
+    }
+
+    .furniture-result-card {
+        width: 130px;
+    }
+
+    /* Дополнительное уменьшение шрифта для самых маленьких экранов */
+    .material-header {
+        font-size: 0.8rem !important;
+    }
+
+    /* Очень компактные заголовки с минимальными отступами */
+    .mobile-header {
+        font-size: 0.7rem !important;
+        column-gap: 0.15rem !important;
+    }
+
+    /* Еще сильнее увеличиваем соотношение первой колонки */
+    .material-header.mobile-header {
+        grid-template-columns: 1.2fr 0.7fr 0.5fr 0.7fr !important;
+    }
+
+    .material-item {
+        font-size: 0.8rem !important;
+        line-height: 1.2;
+    }
+
+    .grid.grid-cols-4 {
+        grid-column-gap: 0.5rem !important;
+    }
+
+    /* Более компактный заголовок в итоговом блоке */
+    .total-cost-container .flex {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .total-cost-container h3 {
+        margin-bottom: 0.3rem;
+    }
 }
 
 /* Планшеты (портретная ориентация) */
@@ -44,6 +219,28 @@
 
     .calculator-form {
         padding: 1.75rem;
+    }
+
+    /* Адаптивность для карточек мебели на планшетах */
+    #selectedFurnitureSquare {
+        gap: 1rem;
+    }
+
+    .selected-item {
+        width: 180px;
+    }
+
+    .furniture-carousel-card {
+        width: 160px;
+    }
+
+    /* Небольшое уменьшение шрифта для планшетов */
+    .material-header {
+        font-size: 0.9rem;
+    }
+
+    .material-item {
+        font-size: 0.9rem;
     }
 }
 

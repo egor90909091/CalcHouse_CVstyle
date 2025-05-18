@@ -83,7 +83,7 @@
 
 <body class="bg-gray-100">
     <!-- Шапка сайта -->
-    <header class="shadow-md print-header">
+    <header class="shadow-md">
         <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center">
             <h1 class="text-2xl font-bold mb-4 md:mb-0">BuildMate</h1>
             <nav class="flex items-center w-full md:w-auto justify-end no-print">
@@ -112,6 +112,11 @@
             </nav>
         </div>
     </header>
+
+    <!-- Добавляем отдельный заголовок только для печати -->
+    <div class="print-header" style="display:none;">
+        <h2>BuildMate - Калькулятор строительных материалов</h2>
+    </div>
 
     <!-- Hero секция -->
     <section class="hero-section no-print">
@@ -813,16 +818,7 @@
                                             </select>
                                         </div>
 
-                                        <!-- Выбор утеплителя -->
-                                        <div class="brick-param">
-                                            <label class="block mb-2 font-medium">Утеплитель</label>
-                                            <select name="brick_insulation"
-                                                class="w-full p-3 border border-gray-300 rounded-lg">
-                                                <option value="insulation_mineral">Минеральная вата</option>
-                                                <option value="insulation_foam">Пенополистирол</option>
-                                                <option value="insulation_basalt">Базальтовая вата</option>
-                                            </select>
-                                        </div>
+                                        <!-- Убран выбор утеплителя для кирпичных стен -->
                                     </div>
                                 </div>
                             </div>
@@ -854,17 +850,7 @@
                                         style="font-size: 1.5rem; text-shadow: 0 1px 2px rgba(0,0,0,0.1);">Дополнительные
                                         материалы для дерева</label>
                                     <div class="grid grid-cols-1 gap-4 pt-2">
-                                        <!-- Выбор типа утеплителя -->
-                                        <div class="wood-param">
-                                            <label class="block mb-2 font-medium">Тип утеплителя для стен</label>
-                                            <select name="wood_insulation_type"
-                                                class="w-full p-3 border border-gray-300 rounded-lg">
-                                                <option value="insulation_mineral">Минеральная вата</option>
-                                                <option value="insulation_foam">Пенополистирол</option>
-                                                <option value="insulation_basalt">Базальтовая вата</option>
-                                                <option value="insulation_ecowool">Эковата</option>
-                                            </select>
-                                        </div>
+                                        <!-- Выбор типа утеплителя для деревянных стен - удален -->
 
                                         <!-- Выбор межвенцового утеплителя -->
                                         <div class="wood-param">
@@ -932,16 +918,7 @@
                                             </select>
                                         </div>
 
-                                        <!-- Выбор утеплителя -->
-                                        <div>
-                                            <label class="block mb-2 font-medium">Утеплитель</label>
-                                            <select name="block_insulation_type"
-                                                class="w-full p-3 border border-gray-300 rounded-lg">
-                                                <option value="insulation_mineral">Минеральная вата</option>
-                                                <option value="insulation_foam">Пенополистирол</option>
-                                                <option value="insulation_basalt">Базальтовая вата</option>
-                                            </select>
-                                        </div>
+                                        <!-- Убран выбор утеплителя для блочных стен -->
 
                                         <!-- Выбор армирования -->
                                         <div>
@@ -1008,17 +985,7 @@
                                             </select>
                                         </div>
 
-                                        <!-- Выбор утеплителя -->
-                                        <div>
-                                            <label class="block mb-2 font-medium">Утеплитель</label>
-                                            <select name="concrete_insulation_type"
-                                                class="w-full p-3 border border-gray-300 rounded-lg">
-                                                <option value="insulation_mineral">Минеральная вата</option>
-                                                <option value="insulation_foam">Пенополистирол</option>
-                                                <option value="insulation_basalt">Базальтовая вата</option>
-                                                <option value="insulation_none">Без утепления</option>
-                                            </select>
-                                        </div>
+                                        <!-- Убран выбор утеплителя для монолитных стен -->
                                     </div>
                                 </div>
                             </div>
@@ -1029,17 +996,38 @@
                                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label class="block text-gray-700 mb-2">Тип панели</label>
-                                        <select name="panelType" class="w-full p-3 border border-gray-300 rounded-lg">
+                                        <select name="panelType" id="panelType"
+                                            class="w-full p-3 border border-gray-300 rounded-lg">
                                             <option value="sip_panels">SIP-панели</option>
                                             <option value="concrete_panels">Железобетонные панели</option>
                                             <option value="sandwich_panels">Сэндвич-панели</option>
                                         </select>
                                     </div>
                                     <div>
-                                        <label class="block text-gray-700 mb-2">Толщина панели (мм)</label>
-                                        <input type="number" name="panelThickness"
-                                            class="w-full p-3 border border-gray-300 rounded-lg" min="100" max="300"
-                                            step="10" value="150">
+                                        <label class="block text-gray-700 mb-2">Толщина панели</label>
+                                        <!-- Выбор толщины для SIP-панелей -->
+                                        <select name="sipThickness" id="sipThickness"
+                                            class="panel-thickness w-full p-3 border border-gray-300 rounded-lg">
+                                            <option value="124">124 мм (2500×1250 мм)</option>
+                                            <option value="174">174 мм (2500×1250 мм)</option>
+                                            <option value="224">224 мм (2500×1250 мм)</option>
+                                        </select>
+
+                                        <!-- Выбор толщины для ЖБ панелей -->
+                                        <select name="concreteThickness" id="concreteThickness"
+                                            class="panel-thickness w-full p-3 border border-gray-300 rounded-lg hidden">
+                                            <option value="250">250 мм (2750×1185 мм)</option>
+                                            <option value="300">300 мм (2750×1185 мм)</option>
+                                            <option value="350">350 мм (2750×1185 мм)</option>
+                                        </select>
+
+                                        <!-- Выбор толщины для сэндвич-панелей -->
+                                        <select name="sandwichThickness" id="sandwichThickness"
+                                            class="panel-thickness w-full p-3 border border-gray-300 rounded-lg hidden">
+                                            <option value="50">50 мм (1000 мм)</option>
+                                            <option value="100">100 мм (1000 мм)</option>
+                                            <option value="200">200 мм (1000 мм)</option>
+                                        </select>
                                     </div>
                                 </div>
 

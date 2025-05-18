@@ -238,6 +238,105 @@
     transition: color var(--transition-speed) ease;
 }
 
+/* Стили для мобильной версии таблицы результатов */
+@media (max-width: 576px) {
+
+    .mobile-header,
+    .mobile-item,
+    .mobile-total {
+        font-size: 0.85rem;
+    }
+
+    /* Более компактные заголовки для мобильных устройств */
+    .mobile-header {
+        font-size: 0.78rem !important;
+        font-weight: 700 !important;
+    }
+
+    /* Уменьшаем расстояние между колонками заголовка */
+    .mobile-header.grid-cols-4 {
+        column-gap: 0.2rem !important;
+    }
+
+    /* Позволяем тексту переноситься во всех ячейках */
+    .mobile-item>div,
+    .mobile-header>div {
+        white-space: normal;
+        overflow: visible;
+        text-overflow: clip;
+        word-wrap: break-word;
+        line-height: 1.2;
+    }
+
+    /* Убираем перенос для заголовков - они должны остаться в одну строку */
+    .mobile-header>div {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Выравниваем числовые значения */
+    .mobile-item>div:nth-child(2),
+    .mobile-item>div:nth-child(3),
+    .mobile-item>div:nth-child(4) {
+        text-align: right;
+        word-break: break-all;
+    }
+
+    /* Уменьшаем отступы между ячейками */
+    .mobile-item,
+    .mobile-header,
+    .mobile-total {
+        column-gap: 0.3rem !important;
+        row-gap: 0.2rem !important;
+        padding-bottom: 0.5rem;
+        margin-bottom: 0.5rem;
+        border-bottom: 1px dashed var(--border-color);
+    }
+
+    /* Регулируем размеры колонок */
+    .material-item.mobile-item {
+        grid-template-columns: 1.8fr 0.8fr 0.7fr 0.7fr !important;
+    }
+
+    .material-header.mobile-header {
+        grid-template-columns: 1.8fr 0.8fr 0.7fr 0.7fr !important;
+    }
+}
+
+/* Стили для очень маленьких экранов */
+@media (max-width: 375px) {
+
+    .mobile-header,
+    .mobile-item,
+    .mobile-total {
+        font-size: 0.8rem;
+    }
+
+    /* Еще больше уменьшаем отступы */
+    .mobile-item,
+    .mobile-header,
+    .mobile-total {
+        column-gap: 0.2rem !important;
+        row-gap: 0.15rem !important;
+    }
+
+    /* Регулируем размеры колонок для очень маленьких экранов */
+    .material-item.mobile-item {
+        grid-template-columns: 1.5fr 0.8fr 0.7fr 0.7fr !important;
+        margin-bottom: 0.7rem !important;
+    }
+
+    .material-header.mobile-header {
+        grid-template-columns: 1.5fr 0.8fr 0.7fr 0.7fr !important;
+    }
+
+    /* Улучшаем перенос слов для названий */
+    .mobile-item>div:first-child {
+        font-size: 0.75rem;
+    }
+}
+
 /* Адаптация для печати */
 @media print {
 
@@ -427,5 +526,65 @@
 @keyframes simple-spin {
     to {
         transform: rotate(360deg);
+    }
+}
+
+/* Стили для информации о дате расчета в результатах */
+.print-info {
+    display: block !important;
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    background-color: var(--surface-secondary);
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    transition: all var(--transition-speed) ease;
+}
+
+.print-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+}
+
+.print-date {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    transition: color var(--transition-speed) ease;
+}
+
+/* Заголовок для печати (но не для экрана) */
+.print-header {
+    display: none;
+    /* Скрываем для обычного режима просмотра */
+}
+
+/* Исправляем стили для элементов, не предназначенных для печати */
+.no-print {
+    display: block;
+    /* Отображаем при обычном просмотре */
+}
+
+/* Исправляем стили для мобильных устройств */
+@media (max-width: 576px) {
+    .print-meta {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .print-date {
+        font-size: 0.85rem;
+        margin-bottom: 0.3rem;
+    }
+}
+
+/* Только для печати */
+@media print {
+    .print-header {
+        display: block;
+    }
+
+    .no-print {
+        display: none !important;
     }
 }

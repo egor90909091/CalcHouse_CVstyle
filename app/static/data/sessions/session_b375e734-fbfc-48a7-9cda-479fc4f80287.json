@@ -1,0 +1,138 @@
+{
+  "created_at": 1747493238.1342971,
+  "last_activity": 1747499423.123422,
+  "user_agent": "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Mobile Safari/537.36",
+  "ip": "127.0.0.1",
+  "request_history": [
+    {
+      "request_id": "f69db267-c4fc-4935-b7b2-89c23beccf03",
+      "timestamp": "2025-05-17T20:04:28.479351",
+      "calculator_data": {
+        "area": 124.0,
+        "foundation_type": "strip",
+        "wall_material": "brick",
+        "roof_type": "metal",
+        "floors": 1
+      },
+      "summary": "Оригинальные и практичные рекомендации для строительства и эксплуатации кирпичного дома с ленточным фундаментом и металлочерепичной кровлей.",
+      "recommendation_count": 4
+    },
+    {
+      "request_id": "37741cd9-e0ad-4193-bb0a-3035095dc1e8",
+      "timestamp": "2025-05-17T20:06:14.808781",
+      "calculator_data": {
+        "area": 124.0,
+        "foundation_type": "strip",
+        "wall_material": "brick",
+        "roof_type": "metal",
+        "floors": 1
+      },
+      "summary": "Лайфхак для вашего строительства",
+      "recommendation_count": 1
+    },
+    {
+      "request_id": "56d5b663-a538-4899-8acb-45521e1220c2",
+      "timestamp": "2025-05-17T20:52:47.135893",
+      "calculator_data": {
+        "area": 124.0,
+        "foundation_type": "strip",
+        "wall_material": "brick",
+        "roof_type": "metal",
+        "floors": 1
+      },
+      "summary": "Лайфхак для вашего строительства",
+      "recommendation_count": 1
+    },
+    {
+      "request_id": "df385822-548b-4a15-ab44-6bb47ac21cd1",
+      "timestamp": "2025-05-17T20:54:25.532426",
+      "calculator_data": {
+        "area": 124.0,
+        "foundation_type": "pile",
+        "wall_material": "brick",
+        "roof_type": "metal",
+        "floors": 1
+      },
+      "summary": "Лайфхак для вашего строительства",
+      "recommendation_count": 1
+    },
+    {
+      "request_id": "31b72cae-29f2-44e7-a4fa-e6af797126e7",
+      "timestamp": "2025-05-17T20:57:06.297031",
+      "calculator_data": {
+        "area": 124.0,
+        "foundation_type": "pile",
+        "wall_material": "brick",
+        "roof_type": "metal",
+        "floors": 1
+      },
+      "summary": "Лайфхак для вашего строительства",
+      "recommendation_count": 1
+    },
+    {
+      "request_id": "ed91edbb-ec60-4748-b3b6-0caf2ec31336",
+      "timestamp": "2025-05-17T21:10:13.373001",
+      "calculator_data": {
+        "area": 124.0,
+        "foundation_type": "pile",
+        "wall_material": "brick",
+        "roof_type": "metal",
+        "floors": 1
+      },
+      "summary": "Лайфхак для вашего строительства",
+      "recommendation_count": 1
+    },
+    {
+      "request_id": "3273b5b9-4be2-4675-bd47-026c3f9efa6b",
+      "timestamp": "2025-05-17T21:11:37.000486",
+      "calculator_data": {
+        "area": 124.0,
+        "foundation_type": "pile",
+        "wall_material": "brick",
+        "roof_type": "metal",
+        "floors": 1
+      },
+      "summary": "Лайфхак для вашего строительства",
+      "recommendation_count": 1
+    },
+    {
+      "request_id": "ee5375ea-51aa-4051-ab7a-454e234f4a86",
+      "timestamp": "2025-05-17T21:25:45.557741",
+      "calculator_data": {
+        "area": 124.0,
+        "foundation_type": "pile",
+        "wall_material": "panel",
+        "roof_type": "metal",
+        "floors": 1
+      },
+      "summary": "Лайфхак для вашего строительства",
+      "recommendation_count": 1
+    },
+    {
+      "request_id": "8babe79e-933d-45a1-aa5f-552e191555de",
+      "timestamp": "2025-05-17T21:29:37.124163",
+      "calculator_data": {
+        "area": 124.0,
+        "foundation_type": "pile",
+        "wall_material": "panel",
+        "roof_type": "metal",
+        "floors": 1
+      },
+      "summary": "Лайфхак для вашего строительства",
+      "recommendation_count": 1
+    },
+    {
+      "request_id": "ebeac246-6a9f-4ab8-b1e9-b0b1d10a9a7b",
+      "timestamp": "2025-05-17T21:30:23.123383",
+      "calculator_data": {
+        "area": 124.0,
+        "foundation_type": "pile",
+        "wall_material": "block",
+        "roof_type": "metal",
+        "floors": 1
+      },
+      "summary": "Лайфхак для вашего строительства",
+      "recommendation_count": 1
+    }
+  ]
+}

@@ -8,8 +8,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const imagePreview = document.getElementById('imagePreview');
     const imageContainer = document.getElementById('imageContainer');
     const analyzingStatus = document.getElementById('analyzing-status');
-    const resultSection = document.getElementById('resultSection');
-    const analysisResults = document.getElementById('analysisResults');
 
     // Элементы для выбора мебели
     const roomSelect = document.getElementById('roomSelect');
@@ -90,9 +88,6 @@ document.addEventListener('DOMContentLoaded', () => {
             // Добавляем класс для правильного отображения состояния
             dropZone.classList.add('has-image');
 
-            // Скрываем результаты, если они были показаны
-            resultSection.classList.add('hidden');
-
             // Скрываем статус анализа, но не показываем его текст
             analyzingStatus.textContent = '';
             analyzingStatus.classList.add('hidden');
@@ -131,61 +126,32 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const result = await response.json();
-            displayResults(result);
-
-            resultSection.classList.remove('hidden');
-            lastRequestTime = Date.now();
-
-            // Скрываем индикатор анализа
-            analyzingStatus.classList.add('hidden');
 
             // Сохраняем результаты для использования при выборе мебели
             window.analysisResults = result.predicted_class;
 
+            // Скрываем индикатор анализа
+            if (analyzingStatus) {
+                analyzingStatus.classList.add('hidden');
+            }
+
+            lastRequestTime = Date.now();
+
         } catch (error) {
-            showError(error.message);
+            console.error('Ошибка анализа:', error.message);
             // В случае ошибки также скрываем индикатор и сбрасываем состояние
-            analyzingStatus.classList.add('hidden');
+            if (analyzingStatus) {
+                analyzingStatus.classList.add('hidden');
+            }
             resetImageState();
         }
     }
 
-    function displayResults(result) {
-        analysisResults.innerHTML = '';
-
-        if (result.success) {
-            const predictedClass = result.predicted_class;
-
-            const resultCard = document.createElement('div');
-            resultCard.className = 'bg-gray-50 dark:bg-gray-700 p-4 rounded-lg fade-in border border-gray-200 dark:border-gray-600';
-            resultCard.innerHTML = `
-                <h4 class="font-semibold mb-3 dark:text-gray-200">Рекомендуемый стиль мебели:</h4>
-                <p class="text-lg dark:text-white">${predictedClass.name}</p>
-                <div class="mt-4">
-                    <a href="#" class="text-primary hover:underline dark:text-blue-400">Посмотреть примеры мебели</a>
-                </div>
-            `;
-            analysisResults.appendChild(resultCard);
-        } else {
-            showError(result.error || 'Произошла ошибка при анализе изображения');
-        }
-    }
-
     function showError(message) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-800 text-red-700 dark:text-red-200 px-4 py-3 rounded relative fade-in';
-        errorDiv.innerHTML = `
-            <span class="block sm:inline">${message}</span>
-            <span class="absolute top-0 bottom-0 right-0 px-4 py-3">
-                <svg class="fill-current h-6 w-6 text-red-500 dark:text-red-400" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
-                    <title>Закрыть</title>
-                    <path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/>
-                </svg>
-            </span>
-        `;
-        analysisResults.innerHTML = '';
-        analysisResults.appendChild(errorDiv);
-        resultSection.classList.remove('hidden');
+        console.error('Ошибка:', message);
+
+        // Используем функцию showNotification для отображения ошибки
+        showNotification(message, true);
 
         // Если произошла ошибка, сбрасываем состояние изображения
         resetImageState();
@@ -570,26 +536,30 @@ document.addEventListener('DOMContentLoaded', () => {
         // Показываем индикатор загрузки
         showFurnitureLoading(furnitureName);
 
-        // Определяем текущий стиль только если категория зависит от стиля
-        let currentStyle = 'Modern';
+        // Определяем, загружена ли картинка
+        const isImageLoaded = dropZone.classList.contains('has-image');
 
         // Для телевизоров и других стиль-независимых категорий не используем стиль
         const isStyleIndependent = styleIndependentCategories.includes(furnitureType);
 
-        if (!isStyleIndependent && window.analysisResults && window.analysisResults.name) {
+        // Определяем стиль: пустой, если нет изображения или стиль от категории не зависит
+        let searchStyle = "";
+
+        // Используем стиль из анализа изображения только если:
+        // 1. Изображение загружено
+        // 2. Категория зависит от стиля
+        // 3. Результаты анализа доступны
+        if (isImageLoaded && !isStyleIndependent && window.analysisResults && window.analysisResults.name) {
             const detectedStyle = window.analysisResults.name.charAt(0).toUpperCase() + window.analysisResults.name.slice(1);
             if (availableStyles.includes(detectedStyle)) {
-                currentStyle = detectedStyle;
+                searchStyle = detectedStyle;
             } else {
                 const matchingStyle = availableStyles.find(s => s.toLowerCase() === window.analysisResults.name.toLowerCase());
-                if (matchingStyle) currentStyle = matchingStyle;
+                if (matchingStyle) searchStyle = matchingStyle;
             }
         }
 
-        // Всегда передаем строку - пустую для независимых от стиля категорий
-        const searchStyle = isStyleIndependent ? "" : currentStyle;
-
-        console.log(`Отправка запроса: стиль="${searchStyle}", мебель="${furnitureSearchTerm}"`);
+        console.log(`Отправка запроса: стиль="${searchStyle}", мебель="${furnitureSearchTerm}", изображение загружено: ${isImageLoaded}`);
 
         // Запрашиваем данные с сервера
         fetch('/api/furniture/search', {
@@ -630,8 +600,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const resultsContent = document.getElementById('furnitureResultsContent');
         const resultsTitle = document.getElementById('furnitureResultsTitle');
 
-        // Обновляем заголовок
-        resultsTitle.textContent = `Варианты: ${categoryName}`;
+        // Обновляем заголовок, сохраняя HTML-структуру с классами
+        resultsTitle.innerHTML = `Варианты: ${categoryName}`;
+
+        // Убедимся, что классы для темной темы применены
+        if (document.documentElement.classList.contains('dark-theme')) {
+            resultsTitle.classList.add('text-white');
+            resultsTitle.classList.remove('text-gray-900');
+        } else {
+            resultsTitle.classList.add('text-gray-900');
+            resultsTitle.classList.remove('text-white');
+        }
 
         // Очищаем предыдущие результаты
         resultsContent.innerHTML = '';
@@ -724,16 +703,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Вспомогательная функция для показа уведомлений
-    function showNotification(message) {
+    function showNotification(message, isError = false) {
         const notification = document.createElement('div');
-        notification.className = 'notification fade-in';
+        notification.className = `notification fade-in ${isError ? 'bg-red-100 dark:bg-red-900 border border-red-400 dark:border-red-800 text-red-700 dark:text-red-200' : 'bg-green-100 dark:bg-green-900 border border-green-400 dark:border-green-800 text-green-700 dark:text-green-200'}`;
         notification.innerHTML = message;
         notification.style.position = 'fixed';
         notification.style.top = '10%';
         notification.style.left = '50%';
         notification.style.transform = 'translateX(-50%)';
-        notification.style.backgroundColor = 'rgba(0,0,0,0.7)';
-        notification.style.color = 'white';
         notification.style.padding = '12px 20px';
         notification.style.borderRadius = '8px';
         notification.style.zIndex = '1000';
@@ -744,5 +721,92 @@ document.addEventListener('DOMContentLoaded', () => {
             notification.classList.add('fade-out');
             setTimeout(() => document.body.removeChild(notification), 500);
         }, 3000);
+    }
+
+    // Добавим функцию для обработки адаптивности при загрузке и изменении размера окна
+    function handleResponsiveLayout() {
+        const isMobile = window.innerWidth < 576;
+        const isSmallMobile = window.innerWidth < 375;
+
+        // Получаем все карточки с мебелью
+        const selectedItems = document.querySelectorAll('.selected-item');
+        const resultCards = document.querySelectorAll('.furniture-result-card');
+        const carouselCards = document.querySelectorAll('.furniture-carousel-card');
+
+        // Применяем адаптивные стили в зависимости от размера экрана
+        if (isSmallMobile) {
+            // Очень маленькие экраны (до 375px)
+            adjustCardSizes(selectedItems, 140, 110);
+            adjustCardSizes(resultCards, 130);
+            adjustCardSizes(carouselCards, 130);
+        } else if (isMobile) {
+            // Мобильные устройства (до 576px)
+            adjustCardSizes(selectedItems, 160, 130);
+            adjustCardSizes(resultCards, 150);
+            adjustCardSizes(carouselCards, 140);
+        } else {
+            // Стандартные размеры для больших экранов
+            adjustCardSizes(selectedItems, 200, 160);
+            adjustCardSizes(resultCards, 180);
+            adjustCardSizes(carouselCards, 180);
+        }
+    }
+
+    // Вспомогательная функция для изменения размеров карточек
+    function adjustCardSizes(elements, cardWidth, imgSize) {
+        elements.forEach(element => {
+            element.style.width = `${cardWidth}px`;
+
+            // Если передан размер изображения, меняем его
+            if (imgSize) {
+                const img = element.querySelector('img');
+                if (img) {
+                    img.style.width = `${imgSize}px`;
+                    img.style.height = `${imgSize}px`;
+                }
+            }
+        });
+    }
+
+    // Запускаем функцию при загрузке страницы и при изменении размера окна
+    window.addEventListener('load', handleResponsiveLayout);
+    window.addEventListener('resize', handleResponsiveLayout);
+
+    // Функция для создания карточки выбранной мебели
+    function createFurnitureCard(item) {
+        // Создаем карточку
+        const card = document.createElement('div');
+        card.className = 'selected-item';
+        card.dataset.itemId = item.id;
+
+        // Добавляем изображение
+        const img = document.createElement('img');
+        img.src = item.image_url || `/static/images/furniture/${item.type}.jpg`;
+        img.alt = item.name;
+        card.appendChild(img);
+
+        // Добавляем название
+        const label = document.createElement('div');
+        label.className = 'item-label';
+        label.textContent = item.name;
+        card.appendChild(label);
+
+        // Добавляем цену
+        const price = document.createElement('div');
+        price.className = 'price';
+        price.textContent = `${item.price} ₽`;
+        card.appendChild(price);
+
+        // Добавляем кнопку "Выбрать"
+        const button = document.createElement('button');
+        button.className = 'select-btn';
+        button.textContent = item.selected ? 'Удалить' : 'Выбрать';
+        button.onclick = () => toggleItemSelection(item, button, card);
+        card.appendChild(button);
+
+        // Применяем адаптивные стили к созданной карточке
+        setTimeout(() => handleResponsiveLayout(), 0);
+
+        return card;
     }
 }); 

@@ -1147,6 +1147,17 @@ class MaterialsService:
             # Получаем русское название типа кирпича
             brick_type = brick_types.get(brick_type_key, "обычный")
 
+            # Стандартные размеры кирпича в мм
+            brick_sizes = {
+                "solid": "250×120×65",  # Полнотелый кирпич стандартный
+                "hollow": "250×120×65",  # Пустотелый кирпич стандартный
+                "silicate": "250×120×65",  # Силикатный кирпич стандартный
+                "porous": "510×250×219",  # Поризованный блок (крупноформатный)
+            }
+
+            # Получаем размер кирпича
+            brick_size = brick_sizes.get(brick_type_key, "250×120×65")
+
             # Количество кирпичей на 1 м²
             if thickness <= 0.12:
                 # Полкирпича (тонкая перегородка)
@@ -1163,7 +1174,9 @@ class MaterialsService:
 
             materials.append(
                 MaterialItem(
-                    name=f"Кирпич {brick_type}", quantity=round(brick_count), unit="шт"
+                    name=f"{brick_type} {brick_size} мм",
+                    quantity=round(brick_count),
+                    unit="шт",
                 )
             )
 
@@ -1244,12 +1257,23 @@ class MaterialsService:
 
         elif wall_material == WallMaterial.BLOCK:
             # Блочные стены
-            block_type = wall_params.get("type", "газобетон")
+            block_type = wall_params.get("type", "aerated_concrete")
             block_thickness = safe_float(wall_params.get("thickness", [300]))  # мм
 
-            # Стандартный размер блока: длина x высота x толщина
-            block_length = 0.6  # м
-            block_height = 0.25  # м
+            # Размеры блоков в зависимости от типа
+            if block_type == "aerated_concrete" or block_type == "foam_concrete":
+                # Газобетонные и пенобетонные блоки имеют одинаковый размер
+                block_length = 0.6  # м
+                block_height = 0.3  # м (обновлено с 0.25)
+            elif block_type == "expanded_clay":
+                # Керамзитобетонные блоки
+                block_length = 0.4  # м
+                block_height = 0.2  # м
+            else:
+                # Стандартное значение
+                block_length = 0.6  # м
+                block_height = 0.25  # м
+
             block_volume = block_length * block_height * (block_thickness / 1000)  # м³
 
             # Площадь одного блока в м²
@@ -1261,9 +1285,21 @@ class MaterialsService:
             # Объем блоков
             blocks_volume = block_count * block_volume
 
+            # Получаем детализированное название блока с размерами
+            thickness_str = str(int(block_thickness))
+
+            if block_type == "aerated_concrete":
+                block_name = f"Газобетонный блок {thickness_str}×300×600 мм"
+            elif block_type == "foam_concrete":
+                block_name = f"Пенобетонный блок {thickness_str}×300×600 мм"
+            elif block_type == "expanded_clay":
+                block_name = f"Керамзитобетонный блок {thickness_str}×200×400 мм"
+            else:
+                block_name = f"{block_type} {thickness_str} мм"
+
             materials.append(
                 MaterialItem(
-                    name=f"Блоки {block_type} {block_thickness} мм",
+                    name=block_name,
                     quantity=math.ceil(block_count),
                     unit="шт",
                 )
@@ -1272,9 +1308,19 @@ class MaterialsService:
             # Клей для блоков (примерно 25 кг на 1 м³ кладки)
             glue_weight = blocks_volume * 25  # кг
 
+            # Название клея в зависимости от типа блока
+            if block_type == "aerated_concrete":
+                adhesive_name = "Клей для газобетона"
+            elif block_type == "foam_concrete":
+                adhesive_name = "Клей для пенобетона"
+            elif block_type == "expanded_clay":
+                adhesive_name = "Клей для керамзитобетона"
+            else:
+                adhesive_name = f"Клей для {block_type}"
+
             materials.append(
                 MaterialItem(
-                    name=f"Клей для блоков {block_type}",
+                    name=adhesive_name,
                     quantity=round(glue_weight, 2),
                     unit="кг",
                 )
@@ -1316,20 +1362,76 @@ class MaterialsService:
 
         elif wall_material == WallMaterial.PANEL:
             # Панельные стены
-            panel_type = wall_params.get("type", "ЖБИ")
-            panel_thickness = safe_float(wall_params.get("thickness", [180]))  # мм
+            panel_type_key = wall_params.get("type", "sip_panels")
 
-            # Средняя площадь панели
-            panel_area = 3.0 * 1.2  # 3.0 x 1.2 м
+            # Получаем толщину в зависимости от типа панели
+            panel_thickness = None
+            panel_type_name = ""
 
-            # Количество панелей
-            panel_count = math.ceil(net_wall_area / panel_area * 1.05)  # +5% на запас
+            if panel_type_key == "sip_panels":
+                panel_thickness = safe_float(wall_params.get("sipThickness", [124]))
+                panel_type_name = "SIP"
+            elif panel_type_key == "concrete_panels":
+                panel_thickness = safe_float(
+                    wall_params.get("concreteThickness", [300])
+                )
+                panel_type_name = "ЖБ"
+            elif panel_type_key == "sandwich_panels":
+                panel_thickness = safe_float(
+                    wall_params.get("sandwichThickness", [100])
+                )
+                panel_type_name = "Сэндвич"
+            else:
+                panel_thickness = safe_float(wall_params.get("thickness", [150]))
+                panel_type_name = panel_type_key
+
+            # Определяем площадь панели в зависимости от типа
+            if panel_type_key == "sip_panels":
+                # Размер SIP-панели: 2500×1250 мм = 3.125 м²
+                panel_area = 2.5 * 1.25
+            elif panel_type_key == "concrete_panels":
+                # Размер ЖБ панели: 2750×1185 мм = 3.26 м²
+                panel_area = 2.75 * 1.185
+            elif panel_type_key == "sandwich_panels":
+                # Сэндвич-панели считаются в м², ширина 1000 мм, длина определяется при монтаже
+                # Используем коэффициент для количества панелей
+                panel_area = 1.0  # 1 м²
+            else:
+                # Стандартное значение
+                panel_area = 3.0 * 1.2  # 3.6 м²
+
+            # Количество панелей с учетом запаса 5%
+            panel_count = 0
+
+            if panel_type_key == "sandwich_panels":
+                # Для сэндвич-панелей просто используем площадь стен, так как цена указана за м²
+                panel_count = math.ceil(net_wall_area * 1.05)  # +5% на запас
+            else:
+                # Для остальных типов панелей считаем количество штук
+                panel_count = math.ceil(
+                    net_wall_area / panel_area * 1.05
+                )  # +5% на запас
+
+            # Определяем точное название материала на основе типа и толщины
+            panel_thickness_str = str(int(panel_thickness))
+
+            if panel_type_key == "sip_panels":
+                panel_name = f"СИП-панель 2500×1250×{panel_thickness_str} мм"
+            elif panel_type_key == "concrete_panels":
+                panel_name = f"ЖБ панель 2750×{panel_thickness_str}×1185 мм"
+            elif panel_type_key == "sandwich_panels":
+                panel_name = f"Сэндвич-панель 1000×{panel_thickness_str} мм"
+            else:
+                panel_name = f"Панель {panel_type_name} {panel_thickness_str} мм"
+
+            # Определяем единицу измерения
+            unit = "м²" if panel_type_key == "sandwich_panels" else "шт"
 
             materials.append(
                 MaterialItem(
-                    name=f"Панели {panel_type} {panel_thickness} мм",
+                    name=panel_name,
                     quantity=panel_count,
-                    unit="шт",
+                    unit=unit,
                 )
             )
 
@@ -1420,15 +1522,6 @@ class MaterialsService:
                 )
             )
 
-            # Комплектующие
-            materials.append(
-                MaterialItem(
-                    name="Комплектующие для металлочерепицы (коньки, планки)",
-                    quantity=1,
-                    unit="компл.",
-                )
-            )
-
         elif roof_type == RoofType.TILE:
             # Керамическая черепица
             tile_per_m2 = 10  # штук на м²
@@ -1437,15 +1530,6 @@ class MaterialsService:
             materials.append(
                 MaterialItem(
                     name="Керамическая черепица", quantity=tile_count, unit="шт"
-                )
-            )
-
-            # Комплектующие
-            materials.append(
-                MaterialItem(
-                    name="Комплектующие для черепицы (коньки, карнизы)",
-                    quantity=1,
-                    unit="компл.",
                 )
             )
 
@@ -1592,6 +1676,73 @@ class MaterialsService:
                                     material.quantity * estimated_price, 2
                                 ),
                             )
+                    # Для панелей проверяем с учетом толщины
+                    elif (
+                        category == "walls"
+                        and type_key == "panel"
+                        and any(
+                            panel_type in material.name.lower()
+                            for panel_type in [
+                                "сип-панель",
+                                "жб панель",
+                                "сэндвич-панель",
+                            ]
+                        )
+                    ):
+                        found_price = None
+
+                        # Определяем тип панели
+                        panel_type_key = None
+                        if "сип-панель" in material.name.lower():
+                            panel_type_key = "sip_panels"
+                        elif "жб панель" in material.name.lower():
+                            panel_type_key = "concrete_panels"
+                        elif "сэндвич-панель" in material.name.lower():
+                            panel_type_key = "sandwich_panels"
+
+                        if panel_type_key and panel_type_key in detailed_materials:
+                            panel_data = detailed_materials[panel_type_key]
+
+                            # Извлекаем толщину из названия
+                            thickness = None
+                            if "×" in material.name:
+                                # Пример: СИП-панель 2500×1250×124 мм
+                                parts = material.name.split("×")
+                                if len(parts) >= 3:
+                                    thickness = parts[2].split(" ")[0]
+
+                            # Если нашли толщину и есть соответствующий вариант
+                            if (
+                                thickness
+                                and "variants" in panel_data
+                                and thickness in panel_data["variants"]
+                            ):
+                                found_price = panel_data["variants"][thickness]["price"]
+                            elif "price" in panel_data:
+                                found_price = panel_data["price"]
+
+                        if found_price is not None:
+                            updated_material = MaterialItem(
+                                name=material.name,
+                                quantity=material.quantity,
+                                unit=material.unit,
+                                price=found_price,
+                                total_cost=round(material.quantity * found_price, 2),
+                            )
+                        else:
+                            # Если цена не найдена, используем приблизительную цену
+                            estimated_price = self._get_estimated_price(
+                                material.name, material.unit
+                            )
+                            updated_material = MaterialItem(
+                                name=material.name,
+                                quantity=material.quantity,
+                                unit=material.unit,
+                                price=estimated_price,
+                                total_cost=round(
+                                    material.quantity * estimated_price, 2
+                                ),
+                            )
                     else:
                         # Для других материалов ищем в обычном месте
                         material_price = None
@@ -1683,6 +1834,35 @@ class MaterialsService:
             "компл.": 5000,  # комплект
             "лист": 750,  # лист
         }
+
+        # Специфические цены для панелей
+        if "СИП-панель" in material_name and unit == "шт":
+            if "124" in material_name:
+                return 5000
+            elif "174" in material_name:
+                return 5800
+            elif "224" in material_name:
+                return 6400
+            else:
+                return 5500  # Средняя цена для СИП-панелей
+        elif "ЖБ панель" in material_name and unit == "шт":
+            if "250" in material_name:
+                return 9600
+            elif "300" in material_name:
+                return 11500
+            elif "350" in material_name:
+                return 13450
+            else:
+                return 11000  # Средняя цена для ЖБ панелей
+        elif "Сэндвич-панель" in material_name and unit == "м²":
+            if "50" in material_name:
+                return 2280
+            elif "100" in material_name:
+                return 2343
+            elif "200" in material_name:
+                return 2710
+            else:
+                return 2400  # Средняя цена для сэндвич-панелей
 
         # Возвращаем примерную цену для данной единицы измерения
         return default_prices.get(unit, 500)  # если единица не найдена, возвращаем 500

@@ -41,25 +41,22 @@
         display: none !important;
     }
 
-    /* Скрываем верхнюю полоску и надпись BuildMate */
-    .print-logo,
+    /* Показываем элементы, нужные только для печати */
     .print-header {
-        display: none !important;
+        display: block !important;
+        margin-bottom: 1cm;
+        text-align: center;
+    }
+
+    .print-header h2 {
+        font-size: 16pt;
+        margin: 0;
+        padding-top: 0.5cm;
     }
 
     /* Показываем только элементы для печати */
     .print-only {
         display: block !important;
-    }
-
-    /* Стилизация шапки для печати - оставляем только заголовок расчета */
-    .print-header h2 {
-        font-size: 16pt;
-        /* Уменьшено с 18pt */
-        margin: 0;
-        text-align: center;
-        padding-top: 0.5cm;
-        /* Уменьшено с 1cm */
     }
 
     /* Мета-информация для печати */
