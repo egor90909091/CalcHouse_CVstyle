@@ -420,6 +420,12 @@ class MaterialsService:
         perimeter = house_params["perimeter"]
         area = house_params["area"]
 
+        # Получаем тип арматуры из параметров
+        rebar_type = foundation_params.get("rebar_type", "rebar_a400")
+        rebar_class = rebar_type.replace(
+            "rebar_", ""
+        ).upper()  # преобразуем rebar_a300 в A300
+
         materials = []
 
         if foundation_type == FoundationType.STRIP:
@@ -494,7 +500,7 @@ class MaterialsService:
             # Добавляем арматуру в список материалов
             materials.append(
                 MaterialItem(
-                    name=f"Арматура A400 Ø{longitudinal_rebar_diameter} мм (продольная)",
+                    name=f"Арматура {rebar_class} Ø{int(longitudinal_rebar_diameter)} мм (продольная)",
                     quantity=round(longitudinal_weight, 2),
                     unit="кг",
                     detail=f"{round(total_longitudinal_length, 2)} м.п.",
@@ -503,7 +509,7 @@ class MaterialsService:
 
             materials.append(
                 MaterialItem(
-                    name=f"Арматура A400 Ø{transverse_rebar_diameter} мм (поперечная/хомуты)",
+                    name=f"Арматура {rebar_class} Ø{int(transverse_rebar_diameter)} мм (поперечная/хомуты)",
                     quantity=round(transverse_weight, 2),
                     unit="кг",
                     detail=f"{stirrup_count} шт. ({round(total_transverse_length, 2)} м.п.)",
@@ -514,7 +520,7 @@ class MaterialsService:
             total_rebar_weight = longitudinal_weight + transverse_weight
             materials.append(
                 MaterialItem(
-                    name="Арматура A400 (общий вес)",
+                    name=f"Арматура {rebar_class} (общий вес)",
                     quantity=round(total_rebar_weight, 2),
                     unit="кг",
                 )
@@ -629,7 +635,7 @@ class MaterialsService:
             # Добавляем арматуру в список материалов
             materials.append(
                 MaterialItem(
-                    name=f"Арматура A400 Ø{main_rebar_diameter} мм (основная)",
+                    name=f"Арматура {rebar_class} Ø{int(main_rebar_diameter)} мм (основная)",
                     quantity=round(main_rebar_weight, 2),
                     unit="кг",
                     detail=f"{round(main_rebar_length, 2)} м.п.",
@@ -638,7 +644,7 @@ class MaterialsService:
 
             materials.append(
                 MaterialItem(
-                    name=f"Арматура A400 Ø{distribution_rebar_diameter} мм (распределительная)",
+                    name=f"Арматура {rebar_class} Ø{int(distribution_rebar_diameter)} мм (распределительная)",
                     quantity=round(distribution_rebar_weight, 2),
                     unit="кг",
                     detail=f"{round(distribution_rebar_length, 2)} м.п.",
@@ -649,7 +655,7 @@ class MaterialsService:
             total_rebar_weight = main_rebar_weight + distribution_rebar_weight
             materials.append(
                 MaterialItem(
-                    name="Арматура A400 (общий вес)",
+                    name=f"Арматура {rebar_class} (общий вес)",
                     quantity=round(total_rebar_weight, 2),
                     unit="кг",
                 )
@@ -741,19 +747,36 @@ class MaterialsService:
             # Общий объем бетона
             concrete_volume = pile_concrete_volume + grillage_volume
 
+            # Получаем точное название из JSON-файла для свай
+            pile_material_name = "Сваи железобетонные 0,3×2 м"
+
+            # Добавляем сваи в материалы
             materials.append(
                 MaterialItem(
-                    name=f"Сваи, {pile_diameter}м x {pile_depth}м",
+                    name=pile_material_name,
                     quantity=piles_count,
                     unit="шт",
+                    detail=f"Диаметр: {pile_diameter}м, глубина: {pile_depth}м",
                 )
             )
 
+            # Выбираем класс бетона (по умолчанию B20)
+            concrete_class = foundation_params.get(
+                "concrete_class", "concrete_b20"
+            ).replace("concrete_", "")
+            concrete_class_display = concrete_class.upper().replace(
+                "B", "B"
+            )  # B20 -> B20
+
+            # Формируем ключ для поиска в materials.json
+            concrete_key = f"concrete_{concrete_class.lower()}"
+
             materials.append(
                 MaterialItem(
-                    name="Бетон для свай и ростверка",
+                    name=f"Бетон {concrete_class_display} для свай и ростверка",
                     quantity=round(concrete_volume, 2),
                     unit="м³",
+                    detail=f"Сваи: {round(pile_concrete_volume, 2)} м³, ростверк: {round(grillage_volume, 2)} м³",
                 )
             )
 
@@ -812,7 +835,7 @@ class MaterialsService:
             # 7. Добавляем арматуру в список материалов
             materials.append(
                 MaterialItem(
-                    name=f"Арматура A400 Ø{pile_longitudinal_rebar_diameter} мм (для свай, продольная)",
+                    name=f"Арматура {rebar_class} Ø{int(pile_longitudinal_rebar_diameter)} мм (для свай, продольная)",
                     quantity=round(pile_longitudinal_weight, 2),
                     unit="кг",
                     detail=f"{round(pile_longitudinal_rebar_length, 2)} м.п.",
@@ -821,7 +844,7 @@ class MaterialsService:
 
             materials.append(
                 MaterialItem(
-                    name=f"Арматура A400 Ø{pile_transverse_rebar_diameter} мм (для свай, поперечная)",
+                    name=f"Арматура {rebar_class} Ø{int(pile_transverse_rebar_diameter)} мм (для свай, поперечная)",
                     quantity=round(pile_transverse_weight, 2),
                     unit="кг",
                     detail=f"{pile_stirrup_count_per_pile * piles_count} шт. ({round(pile_stirrup_total_length, 2)} м.п.)",
@@ -830,7 +853,7 @@ class MaterialsService:
 
             materials.append(
                 MaterialItem(
-                    name=f"Арматура A400 Ø{grillage_longitudinal_rebar_diameter} мм (для ростверка, продольная)",
+                    name=f"Арматура {rebar_class} Ø{int(grillage_longitudinal_rebar_diameter)} мм (для ростверка, продольная)",
                     quantity=round(grillage_longitudinal_weight, 2),
                     unit="кг",
                     detail=f"{round(grillage_longitudinal_rebar_length, 2)} м.п.",
@@ -839,7 +862,7 @@ class MaterialsService:
 
             materials.append(
                 MaterialItem(
-                    name=f"Арматура A400 Ø{grillage_transverse_rebar_diameter} мм (для ростверка, поперечная)",
+                    name=f"Арматура {rebar_class} Ø{int(grillage_transverse_rebar_diameter)} мм (для ростверка, поперечная)",
                     quantity=round(grillage_transverse_weight, 2),
                     unit="кг",
                     detail=f"{grillage_stirrup_count} шт. ({round(grillage_stirrup_total_length, 2)} м.п.)",
@@ -855,7 +878,7 @@ class MaterialsService:
             )
             materials.append(
                 MaterialItem(
-                    name="Арматура A400 (общий вес)",
+                    name=f"Арматура {rebar_class} (общий вес)",
                     quantity=round(total_rebar_weight, 2),
                     unit="кг",
                 )
@@ -1027,7 +1050,7 @@ class MaterialsService:
             # 7. Добавляем арматуру в список материалов
             materials.append(
                 MaterialItem(
-                    name=f"Арматура A400 Ø{column_longitudinal_rebar_diameter} мм (для столбов, продольная)",
+                    name=f"Арматура {rebar_class} Ø{int(column_longitudinal_rebar_diameter)} мм (для столбов, продольная)",
                     quantity=round(column_longitudinal_weight, 2),
                     unit="кг",
                     detail=f"{round(column_longitudinal_rebar_length, 2)} м.п.",
@@ -1036,7 +1059,7 @@ class MaterialsService:
 
             materials.append(
                 MaterialItem(
-                    name=f"Арматура A400 Ø{column_transverse_rebar_diameter} мм (для столбов, поперечная)",
+                    name=f"Арматура {rebar_class} Ø{int(column_transverse_rebar_diameter)} мм (для столбов, поперечная)",
                     quantity=round(column_transverse_weight, 2),
                     unit="кг",
                     detail=f"{column_stirrup_count_per_column * columns_count} шт. ({round(column_stirrup_total_length, 2)} м.п.)",
@@ -1045,7 +1068,7 @@ class MaterialsService:
 
             materials.append(
                 MaterialItem(
-                    name=f"Арматура A400 Ø{beam_longitudinal_rebar_diameter} мм (для обвязки, продольная)",
+                    name=f"Арматура {rebar_class} Ø{int(beam_longitudinal_rebar_diameter)} мм (для обвязки, продольная)",
                     quantity=round(beam_longitudinal_weight, 2),
                     unit="кг",
                     detail=f"{round(beam_longitudinal_rebar_length, 2)} м.п.",
@@ -1054,7 +1077,7 @@ class MaterialsService:
 
             materials.append(
                 MaterialItem(
-                    name=f"Арматура A400 Ø{beam_transverse_rebar_diameter} мм (для обвязки, поперечная)",
+                    name=f"Арматура {rebar_class} Ø{int(beam_transverse_rebar_diameter)} мм (для обвязки, поперечная)",
                     quantity=round(beam_transverse_weight, 2),
                     unit="кг",
                     detail=f"{beam_stirrup_count} шт. ({round(beam_stirrup_total_length, 2)} м.п.)",
@@ -1070,7 +1093,7 @@ class MaterialsService:
             )
             materials.append(
                 MaterialItem(
-                    name="Арматура A400 (общий вес)",
+                    name=f"Арматура {rebar_class} (общий вес)",
                     quantity=round(total_rebar_weight, 2),
                     unit="кг",
                 )
@@ -1743,6 +1766,117 @@ class MaterialsService:
                                     material.quantity * estimated_price, 2
                                 ),
                             )
+                    # Для свай железобетонных проверяем по особому ключу
+                    elif (
+                        category == "foundation"
+                        and type_key == "pile"
+                        and "сваи железобетонные" in material.name.lower()
+                    ):
+                        # Ищем в materials_data["foundation"]["pile"]["materials"]["piles_concrete"]
+                        if "piles_concrete" in detailed_materials:
+                            pile_price = detailed_materials["piles_concrete"]["price"]
+                            updated_material = MaterialItem(
+                                name=material.name,
+                                quantity=material.quantity,
+                                unit=material.unit,
+                                price=pile_price,
+                                total_cost=round(material.quantity * pile_price, 2),
+                                detail=material.detail,
+                            )
+                        else:
+                            # Если цена не найдена, используем приблизительную цену
+                            estimated_price = self._get_estimated_price(
+                                material.name, material.unit
+                            )
+                            updated_material = MaterialItem(
+                                name=material.name,
+                                quantity=material.quantity,
+                                unit=material.unit,
+                                price=estimated_price,
+                                total_cost=round(
+                                    material.quantity * estimated_price, 2
+                                ),
+                                detail=material.detail,
+                            )
+                    # Для бетона свай и ростверка
+                    elif (
+                        category == "foundation"
+                        and type_key == "pile"
+                        and "бетон" in material.name.lower()
+                        and "для свай и ростверка" in material.name.lower()
+                    ):
+                        # Определяем класс бетона из названия (B15, B20, B25, B30)
+                        concrete_class = None
+                        for bclass in ["B15", "B20", "B25", "B30"]:
+                            if bclass in material.name:
+                                concrete_class = bclass.lower()
+                                break
+
+                        if concrete_class:
+                            concrete_key = f"concrete_{concrete_class}"
+                            if concrete_key in detailed_materials:
+                                concrete_price = detailed_materials[concrete_key][
+                                    "price"
+                                ]
+                                updated_material = MaterialItem(
+                                    name=material.name,
+                                    quantity=material.quantity,
+                                    unit=material.unit,
+                                    price=concrete_price,
+                                    total_cost=round(
+                                        material.quantity * concrete_price, 2
+                                    ),
+                                    detail=material.detail,
+                                )
+                            else:
+                                # Если конкретного класса нет, ищем любой бетон
+                                found_price = None
+                                for key, details in detailed_materials.items():
+                                    if key.startswith("concrete_"):
+                                        found_price = details["price"]
+                                        break
+
+                                if found_price is not None:
+                                    updated_material = MaterialItem(
+                                        name=material.name,
+                                        quantity=material.quantity,
+                                        unit=material.unit,
+                                        price=found_price,
+                                        total_cost=round(
+                                            material.quantity * found_price, 2
+                                        ),
+                                        detail=material.detail,
+                                    )
+                                else:
+                                    # Если цена не найдена, используем приблизительную цену
+                                    estimated_price = self._get_estimated_price(
+                                        material.name, material.unit
+                                    )
+                                    updated_material = MaterialItem(
+                                        name=material.name,
+                                        quantity=material.quantity,
+                                        unit=material.unit,
+                                        price=estimated_price,
+                                        total_cost=round(
+                                            material.quantity * estimated_price, 2
+                                        ),
+                                        detail=material.detail,
+                                    )
+                        else:
+                            # Если класс не определен, используем приблизительную цену
+                            estimated_price = self._get_estimated_price(
+                                material.name, material.unit
+                            )
+                            updated_material = MaterialItem(
+                                name=material.name,
+                                quantity=material.quantity,
+                                unit=material.unit,
+                                price=estimated_price,
+                                total_cost=round(
+                                    material.quantity * estimated_price, 2
+                                ),
+                                detail=material.detail,
+                            )
                     else:
                         # Для других материалов ищем в обычном месте
                         material_price = None
@@ -1933,62 +2067,35 @@ class MaterialsService:
 
         # Получаем количество перекрытий (на 1 меньше, чем этажей)
         floor_count = data.floors - 1
+        total_floor_area = floor_area * floor_count
 
-        # Деревянное перекрытие
-        if data.floor_type == "wood":
-            beam_type = data.floor_params.get("beam_type", "pine")
-            beam_size = data.floor_params.get("beam_size", "200")
-
-            # Объем балок (примерно 0.05-0.1 кубометров на кв.метр перекрытия)
-            beam_volume_per_sqm = 0.08
-            beam_volume = floor_area * beam_volume_per_sqm * floor_count
-
-            result.append(
-                MaterialItem(
-                    name="Балки деревянные",
-                    quantity=beam_volume,
-                    unit="м³",
-                    detail=f"Тип: {beam_type}, размер: {beam_size}x50 мм",
-                )
+        # Добавляем общую информацию о перекрытиях
+        result.append(
+            MaterialItem(
+                name="Общая информация о перекрытиях",
+                quantity=total_floor_area,
+                unit="м²",
+                detail=f"Количество этажей: {data.floors}, количество перекрытий: {floor_count}, площадь одного перекрытия: {floor_area:.2f} м²",
             )
-
-            # Доска половая (на площадь перекрытия)
-            result.append(
-                MaterialItem(
-                    name="Доска половая", quantity=floor_area * floor_count, unit="м²"
-                )
-            )
-
-            # Утеплитель для пола
-            result.append(
-                MaterialItem(
-                    name="Утеплитель для пола",
-                    quantity=floor_area * floor_count,
-                    unit="м²",
-                )
-            )
-
-            # Пароизоляция
-            result.append(
-                MaterialItem(
-                    name="Пароизоляция", quantity=floor_area * floor_count, unit="м²"
-                )
-            )
+        )
 
         # Монолитное железобетонное перекрытие
-        elif data.floor_type == "concrete":
+        if data.floor_type == "concrete":
             concrete_class = data.floor_params.get("concrete_class", "B25")
-            concrete_thickness = data.floor_params.get("concrete_thickness", 0.2)
+            concrete_thickness = (
+                float(data.floor_params.get("concrete-floor-thickness", 180)) / 1000
+            )  # перевод мм в м
+            span_length = float(data.floor_params.get("concrete-floor-span", 4.0))
 
             # Объем бетона
             concrete_volume = floor_area * concrete_thickness * floor_count
 
             result.append(
                 MaterialItem(
-                    name=f"Бетон {concrete_class}",
+                    name=f"Бетон {concrete_class} ({int(concrete_thickness*1000)} мм)",
                     quantity=concrete_volume,
                     unit="м³",
-                    detail=f"Толщина перекрытия: {concrete_thickness * 100} см",
+                    detail=f"Расчет: площадь {floor_area:.2f} м² × толщина {concrete_thickness:.3f} м × число перекрытий {floor_count} = {concrete_volume:.2f} м³. Длина пролета: {span_length} м.",
                 )
             )
 
@@ -1996,37 +2103,67 @@ class MaterialsService:
             rebar_weight = concrete_volume * 80
 
             result.append(
-                MaterialItem(name="Арматура", quantity=rebar_weight, unit="кг")
+                MaterialItem(
+                    name="Арматура",
+                    quantity=rebar_weight,
+                    unit="кг",
+                    detail=f"Расчет: объем бетона {concrete_volume:.2f} м³ × расход арматуры 80 кг/м³ = {rebar_weight:.2f} кг",
+                )
             )
 
             # Опалубка
+            formwork_area = floor_area * floor_count
+
             result.append(
                 MaterialItem(
-                    name="Опалубка", quantity=floor_area * floor_count, unit="м²"
+                    name="Опалубка",
+                    quantity=formwork_area,
+                    unit="м²",
+                    detail=f"Расчет: площадь перекрытий {total_floor_area:.2f} м². Требуется для формирования монолитной плиты.",
                 )
             )
 
             # Пароизоляция
+            vapor_barrier_area = floor_area * floor_count
+
             result.append(
                 MaterialItem(
-                    name="Пароизоляция", quantity=floor_area * floor_count, unit="м²"
+                    name="Пароизоляция",
+                    quantity=vapor_barrier_area,
+                    unit="м²",
+                    detail=f"Расчет: площадь перекрытий {total_floor_area:.2f} м². Защищает от проникновения влаги.",
                 )
             )
 
-        # Плитное перекрытие
+        # Плитное перекрытие (сборные ж/б плиты)
         elif data.floor_type == "slab":
-            slab_type = data.floor_params.get("slab_type", "solid")
-            slab_thickness = data.floor_params.get("slab_thickness", "20")
+            slab_type = data.floor_params.get("slab-floor-type", "ПК 60-12-8")
 
-            # Количество плит (примерно 1 плита на 4 кв.метра)
-            slabs_count = math.ceil(floor_area * floor_count / 4)
+            # Получаем размеры из значения типа плиты
+            if slab_type == "ПК 60-12-8":
+                slab_length = 6.0
+                slab_width = 1.2
+                slab_height = 0.22  # высота/толщина плиты в метрах
+            else:  # "ПК 48-12-8"
+                slab_length = 4.8
+                slab_width = 1.2
+                slab_height = 0.22  # высота/толщина плиты в метрах
+
+            # Площадь одной плиты
+            slab_area = slab_length * slab_width
+
+            # Расчет количества плит
+            num_slabs = math.ceil(floor_area * floor_count / slab_area)
+
+            # Фактическая площадь покрытия плитами
+            actual_coverage = num_slabs * slab_area
 
             result.append(
                 MaterialItem(
-                    name="Плиты перекрытия",
-                    quantity=slabs_count,
+                    name=f"Плиты перекрытия {slab_type}",
+                    quantity=num_slabs,
                     unit="шт",
-                    detail=f"Тип: {slab_type}, толщина: {slab_thickness} см",
+                    detail=f"Расчет: площадь перекрытий {total_floor_area:.2f} м² ÷ площадь одной плиты {slab_area:.2f} м² = {floor_area * floor_count / slab_area:.1f} плит, округлено до {num_slabs} шт. Размер плиты: {slab_length}×{slab_width}×{slab_height} м.",
                 )
             )
 
@@ -2035,105 +2172,25 @@ class MaterialsService:
 
             result.append(
                 MaterialItem(
-                    name="Цементно-песчаный раствор", quantity=mortar_volume, unit="м³"
+                    name="Цементно-песчаный раствор",
+                    quantity=mortar_volume,
+                    unit="м³",
+                    detail=f"Расчет: площадь перекрытий {total_floor_area:.2f} м² × расход раствора 0.05 м³/м² = {mortar_volume:.2f} м³. Используется для заделки швов между плитами.",
                 )
             )
 
             # Герметик для швов (примерно 0.2 литра на кв.метр)
             sealing_amount = floor_area * 0.2 * floor_count
 
-            result.append(
-                MaterialItem(
-                    name="Герметик для швов", quantity=sealing_amount, unit="л"
-                )
-            )
-
-        # Сборное железобетонное перекрытие
-        elif data.floor_type == "prefab":
-            panel_type = data.floor_params.get("panel_type", "reinforced")
-            panel_size = data.floor_params.get("panel_size", "medium")
-
-            # Количество панелей (в зависимости от размера)
-            panels_per_sqm = 0.2  # примерно 1 панель на 5 кв.метров для средних
-            if panel_size == "small":
-                panels_per_sqm = 0.3  # примерно 1 панель на 3.3 кв.метра для малых
-            elif panel_size == "large":
-                panels_per_sqm = 0.125  # примерно 1 панель на 8 кв.метров для больших
-
-            panels_count = math.ceil(floor_area * panels_per_sqm * floor_count)
+            # Расчет длины швов (примерно)
+            joints_length = num_slabs * (slab_length + slab_width)
 
             result.append(
                 MaterialItem(
-                    name="Железобетонные панели",
-                    quantity=panels_count,
-                    unit="шт",
-                    detail=f"Тип: {panel_type}, размер: {panel_size}",
-                )
-            )
-
-            # Цементно-песчаный раствор (примерно 0.04 кубометров на кв.метр)
-            mortar_volume = floor_area * 0.04 * floor_count
-
-            result.append(
-                MaterialItem(
-                    name="Цементно-песчаный раствор", quantity=mortar_volume, unit="м³"
-                )
-            )
-
-            # Герметик для швов (примерно 0.15 литра на кв.метр)
-            sealing_amount = floor_area * 0.15 * floor_count
-
-            result.append(
-                MaterialItem(
-                    name="Герметик для швов", quantity=sealing_amount, unit="л"
-                )
-            )
-
-        # Металлическое перекрытие
-        elif data.floor_type == "steel":
-            beam_profile = data.floor_params.get("beam_profile", "channel")
-            beam_spacing = data.floor_params.get("beam_spacing", 0.6)
-
-            # Количество балок (в зависимости от шага)
-            beams_per_meter = 1 / beam_spacing
-            perimeter = 2 * (
-                math.sqrt(floor_area) + math.sqrt(floor_area)
-            )  # Примерный периметр
-            beams_count = math.ceil(perimeter * beams_per_meter)
-
-            # Вес металлических балок (примерно 50 кг на погонный метр)
-            beam_length = math.sqrt(floor_area)  # Примерная длина балки
-            beam_weight = beams_count * beam_length * 50 / 1000  # в тоннах
-
-            result.append(
-                MaterialItem(
-                    name="Металлические балки",
-                    quantity=beam_weight,
-                    unit="т",
-                    detail=f"Тип профиля: {beam_profile}, шаг: {beam_spacing} м",
-                )
-            )
-
-            # Профнастил
-            result.append(
-                MaterialItem(
-                    name="Профнастил", quantity=floor_area * floor_count, unit="м²"
-                )
-            )
-
-            # Саморезы (примерно 20 шт на кв.метр)
-            screws_count = math.ceil(floor_area * 20 * floor_count)
-
-            result.append(
-                MaterialItem(name="Саморезы", quantity=screws_count, unit="шт")
-            )
-
-            # Бетонная стяжка (толщина примерно 5 см = 0.05 м)
-            concrete_volume = floor_area * 0.05 * floor_count
-
-            result.append(
-                MaterialItem(
-                    name="Бетонная стяжка", quantity=concrete_volume, unit="м³"
+                    name="Герметик для швов",
+                    quantity=sealing_amount,
+                    unit="л",
+                    detail=f"Расчет: площадь перекрытий {total_floor_area:.2f} м² × расход герметика 0.2 л/м² = {sealing_amount:.2f} л. Примерная длина швов: {joints_length:.2f} м.",
                 )
             )
 

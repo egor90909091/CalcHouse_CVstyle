@@ -1367,112 +1367,88 @@ async def _convert_form_data_to_calculator_input(
     # Фундамент
     foundation_type_value = form_data.get("foundationType", "strip")
     if isinstance(foundation_type_value, list):
-        foundation_type = foundation_type_value[0] if foundation_type_value else "strip"
+        foundation_type = foundation_type_value[0]
     else:
         foundation_type = foundation_type_value
 
+    # Получаем тип арматуры
+    rebar_type = form_data.get("rebar_type", "rebar_a400")
+    if isinstance(rebar_type, list):
+        rebar_type = rebar_type[0]
+
     foundation_params = {}
-
     if foundation_type == "strip":
-        # Проверка параметров бетона
-        foundation_concrete_value = form_data.get("foundation_concrete", "concrete_b20")
-        if isinstance(foundation_concrete_value, list):
-            foundation_concrete = (
-                foundation_concrete_value[0]
-                if foundation_concrete_value
-                else "concrete_b20"
-            )
-        else:
-            foundation_concrete = foundation_concrete_value
-
         foundation_params = {
             "width": safe_float(form_data.get("stripWidth", 0.4)),
+            "depth": safe_float(form_data.get("stripDepth", 0.8)),
             "height": safe_float(form_data.get("stripHeight", 0.5)),
-            "depth": safe_float(form_data.get("stripDepth", 1.2)),
-            "longitudinal_rebar_diameter": (
-                int(form_data.get("longitudinalRebarDiameter", 12))
-                if not isinstance(form_data.get("longitudinalRebarDiameter"), list)
-                else int(form_data.get("longitudinalRebarDiameter", [12])[0])
+            "longitudinal_rebar_diameter": safe_float(
+                form_data.get("stripLongitudinalRebarDiameter", 12)
             ),
-            "transverse_rebar_diameter": (
-                int(form_data.get("transverseRebarDiameter", 8))
-                if not isinstance(form_data.get("transverseRebarDiameter"), list)
-                else int(form_data.get("transverseRebarDiameter", [8])[0])
+            "transverse_rebar_diameter": safe_float(
+                form_data.get("stripTransverseRebarDiameter", 8)
             ),
-            "concrete": foundation_concrete,
+            "rebar_type": rebar_type,
+            "waterproofing": form_data.get(
+                "foundation_waterproofing", "waterproofing_roll"
+            ),
         }
     elif foundation_type == "slab":
-        # Проверка параметров бетона
-        slab_concrete_value = form_data.get("slab_concrete", "concrete_b25")
-        if isinstance(slab_concrete_value, list):
-            slab_concrete = (
-                slab_concrete_value[0] if slab_concrete_value else "concrete_b25"
-            )
-        else:
-            slab_concrete = slab_concrete_value
-
         foundation_params = {
-            "thickness": safe_float(form_data.get("slabThickness", 0.2)),
-            "cushion": safe_float(form_data.get("slabCushion", 0.15)),
-            "concrete": slab_concrete,
+            "thickness": safe_float(form_data.get("slabThickness", 0.3)),
+            "cushion": safe_float(form_data.get("slabCushion", 0.1)),
+            "main_rebar_diameter": safe_float(
+                form_data.get("slabMainRebarDiameter", 12)
+            ),
+            "distribution_rebar_diameter": safe_float(
+                form_data.get("slabDistributionRebarDiameter", 8)
+            ),
+            "rebar_type": rebar_type,
+            "waterproofing": form_data.get("slab_waterproofing", "waterproofing_roll"),
         }
     elif foundation_type == "pile":
-        # Проверка типа свай
-        pile_type_value = form_data.get("pile_type", "piles_concrete")
-        if isinstance(pile_type_value, list):
-            pile_type = pile_type_value[0] if pile_type_value else "piles_concrete"
-        else:
-            pile_type = pile_type_value
-
-        # Проверка типа гидроизоляции
-        pile_waterproofing_value = form_data.get(
-            "pile_waterproofing", "waterproofing_roll"
-        )
-        if isinstance(pile_waterproofing_value, list):
-            pile_waterproofing = (
-                pile_waterproofing_value[0]
-                if pile_waterproofing_value
-                else "waterproofing_roll"
-            )
-        else:
-            pile_waterproofing = pile_waterproofing_value
-
         foundation_params = {
             "step": safe_float(form_data.get("pileStep", 1.5)),
-            "diameter": safe_float(form_data.get("pileDiameter", 0.2)),
-            "depth": safe_float(form_data.get("pileDepth", 2.5)),
-            "type": pile_type,
-            "waterproofing": pile_waterproofing,
+            "diameter": safe_float(form_data.get("pileDiameter", 0.3)),
+            "depth": safe_float(form_data.get("pileDepth", 2.0)),
+            "grillage_height": safe_float(form_data.get("grillageHeight", 0.4)),
+            "pile_longitudinal_rebar_diameter": safe_float(
+                form_data.get("pileLongitudinalRebarDiameter", 12)
+            ),
+            "pile_transverse_rebar_diameter": safe_float(
+                form_data.get("pileTransverseRebarDiameter", 8)
+            ),
+            "grillage_longitudinal_rebar_diameter": safe_float(
+                form_data.get("grillageLongitudinalRebarDiameter", 12)
+            ),
+            "grillage_transverse_rebar_diameter": safe_float(
+                form_data.get("grillageTransverseRebarDiameter", 8)
+            ),
+            "rebar_type": rebar_type,
+            "waterproofing": form_data.get("pile_waterproofing", "waterproofing_roll"),
         }
     elif foundation_type == "column":
-        # Проверка типа колонн
-        column_type_value = form_data.get("column_type", "columns_concrete")
-        if isinstance(column_type_value, list):
-            column_type = (
-                column_type_value[0] if column_type_value else "columns_concrete"
-            )
-        else:
-            column_type = column_type_value
-
-        # Проверка типа гидроизоляции
-        column_waterproofing_value = form_data.get(
-            "column_waterproofing", "waterproofing_roll"
-        )
-        if isinstance(column_waterproofing_value, list):
-            column_waterproofing = (
-                column_waterproofing_value[0]
-                if column_waterproofing_value
-                else "waterproofing_roll"
-            )
-        else:
-            column_waterproofing = column_waterproofing_value
-
         foundation_params = {
-            "step": safe_float(form_data.get("columnStep", 1.5)),
+            "step": safe_float(form_data.get("columnStep", 2.0)),
             "size": safe_float(form_data.get("columnSize", 0.3)),
             "depth": safe_float(form_data.get("columnDepth", 1.5)),
-            "type": column_type,
-            "waterproofing": column_waterproofing,
+            "beam_height": safe_float(form_data.get("beamHeight", 0.4)),
+            "column_longitudinal_rebar_diameter": safe_float(
+                form_data.get("columnLongitudinalRebarDiameter", 12)
+            ),
+            "column_transverse_rebar_diameter": safe_float(
+                form_data.get("columnTransverseRebarDiameter", 8)
+            ),
+            "beam_longitudinal_rebar_diameter": safe_float(
+                form_data.get("beamLongitudinalRebarDiameter", 12)
+            ),
+            "beam_transverse_rebar_diameter": safe_float(
+                form_data.get("beamTransverseRebarDiameter", 8)
+            ),
+            "rebar_type": rebar_type,
+            "waterproofing": form_data.get(
+                "column_waterproofing", "waterproofing_roll"
+            ),
         }
 
     # Стены

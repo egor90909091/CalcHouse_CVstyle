@@ -56,7 +56,6 @@
 
 .wall-params.wood-params,
 .wall-params.block-params,
-.wall-params.concrete-params,
 .wall-params.panel-params {
     display: none;
 }

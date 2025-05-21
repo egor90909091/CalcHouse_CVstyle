@@ -128,6 +128,9 @@ class CalculatorService:
         # Расчет стоимости стен
         walls_price = self._calculate_walls_price(request)
 
+        # Расчет стоимости перекрытий
+        floor_price = self._calculate_floor_price(request)
+
         # Расчет стоимости кровли
         roof_price = self._calculate_roof_price(request)
 
@@ -139,7 +142,12 @@ class CalculatorService:
 
         # Расчет общей стоимости
         total_price = (
-            foundation_price + walls_price + roof_price + options_price + work_price
+            foundation_price
+            + walls_price
+            + floor_price
+            + roof_price
+            + options_price
+            + work_price
         )
 
         # Расчет стоимости за м²
@@ -181,6 +189,24 @@ class CalculatorService:
                         "price_per_sqm": self.materials_data["walls"][
                             request.wall_material.value
                         ]["price_per_sqm"],
+                    }
+                ],
+            ),
+            CalculationDetail(
+                category="Перекрытия",
+                price=floor_price,
+                details=[
+                    {
+                        "name": self.materials_data["floors"][request.floor_type.value][
+                            "name"
+                        ],
+                        "area": request.area * (request.floors - 1),
+                        "price_per_sqm": self.materials_data["floors"][
+                            request.floor_type.value
+                        ]["price_per_sqm"],
+                        "calculation_details": getattr(
+                            request, "floor_calculation_details", {}
+                        ),
                     }
                 ],
             ),
@@ -262,6 +288,98 @@ class CalculatorService:
         roof_data = self.materials_data["roof"][request.roof_type.value]
         roof_area = self._calculate_roof_area(request)
         return roof_data["price_per_sqm"] * roof_area
+
+    def _calculate_floor_price(self, request: CalculatorRequest) -> float:
+        """Расчет стоимости межэтажных перекрытий"""
+        if not request.floor_type or request.floors <= 1:
+            return 0.0
+
+        floor_type = request.floor_type.value
+        floor_data = self.materials_data["floors"][floor_type]
+        total_price = 0.0
+
+        # Площадь перекрытий (количество этажей - 1)
+        floor_area = request.area * (request.floors - 1)
+
+        if floor_type == "concrete":
+            # Расчет для монолитных перекрытий
+            thickness = (
+                float(request.floor_params.get("concrete-floor-thickness", 180)) / 1000
+            )  # перевод в метры
+            concrete_type = f"concrete_{int(thickness * 1000)}"
+            concrete_material = floor_data["materials"][concrete_type]
+
+            # Объем бетона
+            concrete_volume = floor_area * thickness
+            concrete_cost = concrete_volume * concrete_material["price"]
+
+            # Расход арматуры (примерно 80 кг на кубометр)
+            rebar_weight = concrete_volume * 0.1  # тонны
+            rebar_cost = floor_area * 0.1 * floor_data["materials"]["rebar"]["price"]
+
+            # Стоимость опалубки
+            formwork_cost = floor_area * floor_data["materials"]["formwork"]["price"]
+
+            total_price = concrete_cost + rebar_cost + formwork_cost
+
+            # Добавим детали расчета в запрос для последующего использования
+            if not hasattr(request, "floor_calculation_details"):
+                request.floor_calculation_details = {}
+
+            request.floor_calculation_details = {
+                "type": "concrete",
+                "area": floor_area,
+                "thickness": thickness,
+                "concrete_volume": concrete_volume,
+                "concrete_cost": concrete_cost,
+                "rebar_weight": rebar_weight,
+                "rebar_cost": rebar_cost,
+                "formwork_cost": formwork_cost,
+            }
+
+        elif floor_type == "slab":
+            # Расчет для сборных железобетонных плит
+            slab_type = request.floor_params.get("slab-floor-type", "ПК 60-12-8")
+            slab_key = "slab_" + slab_type.split()[1].replace("-", "_")
+            slab_material = floor_data["materials"][slab_key]
+
+            # Получаем размеры из значения типа плиты
+            if slab_type == "ПК 60-12-8":
+                slab_length = 6.0
+                slab_width = 1.2
+            else:  # "ПК 48-12-8"
+                slab_length = 4.8
+                slab_width = 1.2
+
+            # Площадь одной плиты
+            slab_area = slab_length * slab_width
+
+            # Расчет количества плит
+            num_slabs = int(floor_area / slab_area) + 1
+            slab_cost = num_slabs * slab_material["price"]
+
+            # Расчет стоимости раствора
+            mortar_volume = floor_area * 0.05  # примерный расход раствора
+            mortar_cost = mortar_volume * floor_data["materials"]["mortar"]["price"]
+
+            total_price = slab_cost + mortar_cost
+
+            # Добавим детали расчета в запрос для последующего использования
+            if not hasattr(request, "floor_calculation_details"):
+                request.floor_calculation_details = {}
+
+            request.floor_calculation_details = {
+                "type": "slab",
+                "area": floor_area,
+                "slab_type": slab_type,
+                "slab_dimensions": f"{slab_length}×{slab_width} м",
+                "num_slabs": num_slabs,
+                "slab_cost": slab_cost,
+                "mortar_volume": mortar_volume,
+                "mortar_cost": mortar_cost,
+            }
+
+        return total_price
 
     def _calculate_options_price(self, request: CalculatorRequest) -> tuple:
         """Расчет стоимости дополнительных опций"""

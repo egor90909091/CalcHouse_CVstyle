@@ -118,6 +118,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Установка значений из URL, если они есть
     loadFormValues();
+
+    // Инициализация блока перекрытий, если выбрано больше 1 этажа
+    const floorsSelect = document.getElementById('floorsSelect');
+    if (floorsSelect && parseInt(floorsSelect.value) > 1) {
+        const floorTypeSelect = document.getElementById('floorType');
+        if (floorTypeSelect && floorTypeSelect.value) {
+            switchFloorParams(floorTypeSelect.value);
+        }
+    }
 });
 
 /**
@@ -174,6 +183,20 @@ function initializeSwitchers() {
 
             if (floorTypeContainer) {
                 floorTypeContainer.style.display = floors > 1 ? 'block' : 'none';
+
+                // Если выбрано больше 1 этажа, инициализируем параметры перекрытий
+                if (floors > 1) {
+                    const floorTypeSelect = document.getElementById('floorType');
+                    if (floorTypeSelect && floorTypeSelect.value) {
+                        switchFloorParams(floorTypeSelect.value);
+                    }
+                } else {
+                    // Скрываем параметры перекрытий, если выбран 1 этаж
+                    const floorParamsContainer = document.getElementById('floorParams');
+                    if (floorParamsContainer) {
+                        floorParamsContainer.style.display = 'none';
+                    }
+                }
             }
         });
         // Вызываем сразу для установки начального состояния
@@ -307,15 +330,49 @@ function switchFoundationParams(foundationType) {
  * Переключает видимость параметров в зависимости от типа пола
  */
 function switchFloorParams(floorType) {
-    // Скрываем все параметры полов
-    document.querySelectorAll('.floor-params').forEach(div => {
-        div.classList.add('hidden');
+    const floorParamsContainer = document.getElementById('floorParams');
+    const concreteParams = document.getElementById('concrete-floor-params');
+    const slabParams = document.getElementById('slab-floor-params');
+
+    // Показываем основной контейнер параметров перекрытий
+    if (floorParamsContainer) {
+        floorParamsContainer.style.display = 'block';
+    }
+
+    // Скрываем все блоки параметров
+    [concreteParams, slabParams].forEach(block => {
+        if (block) block.style.display = 'none';
     });
 
-    // Показываем только выбранный тип
-    const targetElement = document.querySelector(`.floor-params.${floorType}-params`);
-    if (targetElement) {
-        targetElement.classList.remove('hidden');
+    // Показываем нужный блок параметров
+    switch (floorType) {
+        case 'concrete':
+            if (concreteParams) {
+                concreteParams.style.display = 'grid';
+                updateConcreteFloorOptions();
+            }
+            break;
+        case 'slab':
+            if (slabParams) {
+                slabParams.style.display = 'grid';
+            }
+            break;
+    }
+}
+
+function updateConcreteFloorOptions() {
+    const spanLength = document.getElementById('concrete-floor-span');
+    const thickness = document.getElementById('concrete-floor-thickness');
+
+    if (spanLength && thickness) {
+        spanLength.addEventListener('change', function () {
+            const span = parseFloat(this.value);
+            if (span <= 4) {
+                thickness.value = '180';
+            } else {
+                thickness.value = '200';
+            }
+        });
     }
 }
 
@@ -539,19 +596,6 @@ function applyFormValues(params) {
         if (params.blockReinforcement && document.querySelector('[name="blockReinforcement"]')) {
             document.querySelector('[name="blockReinforcement"]').value = params.blockReinforcement;
         }
-    } else if (params.wallMaterial === 'concrete') {
-        // Применение новых параметров для монолитных стен
-        if (params.concreteRebarType && document.querySelector('[name="concreteRebarType"]')) {
-            document.querySelector('[name="concreteRebarType"]').value = params.concreteRebarType;
-        }
-
-        if (params.concreteFormworkType && document.querySelector('[name="concreteFormworkType"]')) {
-            document.querySelector('[name="concreteFormworkType"]').value = params.concreteFormworkType;
-        }
-
-        if (params.concreteInsulationType && document.querySelector('[name="concreteInsulationType"]')) {
-            document.querySelector('[name="concreteInsulationType"]').value = params.concreteInsulationType;
-        }
     } else if (params.wallMaterial === 'panel') {
         // Применение новых параметров для панельных стен
         if (params.panelMountingType && document.querySelector('[name="panelMountingType"]')) {
@@ -686,7 +730,8 @@ function clearAllResults() {
     const titles = [
         document.getElementById('foundation-title'),
         document.getElementById('walls-title'),
-        document.getElementById('roof-title')
+        document.getElementById('roof-title'),
+        document.getElementById('floors-title')
     ];
 
     titles.forEach(title => {
@@ -896,6 +941,12 @@ function fillResultSections(data) {
     const roofContainer = document.getElementById('roofMaterials');
     const floorsContainer = document.getElementById('floorMaterials');
 
+    // Получаем заголовки
+    const foundationTitle = document.getElementById('foundation-title');
+    const wallsTitle = document.getElementById('walls-title');
+    const roofTitle = document.getElementById('roof-title');
+    const floorsTitle = document.getElementById('floors-title');
+
     // Проверяем наличие контейнеров
     if (!foundationContainer || !wallsContainer || !roofContainer) {
         console.error("Контейнеры для результатов не найдены");
@@ -906,6 +957,9 @@ function fillResultSections(data) {
     foundationContainer.innerHTML = '';
     wallsContainer.innerHTML = '';
     roofContainer.innerHTML = '';
+    if (floorsContainer) {
+        floorsContainer.innerHTML = '';
+    }
 
     // Подготавливаем данные
     const materials = data.materials || data;
@@ -915,9 +969,19 @@ function fillResultSections(data) {
     fillSection(wallsContainer, materials.walls);
     fillSection(roofContainer, materials.roof);
 
+    // Показываем заголовки
+    if (foundationTitle) foundationTitle.style.opacity = '1';
+    if (wallsTitle) wallsTitle.style.opacity = '1';
+    if (roofTitle) roofTitle.style.opacity = '1';
+
     // Заполняем межэтажные перекрытия, если есть
     if (floorsContainer && materials.floors && materials.floors.length > 0) {
         fillSection(floorsContainer, materials.floors);
+        // Показываем заголовок для межэтажных перекрытий
+        if (floorsTitle) floorsTitle.style.opacity = '1';
+    } else {
+        // Скрываем заголовок, если данных нет
+        if (floorsTitle) floorsTitle.style.opacity = '0';
     }
 
     // Отображаем общую стоимость
@@ -971,6 +1035,47 @@ function fillSection(container, items) {
 
     // Добавляем материалы
     let sectionTotal = 0;
+
+    // Проверка на наличие дополнительных деталей расчета
+    let hasCalculationDetails = false;
+    let calculationDetailsHtml = '';
+
+    // Ищем первый элемент, у которого есть детальная информация о расчетах
+    for (const item of items) {
+        if (item.detail && item.detail.includes('Расчет:')) {
+            hasCalculationDetails = true;
+            calculationDetailsHtml += `<div class="calculation-detail">${item.detail}</div>`;
+        }
+        if (item.calculation_details) {
+            hasCalculationDetails = true;
+            const details = item.calculation_details;
+
+            if (details.type === 'concrete') {
+                calculationDetailsHtml += `
+                <div class="calculation-details-box p-3 bg-gray-50 dark:bg-gray-800 rounded-lg my-3">
+                    <h5 class="font-semibold mb-2">Детали расчета монолитного перекрытия:</h5>
+                    <ul class="list-disc list-inside space-y-1 pl-2">
+                        <li>Площадь перекрытий: ${details.area.toFixed(2)} м²</li>
+                        <li>Толщина плиты: ${details.thickness * 1000} мм</li>
+                        <li>Объем бетона: ${details.concrete_volume.toFixed(2)} м³</li>
+                        <li>Расход арматуры: ${details.rebar_weight.toFixed(2)} т (${(details.rebar_weight * 1000).toFixed(0)} кг)</li>
+                    </ul>
+                </div>`;
+            } else if (details.type === 'slab') {
+                calculationDetailsHtml += `
+                <div class="calculation-details-box p-3 bg-gray-50 dark:bg-gray-800 rounded-lg my-3">
+                    <h5 class="font-semibold mb-2">Детали расчета плитного перекрытия:</h5>
+                    <ul class="list-disc list-inside space-y-1 pl-2">
+                        <li>Площадь перекрытий: ${details.area.toFixed(2)} м²</li>
+                        <li>Тип плиты: ${details.slab_type}</li>
+                        <li>Размеры плиты: ${details.slab_dimensions}</li>
+                        <li>Количество плит: ${details.num_slabs} шт</li>
+                        <li>Объем раствора: ${details.mortar_volume.toFixed(2)} м³</li>
+                    </ul>
+                </div>`;
+            }
+        }
+    }
 
     items.forEach((item, index) => {
         if (!item.name) return;
@@ -1036,7 +1141,6 @@ function fillSection(container, items) {
             }
         }
 
-        // Удаляем обрезание длинных названий - теперь используем перенос строк
         // Форматирование размеров бруса без десятичных знаков
         if (itemName.includes('x') && itemName.includes('.0')) {
             itemName = itemName.replace(/(\d+)\.0/g, '$1');
@@ -1071,6 +1175,19 @@ function fillSection(container, items) {
             materialRow.classList.add('visible');
         }, index * 150);
     });
+
+    // Добавляем блок с деталями расчета, если они есть
+    if (hasCalculationDetails && calculationDetailsHtml) {
+        const detailsContainer = document.createElement('div');
+        detailsContainer.className = 'calculation-details w-full mb-4';
+        detailsContainer.innerHTML = calculationDetailsHtml;
+        container.appendChild(detailsContainer);
+
+        // Анимация появления для блока с деталями
+        setTimeout(() => {
+            detailsContainer.classList.add('visible');
+        }, items.length * 150 + 100);
+    }
 
     // Добавляем итог по разделу
     if (sectionTotal > 0) {
@@ -1560,25 +1677,6 @@ function setupWallMaterialsHandlers() {
         });
     }
 
-    // Монолитные стены - дополнительные параметры
-    if (document.querySelector('[name="concrete_rebar_type"]')) {
-        document.querySelector('[name="concrete_rebar_type"]').addEventListener('change', function (e) {
-            updateCalculatorParams();
-        });
-    }
-
-    if (document.querySelector('[name="concrete_formwork_type"]')) {
-        document.querySelector('[name="concrete_formwork_type"]').addEventListener('change', function (e) {
-            updateCalculatorParams();
-        });
-    }
-
-    if (document.querySelector('[name="concrete_insulation_type"]')) {
-        document.querySelector('[name="concrete_insulation_type"]').addEventListener('change', function (e) {
-            updateCalculatorParams();
-        });
-    }
-
     // Панельные стены - дополнительные параметры
     if (document.querySelector('[name="panel_mounting_type"]')) {
         document.querySelector('[name="panel_mounting_type"]').addEventListener('change', function (e) {
@@ -1633,41 +1731,21 @@ function getCalculatorParams() {
         if (document.querySelector('[name="wood_interlayer"]')) {
             params.wood_interlayer = document.querySelector('[name="wood_interlayer"]').value;
         }
-
-        if (document.querySelector('[name="wood_treatment"]')) {
-            params.wood_treatment = document.querySelector('[name="wood_treatment"]').value;
-        }
     } else if (params.wall_material === 'block') {
         params.blockType = document.querySelector('[name="blockType"]').value;
         params.blockThickness = document.querySelector('[name="blockThickness"]').value;
 
         // Добавление новых параметров для блочных стен
-        if (document.querySelector('[name="block_adhesive_type"]')) {
-            params.block_adhesive_type = document.querySelector('[name="block_adhesive_type"]').value;
+        if (document.querySelector('[name="blockAdhesiveType"]')) {
+            params.blockAdhesiveType = document.querySelector('[name="blockAdhesiveType"]').value;
         }
 
-        if (document.querySelector('[name="block_insulation_type"]')) {
-            params.block_insulation_type = document.querySelector('[name="block_insulation_type"]').value;
+        if (document.querySelector('[name="blockInsulationType"]')) {
+            params.blockInsulationType = document.querySelector('[name="blockInsulationType"]').value;
         }
 
-        if (document.querySelector('[name="block_reinforcement"]')) {
-            params.block_reinforcement = document.querySelector('[name="block_reinforcement"]').value;
-        }
-    } else if (params.wall_material === 'concrete') {
-        params.concreteThickness = document.querySelector('[name="concreteThickness"]').value;
-        params.concreteClass = document.querySelector('[name="concreteClass"]').value;
-
-        // Добавление новых параметров для монолитных стен
-        if (document.querySelector('[name="concrete_rebar_type"]')) {
-            params.concrete_rebar_type = document.querySelector('[name="concrete_rebar_type"]').value;
-        }
-
-        if (document.querySelector('[name="concrete_formwork_type"]')) {
-            params.concrete_formwork_type = document.querySelector('[name="concrete_formwork_type"]').value;
-        }
-
-        if (document.querySelector('[name="concrete_insulation_type"]')) {
-            params.concrete_insulation_type = document.querySelector('[name="concrete_insulation_type"]').value;
+        if (document.querySelector('[name="blockReinforcement"]')) {
+            params.blockReinforcement = document.querySelector('[name="blockReinforcement"]').value;
         }
     } else if (params.wall_material === 'panel') {
         params.panelType = document.querySelector('[name="panelType"]').value;

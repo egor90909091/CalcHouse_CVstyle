@@ -15,11 +15,8 @@ class FoundationType(str, Enum):
 class FloorType(str, Enum):
     """Типы межэтажных перекрытий"""
 
-    WOOD = "wood"  # Деревянное перекрытие
     CONCRETE = "concrete"  # Монолитное железобетонное
-    SLAB = "slab"  # Плитное перекрытие
-    PREFAB = "prefab"  # Сборное железобетонное
-    STEEL = "steel"  # Металлическое перекрытие
+    SLAB = "slab"  # Сборные железобетонные плиты
 
 
 class WallMaterial(str, Enum):
@@ -261,29 +258,34 @@ class WoodFloorParams(FloorParams):
     """Параметры деревянных перекрытий"""
 
     beam_type: str = Field(..., description="Тип балок")
-    beam_size: float = Field(..., description="Сечение балок в мм")
+    beam_size: str = Field(..., description="Сечение балок (75x200 или 100x200 мм)")
     beam_spacing: float = Field(..., description="Шаг между балками в м")
+    span_length: float = Field(..., description="Длина пролета в м", le=4.0)
 
 
 class ConcreteFloorParams(FloorParams):
     """Параметры монолитных перекрытий"""
 
     concrete_class: str = Field(..., description="Класс бетона")
-    reinforcement: float = Field(..., description="Количество арматуры кг/м³")
+    thickness: float = Field(..., description="Толщина плиты (180 или 200 мм)")
+    span_length: float = Field(..., description="Длина пролета в м", le=4.0)
 
 
 class SlabFloorParams(FloorParams):
     """Параметры плитных перекрытий"""
 
-    slab_type: str = Field(..., description="Тип плит")
-    slab_size: str = Field(..., description="Размер плит")
+    slab_type: str = Field(..., description="Тип плит (ПК 60-12-8 или ПК 48-12-8)")
+    slab_size: str = Field(
+        ..., description="Размер плит (6x1.2x0.22 или 4.8x1.2x0.22 м)"
+    )
 
 
 class PrefabFloorParams(FloorParams):
-    """Параметры сборных железобетонных перекрытий"""
+    """Параметры сборно-монолитных перекрытий"""
 
-    panel_type: str = Field(..., description="Тип панелей")
-    panel_size: str = Field(..., description="Размер панелей")
+    beam_height: float = Field(..., description="Высота балок (160 или 200 мм)")
+    beam_spacing: float = Field(..., description="Шаг между балками (0.6-1.0 м)")
+    span_length: float = Field(..., description="Длина пролета в м")
 
 
 class SteelFloorParams(FloorParams):
