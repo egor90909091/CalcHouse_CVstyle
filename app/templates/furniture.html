@@ -294,6 +294,19 @@
                     <input type="file" id="fileInput" hidden accept="image/jpeg,image/png,image/webp">
                 </div>
 
+                    <!-- Контейнер для результатов выбора мебели -->
+                <div id="selectedFurnitureContainer"
+                    class="mt-6 hidden overflow-hidden transition-all duration-300">
+                    <div
+                        class="p-5 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
+                        <h5 id="selectedFurnitureTitle" class="font-medium mb-3 text-gray-900 dark:text-gray-100">
+                        </h5>
+                        <div id="selectedFurnitureContent" class="text-sm text-gray-600 dark:text-gray-400">
+                            <p>Загрузка вариантов мебели...</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Выбор комнаты (отдельный блок) -->
                 <div class="mt-6 border-t pt-4 border-gray-200 dark:border-gray-700">
                     <label for="roomSelect"
@@ -452,19 +465,6 @@
                             <!-- Контейнер для результатов -->
                             <div id="furnitureResultsContent" class="furniture-grid-cards">
                                 <!-- Результаты будут добавлены динамически -->
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Контейнер для результатов выбора мебели -->
-                    <div id="selectedFurnitureContainer"
-                        class="mt-6 hidden overflow-hidden transition-all duration-300">
-                        <div
-                            class="p-5 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm">
-                            <h5 id="selectedFurnitureTitle" class="font-medium mb-3 text-gray-900 dark:text-gray-100">
-                            </h5>
-                            <div id="selectedFurnitureContent" class="text-sm text-gray-600 dark:text-gray-400">
-                                <p>Загрузка вариантов мебели...</p>
                             </div>
                         </div>
                     </div>

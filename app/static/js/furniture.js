@@ -17,9 +17,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const selectedFurnitureTitle = document.getElementById('selectedFurnitureTitle');
     const selectedFurnitureContent = document.getElementById('selectedFurnitureContent');
     const clearSelectionBtn = document.getElementById('clearSelectionBtn');
+    const roomSelectContainer = document.querySelector('.room-select-container');
 
     let lastRequestTime = 0;
     const requestInterval = 6000; // 6 секунд между запросами
+
+    // Инициализация видимости контейнера при загрузке
+    if (selectedFurnitureContainer) {
+        selectedFurnitureContainer.classList.add('hidden');
+    }
 
     // Обработка drag & drop
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
@@ -129,6 +135,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Сохраняем результаты для использования при выборе мебели
             window.analysisResults = result.predicted_class;
+
+            // Показываем предсказанный стиль в контейнере
+            if (selectedFurnitureContainer && selectedFurnitureTitle && selectedFurnitureContent) {
+                const styleName = window.analysisResults.name.charAt(0).toUpperCase() + window.analysisResults.name.slice(1);
+                selectedFurnitureTitle.textContent = 'Определенный стиль:';
+                selectedFurnitureContent.innerHTML = `
+                    <div class="text-lg font-medium text-gray-900 dark:text-white">${styleName}</div>
+                `;
+                selectedFurnitureContainer.classList.remove('hidden');
+
+                // Перемещаем контейнер после изображения и перед выбором комнаты
+                if (imageContainer && roomSelectContainer) {
+                    imageContainer.insertAdjacentElement('afterend', selectedFurnitureContainer);
+                }
+            }
 
             // Скрываем индикатор анализа
             if (analyzingStatus) {
@@ -406,7 +427,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const selectedSquare = document.getElementById('selectedFurnitureSquare');
         const choices = Object.values(selectedFurnitureChoices);
 
-        if (!selectedSquare) return;
+        if (!selectedSquare || !selectedFurnitureContainer) return;
 
         // Очищаем содержимое перед обновлением
         selectedSquare.innerHTML = '';
@@ -414,6 +435,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Управляем отображением кнопки очистки и контейнера
         if (choices.length > 0) {
             clearSelectionBtn.classList.remove('hidden');
+            selectedFurnitureContainer.classList.remove('hidden');
             selectedSquare.classList.remove('hidden');
 
             // Создаем элементы DOM вместо сложных строковых шаблонов
@@ -451,9 +473,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             // Скрываем кнопку очистки и контейнер при отсутствии выбранных товаров
             clearSelectionBtn.classList.add('hidden');
+            selectedFurnitureContainer.classList.add('hidden');
             selectedSquare.classList.add('hidden');
-
-            // Не добавляем никаких сообщений о пустом выборе
         }
     }
 
