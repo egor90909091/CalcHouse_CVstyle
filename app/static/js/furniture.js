@@ -27,6 +27,20 @@ document.addEventListener('DOMContentLoaded', () => {
         selectedFurnitureContainer.classList.add('hidden');
     }
 
+    // Добавим обработчик изменения размера окна для адаптивности
+    window.addEventListener('resize', handleWindowResize);
+
+    // Функция обработки изменения размера окна
+    function handleWindowResize() {
+        // Если изображение загружено (dropZone имеет класс has-image)
+        if (dropZone.classList.contains('has-image')) {
+            setImageLoadedState();
+        }
+    }
+
+    // Вызовем функцию при загрузке страницы
+    handleWindowResize();
+
     // Обработка drag & drop
     ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
         dropZone.addEventListener(eventName, preventDefaults, false);
@@ -56,6 +70,28 @@ document.addEventListener('DOMContentLoaded', () => {
     // Функция для сброса состояния загрузки изображения
     function resetImageState() {
         dropZone.classList.remove('has-image');
+        emptyState.style.display = 'flex';
+        previewState.style.display = 'none';
+    }
+
+    // Функция для установки состояния с загруженным изображением
+    function setImageLoadedState() {
+        dropZone.classList.add('has-image');
+        emptyState.style.display = 'none';
+        previewState.style.display = 'block';
+
+        // Обработка адаптивного отображения на мобильных устройствах
+        if (window.innerWidth <= 768) {
+            // Для мобильных - добавим дополнительные стили для контейнера превью
+            previewState.style.display = 'flex';
+            previewState.style.flexDirection = 'column';
+
+            // Убедимся, что изображение отображается над всеми остальными элементами
+            const imageContainer = document.getElementById('imageContainer');
+            if (imageContainer) {
+                imageContainer.style.order = '-1';
+            }
+        }
     }
 
     // Обработка загрузки файла
@@ -92,9 +128,9 @@ document.addEventListener('DOMContentLoaded', () => {
             imagePreview.src = e.target.result;
 
             // Добавляем класс для правильного отображения состояния
-            dropZone.classList.add('has-image');
+            setImageLoadedState();
 
-            // Скрываем статус анализа, но не показываем его текст
+            // Показываем контейнер превью и скрываем пустое состояние
             analyzingStatus.textContent = '';
             analyzingStatus.classList.add('hidden');
 
@@ -139,10 +175,35 @@ document.addEventListener('DOMContentLoaded', () => {
             // Показываем предсказанный стиль в контейнере
             if (selectedFurnitureContainer && selectedFurnitureTitle && selectedFurnitureContent) {
                 const styleName = window.analysisResults.name.charAt(0).toUpperCase() + window.analysisResults.name.slice(1);
+                const translatedStyle = styleTranslations[styleName] || styleName;
                 selectedFurnitureTitle.textContent = 'Определенный стиль:';
-                selectedFurnitureContent.innerHTML = `
-                    <div class="text-lg font-medium text-gray-900 dark:text-white">${styleName}</div>
-                `;
+
+                // Проверяем текущую тему
+                const isDarkTheme = document.documentElement.classList.contains('dark-theme');
+
+                // Применяем соответствующие стили контейнера
+                const containerDiv = selectedFurnitureContainer.querySelector('div');
+                if (containerDiv) {
+                    if (isDarkTheme) {
+                        containerDiv.className = 'p-5 bg-gray-800 rounded-lg border border-gray-700 shadow-sm';
+                    } else {
+                        containerDiv.className = 'p-5 bg-white rounded-lg border border-gray-200 shadow-sm';
+                    }
+                }
+
+                // Устанавливаем стили для заголовка и содержимого
+                if (isDarkTheme) {
+                    selectedFurnitureTitle.className = 'font-medium mb-3 text-center text-white';
+                    selectedFurnitureContent.innerHTML = `
+                        <div class="text-lg font-medium text-white text-center">${translatedStyle}</div>
+                    `;
+                } else {
+                    selectedFurnitureTitle.className = 'font-medium mb-3 text-center text-gray-900';
+                    selectedFurnitureContent.innerHTML = `
+                        <div class="text-lg font-medium text-gray-900 text-center">${translatedStyle}</div>
+                    `;
+                }
+
                 selectedFurnitureContainer.classList.remove('hidden');
 
                 // Перемещаем контейнер после изображения и перед выбором комнаты
@@ -179,6 +240,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ======== НОВЫЙ КОД: ФУНКЦИОНАЛЬНОСТЬ ВЫБОРА МЕБЕЛИ ========
+
+    // Словарь для перевода стилей на русский язык
+    const styleTranslations = {
+        "Asian": "Азиатский",
+        "Boho": "Бохо",
+        "Contemporary": "Современный",
+        "Country": "Кантри",
+        "Eclectic": "Эклектика",
+        "Ecostyle": "Экостиль",
+        "English Style": "Английский",
+        "Futurism": "Футуризм",
+        "Loft": "Лофт",
+        "Mediterranean (Coastal)": "Средиземноморский",
+        "Minimalism": "Минимализм",
+        "Modern": "Модерн",
+        "Neoclassicism": "Неоклассика",
+        "Provence": "Прованс",
+        "Rustic": "Рустик",
+        "Scandinavian": "Скандинавский",
+        "Victorian": "Викторианский"
+    };
 
     // Словарь доступных стилей (соответствует STYLE_DICT на сервере)
     const availableStyles = [
