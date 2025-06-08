@@ -124,18 +124,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const reader = new FileReader();
         reader.onload = function (e) {
-            // Устанавливаем новое изображение
+            // Set the preview image with original file
             imagePreview.src = e.target.result;
 
-            // Добавляем класс для правильного отображения состояния
-            setImageLoadedState();
+            // Create an image element to resize
+            const img = new Image();
+            img.onload = function() {
+                // Create a canvas to resize the image
+                const canvas = document.createElement('canvas');
+                canvas.width = 224;
+                canvas.height = 224;
+                const ctx = canvas.getContext('2d');
+                
+                // Draw the image resized to 224x224
+                ctx.drawImage(img, 0, 0, 224, 224);
+                
+                // Convert canvas to blob
+                canvas.toBlob(function(blob) {
+                    // Create a new file from the blob
+                    const resizedFile = new File([blob], file.name, {
+                        type: file.type,
+                        lastModified: file.lastModified
+                    });
 
-            // Показываем контейнер превью и скрываем пустое состояние
-            analyzingStatus.textContent = '';
-            analyzingStatus.classList.add('hidden');
+                    // Add class for proper state display
+                    setImageLoadedState();
 
-            // Автоматически запускаем анализ
-            analyzeImage(file);
+                    // Show preview container and hide empty state
+                    analyzingStatus.textContent = '';
+                    analyzingStatus.classList.add('hidden');
+
+                    // Automatically start analysis with resized image
+                    analyzeImage(resizedFile);
+                }, file.type, 0.9); // Use 0.9 quality for better compression
+            };
+            img.src = e.target.result;
         };
         reader.readAsDataURL(file);
     }
