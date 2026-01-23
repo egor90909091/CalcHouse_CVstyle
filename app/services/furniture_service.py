@@ -90,7 +90,7 @@ async def get_furniture_by_style(style: str, furniture: str, max_items: int = 5)
                 for result in results:
                     if result:
                         # Get price from product data
-                        price = product.get('sizes', [{}])[0].get('price', {}).get('total', 0) // 100
+                        price = product.get('sizes', [{}])[0].get('price', {}).get('basic', 0) // 100
                         results_dict[link_to_item] = {
                             "image_url": result,
                             "price": price
