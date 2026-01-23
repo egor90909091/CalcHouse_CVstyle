@@ -78,7 +78,7 @@ async def get_furniture_by_style(style: str, furniture: str, max_items: int = 5)
             
             async def process_product(product):
                 product_id = product['id']
-                link_to_item = f'https://www.wildberries.ru/catalog/0/{product_id}/detail.aspx'
+                link_to_item = f'https://www.wildberries.ru/catalog/{product_id}/detail.aspx'
                 
                 # Skip if we already have this product
                 if link_to_item in results_dict:
