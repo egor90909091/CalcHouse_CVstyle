@@ -53,11 +53,11 @@ async def get_furniture_by_style(style: str, furniture: str, max_items: int = 5)
                 'uclusters': '1',
             }
             
-            async with session.get('https://search.wb.ru/exactmatch/ru/common/v13/search', params=params) as response:
+            async with session.get('https://search.wb.ru/exactmatch/ru/common/v14/search', params=params) as response:
                 text = await response.text()
                 try:
                     data = json.loads(text)
-                    products = data.get('data', {}).get('products', [])
+                    products = data.get('products', [])
                     if not products:  # If no products found, break the loop
                         break
                 except json.JSONDecodeError:
@@ -78,7 +78,7 @@ async def get_furniture_by_style(style: str, furniture: str, max_items: int = 5)
             
             async def process_product(product):
                 product_id = product['id']
-                link_to_item = f'https://www.wildberries.ru/catalog/{product_id}/detail.aspx'
+                link_to_item = f'https://www.wildberries.ru/catalog/0/{product_id}/detail.aspx'
                 
                 # Skip if we already have this product
                 if link_to_item in results_dict:
