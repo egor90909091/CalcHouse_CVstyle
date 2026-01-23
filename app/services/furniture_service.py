@@ -62,7 +62,7 @@ async def get_furniture_by_style(style: str, furniture: str, max_items: int = 5)
                         break
                 except json.JSONDecodeError:
                     print(f"Ошибка декодирования JSON: {text[:100]}...")
-                    break
+                    continue
             
             server_order = list(range(10, 21)) + list(range(1, 10)) + list(range(21, 26))
             
