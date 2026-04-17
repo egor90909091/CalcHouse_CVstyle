@@ -61,7 +61,10 @@ async def get_furniture_by_style(style: str, furniture: str, max_items: int = 5)
                     if not products:  # If no products found, break the loop
                         break
                 except json.JSONDecodeError:
-                    print(f"Ошибка декодирования JSON: {text[:100]}...")
+                    if response.status == 429:
+                        print("Too many requests")
+                    print(f"Ошибка декодирования JSON: {text[:200]}")
+                    asyncio.sleep(100)
                     continue
             
             server_order = list(range(10, 21)) + list(range(1, 10)) + list(range(21, 26))
