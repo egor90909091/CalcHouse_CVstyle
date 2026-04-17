@@ -82,6 +82,70 @@ footer {
     color: var(--secondary-text);
 }
 
+.text-secondary-normal {
+    color: var(--secondary-text);
+}
+
+.project-logos {
+    display: flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 2rem;
+    margin-top: -2.5rem;
+}
+
+.project-logo {
+    display: block;
+    height: auto;
+    max-height: 180px;
+    width: auto;
+    object-fit: contain;
+}
+
+.project-logo-fond {
+    max-width: 560px;
+}
+
+.project-logo-platform {
+    max-width: 400px;
+    margin-left: auto;
+}
+
+.project-logo-platform-dark {
+    display: none;
+}
+
+.dark-theme .project-logo-platform-light {
+    display: none;
+}
+
+.dark-theme .project-logo-platform-dark {
+    display: block;
+}
+
+@media (max-width: 768px) {
+    .project-logos {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 1rem;
+    }
+
+    .project-logo {
+        max-height: 130px;
+    }
+
+    .project-logo-fond {
+        max-width: 380px;
+    }
+
+    .project-logo-platform {
+        max-width: 300px;
+        margin-left: 0;
+    }
+}
+
 .text-muted {
     color: var(--muted-text);
 }
@@ -161,6 +225,22 @@ select {
 
 .light-theme {
     text-shadow: 0 0 1px rgba(0, 0, 0, 0.01);
+}
+
+/* Отменяем принудительную жирность для класса text-secondary-normal в светлой теме */
+.light-theme .text-secondary-normal {
+    font-weight: var(--font-weight-normal) !important;
+    /* Используем нормальную толщину */
+    -webkit-text-stroke: 0.1px rgba(0, 0, 0, 0.1);
+    /* Уменьшаем обводку */
+}
+
+/* Сохраняем жирность для тега strong внутри text-secondary-normal */
+.light-theme .text-secondary-normal strong {
+    font-weight: var(--font-weight-bold) !important;
+    /* Возвращаем жирность */
+    -webkit-text-stroke: 0.3px rgba(0, 0, 0, 0.3);
+    /* Возвращаем обводку для жирного текста */
 }
 
 /* Специфические стили для темной темы */

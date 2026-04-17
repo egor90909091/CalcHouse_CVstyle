@@ -80,6 +80,11 @@ h6,
     transition: color var(--transition-speed) ease;
 }
 
+.text-secondary-normal {
+    font-weight: var(--font-weight-normal);
+    transition: color var(--transition-speed) ease;
+}
+
 .text-muted {
     transition: color var(--transition-speed) ease;
 }
