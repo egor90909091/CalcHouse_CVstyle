@@ -47,6 +47,8 @@
 
 ## Установка и запуск
 
+python3.11
+
 1. Клонируйте репозиторий:
 ```
 git clone https://github.com/yourusername/BuildMate.git
