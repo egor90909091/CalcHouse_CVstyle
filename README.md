@@ -41,7 +41,6 @@
 
 ### Frontend
 - HTML, CSS, JavaScript
-- Tailwind CSS
 - Адаптивная верстка
 - Поддержка темной/светлой темы
 
@@ -95,7 +94,6 @@ python main.py
 - Гидроизоляционные материалы
 - Герметики и монтажные материалы
 
-## Скриншоты
 
 ![Калькулятор строительства](screenshots/calculator.png)
 ![Распознавание мебели](screenshots/furniture-recognition.png)
