@@ -406,8 +406,8 @@ async def calculate_simple_materials(request: Request):
                 "grillage_transverse_rebar_diameter": grillage_transverse_rebar_diameter,
             }
 
-            # Объем бетона для свайного фундамента
-            concrete_volume = pile_depth * pile_diameter**2 * math.pi
+            # Объем бетона для свайного фундамента (V = π * r² * h)
+            concrete_volume = math.pi * (pile_diameter / 2) ** 2 * pile_depth
 
             # Добавляем выбранные материалы
             if "concrete_m200" in foundation_selected_materials:
@@ -516,8 +516,8 @@ async def calculate_simple_materials(request: Request):
                 "beam_transverse_rebar_diameter": beam_transverse_rebar_diameter,
             }
 
-            # Объем бетона для столбчатого фундамента
-            concrete_volume = column_depth * column_size**2 * math.pi
+            # Объем бетона для столбчатого фундамента (V = π * r² * h)
+            concrete_volume = math.pi * (column_size / 2) ** 2 * column_depth
 
             # Добавляем выбранные материалы
             if "concrete_m200" in foundation_selected_materials:

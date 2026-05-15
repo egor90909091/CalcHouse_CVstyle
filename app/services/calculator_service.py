@@ -7,6 +7,7 @@ from app.models.calculator import (
     CalculatorRequest,
     CalculatorResponse,
     CalculationDetail,
+    AdditionalOption,
 )
 
 
@@ -157,7 +158,7 @@ class CalculatorService:
         estimated_time = int(request.area * 0.5 * request.floors)
 
         # Проверяем наличие дополнительных опций безопасным способом
-        if request.additional_options and "basement" in request.additional_options:
+        if request.additional_options and AdditionalOption.BASEMENT in request.additional_options:
             estimated_time += 30
 
         # Формирование детализации расчетов
@@ -195,20 +196,22 @@ class CalculatorService:
             CalculationDetail(
                 category="Перекрытия",
                 price=floor_price,
-                details=[
-                    {
-                        "name": self.materials_data["floors"][request.floor_type.value][
-                            "name"
-                        ],
-                        "area": request.area * (request.floors - 1),
-                        "price_per_sqm": self.materials_data["floors"][
-                            request.floor_type.value
-                        ]["price_per_sqm"],
-                        "calculation_details": getattr(
-                            request, "floor_calculation_details", {}
-                        ),
-                    }
-                ],
+                details=(
+                    [
+                        {
+                            "name": self.materials_data["floors"][
+                                request.floor_type.value
+                            ]["name"],
+                            "area": request.area * (request.floors - 1),
+                            "price_per_sqm": self.materials_data["floors"][
+                                request.floor_type.value
+                            ]["price_per_sqm"],
+                            "calculation_details": request.floor_calculation_details or {},
+                        }
+                    ]
+                    if request.floor_type and request.floors > 1
+                    else []
+                ),
             ),
             CalculationDetail(
                 category="Кровля",
@@ -313,9 +316,9 @@ class CalculatorService:
             concrete_volume = floor_area * thickness
             concrete_cost = concrete_volume * concrete_material["price"]
 
-            # Расход арматуры (примерно 80 кг на кубометр)
+            # Расход арматуры: ~100 кг на кубометр бетона
             rebar_weight = concrete_volume * 0.1  # тонны
-            rebar_cost = floor_area * 0.1 * floor_data["materials"]["rebar"]["price"]
+            rebar_cost = rebar_weight * 1000 * floor_data["materials"]["rebar"]["price"]
 
             # Стоимость опалубки
             formwork_cost = floor_area * floor_data["materials"]["formwork"]["price"]

@@ -87,15 +87,11 @@ class CalculationResult(BaseModel):
 
 
 class CalculationDetail(BaseModel):
-    """Детализация расчета"""
+    """Детализация расчета по категории"""
 
     category: str = Field(..., description="Категория расчета")
-    name: str = Field(..., description="Наименование")
-    quantity: float = Field(..., description="Количество")
-    unit: str = Field(..., description="Единица измерения")
-    price_per_unit: float = Field(..., description="Цена за единицу")
-    total: float = Field(..., description="Итоговая стоимость")
-    note: Optional[str] = Field(None, description="Примечание")
+    price: float = Field(..., description="Итоговая стоимость категории")
+    details: List[Dict[str, Any]] = Field(default_factory=list, description="Детали расчета")
 
 
 class Recommendation(BaseModel):
@@ -364,6 +360,12 @@ class CalculatorRequest(BaseModel):
     floor_type: Optional[FloorType] = Field(
         None, description="Тип межэтажных перекрытий"
     )
+    floor_params: Optional[Dict[str, Any]] = Field(
+        default_factory=dict, description="Параметры перекрытий"
+    )
+    floor_calculation_details: Optional[Dict[str, Any]] = Field(
+        default_factory=dict, description="Детали расчета перекрытий (заполняется сервисом)"
+    )
     roof_type: RoofType = Field(..., description="Тип кровли")
     additional_options: Optional[List[AdditionalOption]] = Field(
         default=[], description="Дополнительные опции"
@@ -373,10 +375,8 @@ class CalculatorRequest(BaseModel):
 class CalculatorResponse(BaseModel):
     """Ответ калькулятора строительства"""
 
-    total_cost: float = Field(..., description="Общая стоимость строительства")
-    cost_breakdown: Dict[str, float] = Field(
-        ..., description="Разбивка стоимости по категориям"
-    )
-    recommendations: Optional[List[Dict[str, Any]]] = Field(
-        default=None, description="Рекомендации по оптимизации"
-    )
+    total_price: float = Field(..., description="Общая стоимость строительства")
+    area: float = Field(..., description="Площадь дома в кв. метрах")
+    price_per_sqm: float = Field(..., description="Стоимость за кв. метр")
+    breakdown: List[CalculationDetail] = Field(..., description="Разбивка по категориям")
+    estimated_time: int = Field(..., description="Примерное время строительства в днях")
