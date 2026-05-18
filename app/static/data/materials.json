@@ -239,7 +239,7 @@
             "materials": {
                 "brick_solid": {
                     "name": "Кирпич керамический полнотелый",
-                    "price": 15,
+                    "price": 29,
                     "unit": "шт"
                 },
                 "brick_hollow": {
