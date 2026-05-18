@@ -3,10 +3,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
-import os
+
 import time
 import asyncio
-from pathlib import Path
+
 import datetime
 from contextlib import asynccontextmanager
 
@@ -165,8 +165,6 @@ def safe_float(value, default=0):
 
 if __name__ == "__main__":
     import uvicorn
-    import signal
-    import sys
     import logging
     from uvicorn.config import Config
 
