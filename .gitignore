@@ -8,7 +8,7 @@
 
 # VS Code
 .vscode/
-
+.env
 # Claude Code
 .claude/
 # Python

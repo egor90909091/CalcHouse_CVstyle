@@ -459,10 +459,14 @@ class MaterialsService:
             }
 
             # Объем бетона
+            concrete_class_key = foundation_params.get("concrete_class", "concrete_b20")
+            concrete_class = concrete_class_key.replace("concrete_", "").upper()
+            grade_map = {"B15": "М200", "B20": "М250", "B25": "М350", "B30": "М400"}
+            concrete_grade = grade_map.get(concrete_class, "М250")
             concrete_volume = perimeter * width * (depth + height)
             materials.append(
                 MaterialItem(
-                    name="Бетон для ленточного фундамента",
+                    name=f"Бетон {concrete_class} ({concrete_grade})",
                     quantity=round(concrete_volume, 2),
                     unit="м³",
                 )
@@ -528,9 +532,16 @@ class MaterialsService:
 
             # Опалубка (обе стороны ленты)
             formwork_area = perimeter * (depth + height) * 2
+            formwork_type_key = foundation_params.get("formwork_type", "formwork_wood")
+            formwork_names = {
+                "formwork_plywood": "Опалубка фанерная",
+                "formwork_metal": "Опалубка металлическая",
+                "formwork_wood": "Опалубка деревянная",
+            }
+            formwork_name = formwork_names.get(formwork_type_key, "Опалубка деревянная")
             materials.append(
                 MaterialItem(
-                    name="Опалубка", quantity=round(formwork_area, 2), unit="м²"
+                    name=formwork_name, quantity=round(formwork_area, 2), unit="м²"
                 )
             )
 
@@ -589,10 +600,14 @@ class MaterialsService:
             }
 
             # Объем бетона
+            concrete_class_key = foundation_params.get("concrete_class", "concrete_b25")
+            concrete_class = concrete_class_key.replace("concrete_", "").upper()
+            grade_map = {"B15": "М200", "B20": "М250", "B25": "М350", "B30": "М400"}
+            concrete_grade = grade_map.get(concrete_class, "М350")
             concrete_volume = area * thickness * 1.05  # +5% на запас
             materials.append(
                 MaterialItem(
-                    name="Бетон для плитного фундамента",
+                    name=f"Бетон {concrete_class} ({concrete_grade})",
                     quantity=round(concrete_volume, 2),
                     unit="м³",
                 )
@@ -663,9 +678,16 @@ class MaterialsService:
 
             # Песчаная подушка
             sand_volume = area * cushion
+            sand_type_key = foundation_params.get("sand_type", "sand_river")
+            sand_names = {
+                "sand_river": "Песок речной",
+                "sand_quarry": "Песок карьерный",
+                "sand_washed": "Песок мытый",
+            }
+            sand_name = sand_names.get(sand_type_key, "Песок речной")
             materials.append(
                 MaterialItem(
-                    name="Песок для подушки", quantity=round(sand_volume, 2), unit="м³"
+                    name=sand_name, quantity=round(sand_volume, 2), unit="м³"
                 )
             )
 
@@ -988,9 +1010,13 @@ class MaterialsService:
                 )
             )
 
+            concrete_class_key = foundation_params.get("concrete_class", "concrete_b20")
+            concrete_class = concrete_class_key.replace("concrete_", "").upper()
+            grade_map = {"B15": "М200", "B20": "М250", "B25": "М350", "B30": "М400"}
+            concrete_grade = grade_map.get(concrete_class, "М250")
             materials.append(
                 MaterialItem(
-                    name="Бетон для столбов и ростверка",
+                    name=f"Бетон {concrete_class} ({concrete_grade})",
                     quantity=round(concrete_volume, 2),
                     unit="м³",
                 )
@@ -1195,11 +1221,20 @@ class MaterialsService:
             # Общее количество кирпичей
             brick_count = net_wall_area * bricks_per_m2
 
+            brick_json_names = {
+                "solid": "Кирпич керамический полнотелый",
+                "hollow": "Кирпич керамический пустотелый",
+                "silicate": "Кирпич силикатный",
+                "porous": "Поризованный керамический блок",
+            }
+            brick_display_name = brick_json_names.get(brick_type_key, f"Кирпич {brick_type}")
+
             materials.append(
                 MaterialItem(
-                    name=f"{brick_type} {brick_size} мм",
+                    name=brick_display_name,
                     quantity=round(brick_count),
                     unit="шт",
+                    detail=f"Размер: {brick_size} мм",
                 )
             )
 
@@ -1248,11 +1283,18 @@ class MaterialsService:
             # Объем материала
             volume = total_length * section_area
 
+            timber_names = {
+                150: "Брус 150x150",
+                200: "Брус 200x200",
+                250: "Брус 250x250",
+            }
+            timber_name = timber_names.get(wood_size, f"Брус {wood_size}x{wood_size}")
             materials.append(
                 MaterialItem(
-                    name=f"Брус {wood_size}x{wood_size}x{int(standard_length*1000)} мм",
-                    quantity=beams_count_with_waste,
-                    unit="шт.",
+                    name=timber_name,
+                    quantity=round(volume, 3),
+                    unit="м³",
+                    detail=f"{beams_count_with_waste} шт. по {int(standard_length*1000)} мм",
                 )
             )
 
@@ -1331,15 +1373,7 @@ class MaterialsService:
             # Клей для блоков (примерно 25 кг на 1 м³ кладки)
             glue_weight = blocks_volume * 25  # кг
 
-            # Название клея в зависимости от типа блока
-            if block_type == "aerated_concrete":
-                adhesive_name = "Клей для газобетона"
-            elif block_type == "foam_concrete":
-                adhesive_name = "Клей для пенобетона"
-            elif block_type == "expanded_clay":
-                adhesive_name = "Клей для керамзитобетона"
-            else:
-                adhesive_name = f"Клей для {block_type}"
+            adhesive_name = "Клей для блоков"
 
             materials.append(
                 MaterialItem(
@@ -1539,7 +1573,7 @@ class MaterialsService:
             # Металлочерепица
             materials.append(
                 MaterialItem(
-                    name="Металлочерепица",
+                    name="Металлочерепица стандартная (лист 1180×2250 мм, 0.45-0.5 мм)",
                     quantity=round(roof_area * 1.1, 2),  # +10% на нахлесты и отходы
                     unit="м²",
                 )
@@ -1552,7 +1586,7 @@ class MaterialsService:
 
             materials.append(
                 MaterialItem(
-                    name="Керамическая черепица", quantity=tile_count, unit="шт"
+                    name="Керамическая черепица (420×330 мм, 10 шт/м²)", quantity=tile_count, unit="шт"
                 )
             )
 
@@ -1560,7 +1594,7 @@ class MaterialsService:
             # Гибкая черепица
             materials.append(
                 MaterialItem(
-                    name="Гибкая черепица",
+                    name="Гибкая черепица (упаковка ~3 м²)",
                     quantity=round(roof_area * 1.15, 2),  # +15% на нахлесты и отходы
                     unit="м²",
                 )
@@ -1569,14 +1603,14 @@ class MaterialsService:
             # Подкладочный ковер
             materials.append(
                 MaterialItem(
-                    name="Подкладочный ковер", quantity=round(roof_area, 2), unit="м²"
+                    name="Подкладочный ковер (рулон 15 м²)", quantity=round(roof_area, 2), unit="м²"
                 )
             )
 
             # OSB плиты
             materials.append(
                 MaterialItem(
-                    name="OSB плиты",
+                    name="OSB плиты (2500×1250×12 мм)",
                     quantity=round(roof_area * 1.05, 2),  # +5% на подрезку
                     unit="м²",
                 )
@@ -1590,13 +1624,13 @@ class MaterialsService:
             )  # учитываем нахлесты и запас
 
             materials.append(
-                MaterialItem(name="Шифер", quantity=sheet_count, unit="лист")
+                MaterialItem(name="Шифер (1750×1130 мм, 1.98 м²)", quantity=sheet_count, unit="лист")
             )
 
             # Гвозди шиферные
             materials.append(
                 MaterialItem(
-                    name="Гвозди шиферные",
+                    name="Гвозди шиферные (70–90 мм)",
                     quantity=sheet_count * 6,  # ~6 гвоздей на лист
                     unit="шт",
                 )
@@ -1606,7 +1640,7 @@ class MaterialsService:
             # Плоская кровля
             materials.append(
                 MaterialItem(
-                    name="Рулонная гидроизоляция",
+                    name="Рулонная гидроизоляция (рулон 10 м²)",
                     quantity=round(roof_area * 2.1, 2),  # 2 слоя + 10% на нахлесты
                     unit="м²",
                 )
@@ -1615,7 +1649,7 @@ class MaterialsService:
             # Утеплитель
             materials.append(
                 MaterialItem(
-                    name="Утеплитель для плоской кровли",
+                    name="Утеплитель для плоской кровли (плита 1200×600×50 мм)",
                     quantity=round(roof_area * 1.05, 2),  # +5% на подрезку
                     unit="м²",
                 )
@@ -1883,6 +1917,14 @@ class MaterialsService:
                         for key, details in detailed_materials.items():
                             if details["name"] == material.name:
                                 material_price = details["price"]
+                                break
+                            # Также проверяем варианты (variants) внутри материала
+                            if "variants" in details:
+                                for vkey, vdetails in details["variants"].items():
+                                    if vdetails["name"] == material.name:
+                                        material_price = vdetails["price"]
+                                        break
+                            if material_price is not None:
                                 break
 
                         # Если цена найдена, добавляем стоимость к материалу
@@ -2158,9 +2200,14 @@ class MaterialsService:
             # Фактическая площадь покрытия плитами
             actual_coverage = num_slabs * slab_area
 
+            slab_json_names = {
+                "ПК 60-12-8": "Плита ПК 60-12-8 (5980×1190×220 мм)",
+                "ПК 48-12-8": "Плита ПК 48-12-8 (4780×1190×220 мм)",
+            }
+            slab_display_name = slab_json_names.get(slab_type, f"Плита {slab_type}")
             result.append(
                 MaterialItem(
-                    name=f"Плиты перекрытия {slab_type}",
+                    name=slab_display_name,
                     quantity=num_slabs,
                     unit="шт",
                     detail=f"Расчет: площадь перекрытий {total_floor_area:.2f} м² ÷ площадь одной плиты {slab_area:.2f} м² = {floor_area * floor_count / slab_area:.1f} плит, округлено до {num_slabs} шт. Размер плиты: {slab_length}×{slab_width}×{slab_height} м.",
@@ -2172,7 +2219,7 @@ class MaterialsService:
 
             result.append(
                 MaterialItem(
-                    name="Цементно-песчаный раствор",
+                    name="Раствор для заделки швов",
                     quantity=mortar_volume,
                     unit="м³",
                     detail=f"Расчет: площадь перекрытий {total_floor_area:.2f} м² × расход раствора 0.05 м³/м² = {mortar_volume:.2f} м³. Используется для заделки швов между плитами.",
