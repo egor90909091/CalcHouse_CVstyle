@@ -41,7 +41,8 @@ async def get_furniture_by_style(style: str, furniture: str, max_items: int = 5)
     results_dict = {}
     page = 1
     max_pages = 3  # Maximum number of pages to check
-    
+    got_valid_response = False
+
     async with aiohttp.ClientSession() as session:
         while len(results_dict) < max_items and page <= max_pages:
             cookies = {
@@ -102,6 +103,7 @@ async def get_furniture_by_style(style: str, furniture: str, max_items: int = 5)
                     text = await response.text()
                     try:
                         data = json.loads(text)
+                        got_valid_response = True
                     except json.JSONDecodeError:
                         logger.warning("WB вернул невалидный JSON (страница %d), пропускаем", page)
                         page += 1
@@ -156,5 +158,7 @@ async def get_furniture_by_style(style: str, furniture: str, max_items: int = 5)
             if len(results_dict) >= max_items:
                 break
     
-    print(f"Время выполнения: {time.time() - start_time:.2f} секунд")
-    return dict(list(results_dict.items())[:max_items])  # Ensure we return exactly max_items 
+    logger.info("Время выполнения: %.2f секунд", time.time() - start_time)
+    if not got_valid_response:
+        raise MarketplaceUnavailableError("Wildberries не вернул корректный ответ — возможно, заблокированы запросы")
+    return dict(list(results_dict.items())[:max_items])
