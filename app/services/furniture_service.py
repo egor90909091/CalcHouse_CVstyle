@@ -1,8 +1,15 @@
 import aiohttp
 import asyncio
 import json
+import logging
 import time
 from typing import Dict
+
+logger = logging.getLogger(__name__)
+
+
+class MarketplaceUnavailableError(Exception):
+    pass
 
 STYLE_DICT = {
     "Asian": "в азиатском стиле",
@@ -86,20 +93,25 @@ async def get_furniture_by_style(style: str, furniture: str, max_items: int = 5)
                 'uclusters': '1',
             }
             
-            async with session.get('https://search.wb.ru/exactmatch/ru/common/v4/search', params=params, cookies=cookies, headers=headers) as response:
-                text = await response.text()
-                try:
-                    data = json.loads(text)
-                    products = data.get('products', [])
-                    if not products:  # If no products found, break the loop
-                        await asyncio.sleep(0.1)
+            try:
+                async with session.get('https://search.wb.ru/exactmatch/ru/common/v4/search', params=params, cookies=cookies, headers=headers) as response:
+                    if response.status in (403, 429, 490) or response.status >= 500:
+                        raise MarketplaceUnavailableError(
+                            f"Wildberries недоступен (статус {response.status})"
+                        )
+                    text = await response.text()
+                    try:
+                        data = json.loads(text)
+                    except json.JSONDecodeError:
+                        logger.warning("WB вернул невалидный JSON (страница %d), пропускаем", page)
+                        page += 1
                         continue
-                except json.JSONDecodeError:
-                    # if response.status == 429:
-                    #     print("Too many requests")
-                    # print(f"Ошибка декодирования JSON: {text}")
-                    await asyncio.sleep(0.1)
-                    continue
+                    products = data.get('products', [])
+                    if not products:
+                        page += 1
+                        continue
+            except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+                raise MarketplaceUnavailableError(f"Ошибка подключения к Wildberries: {e}")
                 
             
             server_order = list(range(10, 21)) + list(range(1, 10)) + list(range(21, 26))

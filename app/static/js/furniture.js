@@ -697,25 +697,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 max_items: 6
             })
         })
-            .then(response => response.json())
+            .then(async response => {
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    showNoResultsMessage(furnitureName, errorData.detail || 'Ошибка при поиске вариантов');
+                    return null;
+                }
+                return response.json();
+            })
             .then(data => {
+                if (!data) return;
                 if (data.status === 'success' && data.data) {
                     const itemsArr = Object.entries(data.data);
                     if (itemsArr.length > 0) {
-                        // Показываем результаты
                         renderFurnitureResults(itemsArr, furnitureName, furnitureType);
                     } else {
-                        // Показываем сообщение, что варианты не найдены
                         showNoResultsMessage(furnitureName);
                     }
                 } else {
-                    // Показываем сообщение об ошибке
-                    showNoResultsMessage(furnitureName, true);
+                    showNoResultsMessage(furnitureName, 'Ошибка при поиске вариантов');
                 }
             })
             .catch((error) => {
                 console.error('Ошибка при поиске мебели:', error);
-                showNoResultsMessage(furnitureName, true);
+                showNoResultsMessage(furnitureName, 'Ошибка при поиске вариантов');
             });
     }
 
@@ -747,22 +752,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Функция для показа сообщения, что ничего не найдено
-    function showNoResultsMessage(categoryName, isError = false) {
+    // errorOrMessage: false — нет результатов, строка — текст ошибки для показа пользователю
+    function showNoResultsMessage(categoryName, errorOrMessage = false) {
         const resultsContainer = document.getElementById('furnitureSearchResults');
         const loadingIndicator = document.getElementById('furnitureLoadingIndicator');
         const resultsContent = document.getElementById('furnitureResultsContent');
 
-        // Скрываем индикатор загрузки
         loadingIndicator.classList.add('hidden');
 
-        // Отображаем сообщение
-        resultsContent.innerHTML = `
-            <div class="w-full text-center p-4 ${isError ? 'text-red-500 dark:text-red-400' : 'text-gray-500 dark:text-gray-400'}">
-                ${isError ? 'Ошибка при поиске вариантов' : `К сожалению, подходящих вариантов для категории "${categoryName}" не найдено`}
-            </div>
-        `;
+        let text, colorClass;
+        if (typeof errorOrMessage === 'string') {
+            text = errorOrMessage;
+            colorClass = 'text-red-500 dark:text-red-400';
+        } else {
+            text = `К сожалению, подходящих вариантов для категории "${categoryName}" не найдено`;
+            colorClass = 'text-gray-500 dark:text-gray-400';
+        }
 
-        // Убедимся, что контейнер результатов видим
+        resultsContent.innerHTML = `<div class="w-full text-center p-4 ${colorClass}">${text}</div>`;
         resultsContainer.classList.remove('hidden');
     }
 
