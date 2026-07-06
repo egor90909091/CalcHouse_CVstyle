@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="ru" class="light-theme">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BuildMate</title>
+
+    <!-- Иконка сайта (домик) -->
+    <link rel="icon"
+        href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iIzAwNzREOSIgc3Ryb2tlPSJub25lIj48cGF0aCBkPSJNMTIgMi41TDMgOS43djExLjhoMTh2LTExLjhMMTIgMi41ek0xNiAxOC41aC0zdi0zaC0ydjNoLTNWMTNsNC0zLjQgNCAzLjR2NS41eiIvPjwvc3ZnPg==">
+
+    <!-- CSS стили -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/main.css?v=1.4">
+    <link rel="stylesheet" href="/static/css/theme.css?v=1.4">
+    <link rel="stylesheet" href="/static/css/furniture.css?v=1.4">
+    <link rel="stylesheet" href="/static/css/animations.css?v=1.4">
+    <link rel="stylesheet" href="/static/css/responsive.css?v=1.4">
+
+    <!-- Дополнительные стили для темной темы -->
+    <style>
+        html.dark-theme .upload-preview-section,
+        html.dark-theme .result-section {
+            background-color: #243040 !important;
+            /* Более светлый оттенок темного */
+            border: 1px solid #3d4a5c !important;
+            /* Более светлая граница */
+            color: #e5e7eb !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3),
+                0 0 15px rgba(14, 20, 30, 0.2),
+                0 0 2px rgba(128, 159, 211, 0.15) !important;
+            /* Красивые многослойные тени */
+        }
+
+        /* Стили для элементов фурнитуры перенесены в furniture.css */
+
+        html.dark-theme #dropZone {
+            border-color: #4b5563 !important;
+            background-color: rgba(30, 41, 59, 0.5) !important;
+            /* Слегка темнее основного фона */
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.1) !important;
+            /* Внутренняя тень */
+        }
+
+        html.dark-theme #dropZone:hover {
+            border-color: var(--accent-color) !important;
+            background-color: rgba(55, 65, 81, 0.5) !important;
+            box-shadow: inset 0 0 15px rgba(0, 0, 0, 0.15) !important;
+            /* Усиленная внутренняя тень при наведении */
+        }
+
+        html.dark-theme #imagePreview {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
+            /* Тень для изображения */
+            border-color: #3d4a5c !important;
+            /* Более заметная граница */
+        }
+
+        html.dark-theme #emptyState span {
+            color: #d1d5db !important;
+        }
+
+        html.dark-theme #emptyState span.text-sm {
+            color: #9ca3af !important;
+        }
+
+        html.dark-theme #selectFileBtn,
+        html.dark-theme #changeFileBtn {
+            background-color: #374151 !important;
+            border-color: #4b5563 !important;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+            /* Тень для кнопок */
+        }
+
+        html.dark-theme #selectFileBtn:hover,
+        html.dark-theme #changeFileBtn:hover {
+            background-color: #4b5563 !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+            /* Усиленная тень при наведении */
+        }
+
+        html.dark-theme #analyzing-status {
+            color: #9ca3af !important;
+        }
+
+        html.dark-theme #analysisResults>div {
+            background-color: #2d3748 !important;
+            border-color: #4b5563 !important;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+            /* Тень для результатов */
+        }
+
+        html.dark-theme #analysisResults h4 {
+            color: #e2e8f0 !important;
+        }
+
+        html.dark-theme #analysisResults p {
+            color: #f3f4f6 !important;
+        }
+
+        html.dark-theme #analysisResults a {
+            color: #60a5fa !important;
+        }
+
+        /* Стили для текста в темной теме */
+        html.dark-theme label[for="roomSelect"],
+        html.dark-theme option,
+        html.dark-theme #furnitureListContainer h4 {
+            color: #ffffff !important;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Обеспечиваем высокий контраст для выпадающего списка */
+        html.dark-theme #roomSelect {
+            color: #ffffff !important;
+            font-weight: 500;
+        }
+
+        /* Делаем заголовки и метки более заметными */
+        html.dark-theme label {
+            font-weight: 600;
+        }
+
+        html.dark-theme #furnitureListContainer h4 {
+            font-weight: 700;
+        }
+
+        /* Стилизация выпадающего списка в темной теме */
+        html.dark-theme select option {
+            background-color: #2d3748;
+            color: #ffffff;
+        }
+
+        /* Добавляем более заметную обводку для элементов формы в фокусе */
+        html.dark-theme select:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.25);
+            outline: none;
+        }
+
+        /* Стиль для кнопки смены файла в темной теме */
+        html.dark-theme #changeFileBtn {
+            color: #ffffff !important;
+            font-weight: 500;
+            background-color: rgba(55, 65, 81, 0.9) !important;
+            border: 1px solid rgba(75, 85, 99, 0.8);
+        }
+
+        html.dark-theme #changeFileBtn:hover {
+            background-color: rgba(75, 85, 99, 0.9) !important;
+            box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Стили для контейнера превью изображения */
+        #previewState {
+            position: relative;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Стили для изображения */
+        #imagePreview {
+            display: block;
+            max-width: 100%;
+            max-height: 300px;
+            margin: 0 auto;
+        }
+
+        /* Убираем точку под кнопкой и другие псевдоэлементы */
+        button::after,
+        button::before,
+        #selectFileBtn::after,
+        #selectFileBtn::before,
+        #changeFileBtn::after,
+        #changeFileBtn::before {
+            content: none !important;
+            display: none !important;
+        }
+
+        /* Фиксация состояний - предотвращаем одновременное отображение */
+        .drop-zone.has-image #emptyState {
+            display: none !important;
+        }
+
+        .drop-zone.has-image #previewState {
+            display: flex !important;
+        }
+
+        /* Все стили для выбора фурнитуры перенесены в файл furniture.css */
+
+        /* Дополнительные стили для области загрузки */
+        #emptyState {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        #emptyState::after,
+        #emptyState::before {
+            display: none;
+            content: none;
+        }
+
+        #emptyState>*::after,
+        #emptyState>*::before {
+            display: none;
+            content: none;
+        }
+
+        /* Добавим стили для корректного отображения на мобильных устройствах */
+        @media (max-width: 768px) {
+            #dropZone.has-image #emptyState {
+                display: none !important;
+            }
+
+            #dropZone.has-image #previewState {
+                display: block !important;
+            }
+
+            #imagePreview {
+                max-width: 100%;
+                height: auto;
+                margin-bottom: 1rem;
+                order: -1;
+                /* Размещаем изображение над всем остальным содержимым */
+            }
+
+            #previewState {
+                display: flex;
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100">
+    <!-- Шапка сайта -->
+    <header class="shadow-md">
+        <div class="container mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center">
+            <h1 class="text-2xl font-bold mb-4 md:mb-0">BuildMate</h1>
+            <nav class="flex items-center w-full md:w-auto justify-end no-print">
+                <ul class="flex flex-wrap space-x-3 md:space-x-6 mr-4">
+                    <li><a href="/" class="hover:opacity-100">Калькулятор</a></li>
+                    <li><a href="/furniture" class="hover:opacity-100">Подбор мебели</a></li>
+                </ul>
+                <div class="theme-toggle" id="themeToggle">
+                    <div class="theme-toggle-inner">
+                        <div class="theme-side theme-side-light">
+                            <svg class="theme-icon" viewBox="0 0 24 24">
+                                <path
+                                    d="M12,7A5,5 0 0,1 17,12A5,5 0 0,1 12,17A5,5 0 0,1 7,12A5,5 0 0,1 12,7M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9M12,2L14.39,5.42C13.65,5.15 12.84,5 12,5C11.16,5 10.35,5.15 9.61,5.42L12,2M3.34,7L7.5,6.65C6.9,7.16 6.36,7.78 5.94,8.5C5.5,9.24 5.25,10 5.11,10.79L3.34,7M3.36,17L5.12,13.23C5.26,14 5.53,14.78 5.95,15.5C6.37,16.24 6.91,16.86 7.5,17.37L3.36,17M20.65,7L18.88,10.79C18.74,10 18.47,9.23 18.05,8.5C17.63,7.78 17.1,7.15 16.5,6.64L20.65,7M20.64,17L16.5,17.36C17.09,16.85 17.62,16.22 18.04,15.5C18.46,14.77 18.73,14 18.87,13.21L20.64,17M12,22L9.59,18.56C10.33,18.83 11.14,19 12,19C12.82,19 13.63,18.83 14.37,18.56L12,22Z">
+                                </path>
+                            </svg>
+                        </div>
+                        <div class="theme-side theme-side-dark">
+                            <svg class="theme-icon" viewBox="0 0 24 24">
+                                <path
+                                    d="M17.75,4.09L15.22,6.03L16.13,9.09L13.5,7.28L10.87,9.09L11.78,6.03L9.25,4.09L12.44,4L13.5,1L14.56,4L17.75,4.09M21.25,11L19.61,12.25L20.2,14.23L18.5,13.06L16.8,14.23L17.39,12.25L15.75,11L17.81,10.95L18.5,9L19.19,10.95L21.25,11M18.97,15.95C19.8,15.87 20.69,17.05 20.16,17.8C19.84,18.25 19.5,18.67 19.08,19.07C15.17,23 8.84,23 4.94,19.07C1.03,15.17 1.03,8.83 4.94,4.93C5.34,4.53 5.76,4.17 6.21,3.85C6.96,3.32 8.14,4.21 8.06,5.04C7.79,7.9 8.75,10.87 10.95,13.06C13.14,15.26 16.1,16.22 18.97,15.95M17.33,17.97C14.5,17.81 11.7,16.64 9.53,14.5C7.36,12.31 6.2,9.5 6.04,6.68C3.23,9.82 3.34,14.64 6.35,17.66C9.37,20.67 14.19,20.78 17.33,17.97Z">
+                                </path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Добавляем отдельный заголовок только для печати -->
+    <div class="print-header" style="display:none;">
+        <h2>BuildMate - Подбор мебели</h2>
+    </div>
+
+    <!-- Основной контент -->
+    <main class="container mx-auto px-4 py-8">
+        <h2 class="text-2xl md:text-3xl font-bold mb-8 text-center text-primary">Подбор мебели по фото</h2>
+
+        <div class="max-w-4xl mx-auto">
+            <!-- Секция загрузки и превью (объединена в одну) -->
+            <div
+                class="upload-preview-section bg-white dark:bg-gray-800 rounded-lg shadow-md border border-gray-200 dark:border-gray-700 p-6 mb-6 transition-colors duration-300">
+                <div id="dropZone"
+                    class="drop-zone border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center cursor-pointer transition-all duration-300 hover:border-primary dark:hover:border-primary hover:bg-gray-50 dark:hover:bg-gray-700 relative">
+                    <!-- Состояние без загруженного изображения -->
+                    <div id="emptyState" class="flex flex-col items-center">
+                        <svg class="w-16 h-16 mb-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor"
+                            viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z">
+                            </path>
+                        </svg>
+                        <span class="text-gray-600 dark:text-gray-300 mb-2">Перетащите фото сюда</span>
+                        <span class="text-sm text-gray-400 dark:text-gray-500 mb-4">или</span>
+                        <button id="selectFileBtn"
+                            class="py-2 px-6 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors text-gray-700 dark:text-white font-medium">
+                            Выбрать файл
+                        </button>
+                    </div>
+
+                    <!-- Состояние с загруженным изображением (скрыто по умолчанию) -->
+                    <div id="previewState" class="hidden w-full">
+                        <div class="image-container cursor-pointer" id="imageContainer"
+                            title="Нажмите, чтобы изменить фото">
+                            <img id="imagePreview"
+                                class="max-w-full h-auto max-h-[300px] object-contain rounded-lg mb-4 border-2 border-gray-200 dark:border-gray-700 shadow-sm mx-auto"
+                                alt="">
+                        </div>
+
+                        <!-- Индикатор анализа - скрыт -->
+                        <div class="mt-2 text-center hidden">
+                            <p id="analyzing-status" class="text-sm text-gray-500 dark:text-gray-400 hidden"></p>
+                        </div>
+                    </div>
+
+                    <input type="file" id="fileInput" hidden accept="image/jpeg,image/png,image/webp">
+                </div>
+
+                <!-- Контейнер для результатов выбора мебели -->
+                <div id="selectedFurnitureContainer" class="mt-6 hidden overflow-hidden transition-all duration-300">
+                    <div>
+                        <h5 id="selectedFurnitureTitle">
+                        </h5>
+                        <div id="selectedFurnitureContent">
+                            <p>Загрузка вариантов мебели...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Выбор комнаты (отдельный блок) -->
+                <div class="mt-6 border-t pt-4 border-gray-200 dark:border-gray-700">
+                    <label for="roomSelect"
+                        class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Выберите
+                        комнату:</label>
+                    <select id="roomSelect"
+                        class="w-full py-2 px-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-primary focus:border-primary transition-colors duration-200 shadow-sm">
+                        <option value="Зал">Зал</option>
+                        <option value="Спальня">Спальня</option>
+                        <option value="Комната">Комната (с рабочим местом)</option>
+                        <option value="Ванная">Ванная</option>
+                        <option value="Туалетная комната">Туалетная комната</option>
+                        <option value="Прихожая">Прихожая</option>
+                    </select>
+                </div>
+
+                <!-- Контейнер для списка мебели -->
+                <div id="furnitureListContainer" class="mt-6 relative">
+                    <h4 class="text-lg font-medium text-gray-800 dark:text-gray-200 mb-2">Доступная мебель</h4>
+
+
+                    <!-- Мебель для Зала (отображается по умолчанию) -->
+                    <div data-room="Зал" class="furniture-room-section">
+                        <div class="flex flex-wrap gap-4">
+                            <button class="furniture-item furniture-square text-gray-800 dark:text-white"
+                                data-type="sofa">Диван</button>
+                            <button class="furniture-item furniture-square text-gray-800 dark:text-white"
+                                data-type="coffee_table">Журнальный
+                                стол</button>
+                            <button class="furniture-item furniture-square text-gray-800 dark:text-white"
+                                data-type="tv_stand">ТВ тумба</button>
+                            <button class="furniture-item furniture-square text-gray-800 dark:text-white"
+                                data-type="tv">Телевизор</button>
+                            <button class="furniture-item furniture-square text-gray-800 dark:text-white"
+                                data-type="armchair">Кресло</button>
+                            <button class="furniture-item furniture-square text-gray-800 dark:text-white"
+                                data-type="bookshelf">Книжный шкаф</button>
+                        </div>
+                    </div>
+
+                    <!-- Мебель для Спальни (скрыта по умолчанию) -->
+                    <div data-room="Спальня" class="furniture-room-section hidden">
+                        <div class="flex flex-wrap gap-3">
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="bed">Кровать</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="tv">Телевизор</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="nightstand">Прикроватная тумба</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="wardrobe">Шкаф</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="dresser">Комод</button>
+                        </div>
+                    </div>
+
+                    <!-- Мебель для Ванной (скрыта по умолчанию) -->
+                    <div data-room="Ванная" class="furniture-room-section hidden">
+                        <div class="flex flex-wrap gap-3">
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="vanity">Тумба с раковиной</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="faucet">Кран</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="bathroom_mirror">Зеркало</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="bathroom_cabinet">Шкафчик</button>
+                        </div>
+                    </div>
+
+                    <!-- Мебель для Туалетной комнаты (скрыта по умолчанию) -->
+                    <div data-room="Туалетная комната" class="furniture-room-section hidden">
+                        <div class="flex flex-wrap gap-3">
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="toilet">Унитаз</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="small_cabinet">Тумба</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="sink">Раковина</button>
+                        </div>
+                    </div>
+
+                    <!-- Мебель для Прихожей (скрыта по умолчанию) -->
+                    <div data-room="Прихожая" class="furniture-room-section hidden">
+                        <div class="flex flex-wrap gap-3">
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="coat_rack">Вешалка</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="mirror">Зеркало</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="shoe_cabinet">Обувница</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="console_table">Консоль</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="bench">Банкетка</button>
+                        </div>
+                    </div>
+
+                    <!-- Мебель для Комнаты с рабочим местом (скрыта по умолчанию) -->
+                    <div data-room="Комната" class="furniture-room-section hidden">
+                        <div class="flex flex-wrap gap-3">
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="desk">Рабочий стол</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="office_chair">Компьютерный стул</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="computer">Монитор/ПК</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="laptop">Ноутбук</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="bed">Кровать</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="shelf">Полка</button>
+                            <button
+                                class="furniture-item transition-all duration-300 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 text-gray-700 dark:text-white rounded-lg text-sm cursor-pointer shadow-sm"
+                                data-type="table_lamp">Ночник</button>
+                        </div>
+                    </div>
+
+                    <!-- Новый контейнер для результатов поиска фурнитуры -->
+                    <div id="furnitureSearchResults" class="mt-6 hidden">
+                        <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mb-2">
+                            <h5 id="furnitureResultsTitle" class="font-medium mb-3 text-gray-900 dark:text-white">
+                                Варианты фурнитуры
+                            </h5>
+                            <!-- Индикатор загрузки -->
+                            <div id="furnitureLoadingIndicator" class="flex justify-center items-center p-4 hidden">
+                                <div
+                                    class="w-8 h-8 border-2 border-gray-200 dark:border-gray-700 rounded-full animate-spin border-t-2 border-blue-500 dark:border-blue-400">
+                                </div>
+                                <span class="ml-3 text-sm text-gray-500 dark:text-gray-400">Загрузка вариантов...</span>
+                            </div>
+                            <!-- Контейнер для результатов -->
+                            <div id="furnitureResultsContent" class="furniture-grid-cards">
+                                <!-- Результаты будут добавлены динамически -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Оверлей для расширенного квадрата -->
+                    <div id="furnitureExpandOverlay" class="hidden"></div>
+                </div>
+            </div>
+
+            <!-- Контейнер для выбранных предметов с кнопкой очистки -->
+            <div class="mt-6 flex flex-col items-center">
+                <!-- Кнопка очистить выбор -->
+                <button id="clearSelectionBtn"
+                    class="text-xs text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 mb-2 hidden transition-colors">
+                    Очистить выбор
+                </button>
+                <!-- Контейнер для выбранного предмета с улучшенным отображением на мобильных -->
+                <div id="selectedFurnitureSquare" class="w-full flex flex-wrap justify-center hidden max-w-full"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Футер сайта -->
+    <footer class="no-print">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Брендинг -->
+                <div>
+                    <div class="footer-brand">BuildMate - СтройНапарник </div>
+                    <p class="footer-description">Калькулятор материалов для строительства дома - точно знайте, что и
+                        сколько вам нужно.</p>
+                </div>
+
+                <!-- Навигация -->
+                <div>
+                    <h3 class="footer-nav-title">Навигация</h3>
+                    <ul class="footer-nav-links">
+
+                        <li><a href="/">Калькулятор</a></li>
+                        <li><a href="/furniture">Подбор мебели</a></li>
+
+                    </ul>
+                </div>
+
+                <!-- Контакты -->
+                <div>
+                    <h3 class="footer-contact-title">Связаться с нами</h3>
+                    <div class="footer-contact-info">
+                        <p class="footer-contact-item">
+                            <svg class="w-5 h-5 footer-contact-icon" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"></path>
+                                <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"></path>
+                            </svg>
+                            <span>arturraush@outlook.com</span>
+                        </p>
+                        <p class="footer-contact-item">
+                            <svg class="w-5 h-5 footer-contact-icon" fill="currentColor" viewBox="0 0 20 20">
+                                <path
+                                    d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z">
+                                </path>
+                            </svg>
+                            <span>8 (937) 30-60-257</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-8 pt-4 border-t border-gray-200 text-center text-sm text-gray-400">
+                <p class="text-sm text-muted">© 2025-2026 BuildMate - СтройНапарник.</p>
+            </div>
+        </div>
+    </footer>
+
+
+    <!-- JavaScript файлы -->
+    <script src="/static/js/utils.js?v=1.4"></script>
+    <script src="/static/js/theme-switcher.js?v=1.4"></script>
+    <script src="/static/js/furniture.js?v=1.4"></script>
+</body>
+
+</html>

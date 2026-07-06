@@ -6,12 +6,14 @@ from fastapi.responses import HTMLResponse
 
 import time
 import asyncio
+import os
 
 import datetime
 from contextlib import asynccontextmanager
 
-from app.api import calculator, materials, recommendations, image_recognition
+from app.api import recommendations, image_recognition
 from app.api.furniture import router as furniture_router
+from app.api.v2 import router as v2_router
 from app.services.session_service import get_session_service
 from app.services.ai_service import AIService
 
@@ -137,23 +139,30 @@ templates = Jinja2Templates(directory="app/templates")
 templates.env.globals["now"] = lambda: datetime.datetime.now().timestamp()
 
 
-# Главная страница
+# Главная страница — React-приложение (конструктор дома)
 @app.get("/", response_class=HTMLResponse)
-async def root(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+async def root():
+    react_path = os.path.join(os.path.dirname(__file__), "app", "static", "react", "index.html")
+    if os.path.exists(react_path):
+        with open(react_path, encoding="utf-8") as f:
+            return HTMLResponse(f.read())
+    return HTMLResponse("<h1>Сборка фронтенда не найдена. Запустите: cd frontend && npm run build</h1>", status_code=500)
 
 
 @app.get("/furniture", response_class=HTMLResponse)
-async def furniture(request: Request):
-    return templates.TemplateResponse("furniture.html", {"request": request})
+async def furniture():
+    react_path = os.path.join(os.path.dirname(__file__), "app", "static", "react", "index.html")
+    if os.path.exists(react_path):
+        with open(react_path, encoding="utf-8") as f:
+            return HTMLResponse(f.read())
+    return HTMLResponse("<h1>Сборка фронтенда не найдена. Запустите: cd frontend && npm run build</h1>", status_code=500)
 
 
 # Подключение маршрутов API
-app.include_router(calculator.router, prefix="/api", tags=["calculator"])
-app.include_router(materials.router, prefix="/api", tags=["materials"])
 app.include_router(recommendations.router, prefix="/api", tags=["recommendations"])
 app.include_router(image_recognition.router, prefix="/api", tags=["image_recognition"])
 app.include_router(furniture_router, prefix="/api", tags=["furniture"])
+app.include_router(v2_router, prefix="/api/v2", tags=["v2"])
 
 
 def safe_float(value, default=0):

@@ -3,6 +3,8 @@
 *.DS_Store
 ._*
 
+tests/
+frontend/node_modules/
 # JetBrains IDEs
 .idea/
 
@@ -22,3 +24,5 @@ env/
 ENV/
 app/static/data/sessions/
 app/services/__pycache__/
+
+.opencode/

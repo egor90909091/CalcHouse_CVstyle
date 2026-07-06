@@ -845,5 +845,122 @@
             "2": 1.2,
             "3": 1.5
         }
+    },
+    "wall_layers": {
+        "insulation": {
+            "mineral_wool": {
+                "name": "Минеральная вата (плита 1200x600)",
+                "price": 140,
+                "unit": "м²"
+            },
+            "eps": {
+                "name": "Пенополистирол EPS (плита 1200x600)",
+                "price": 200,
+                "unit": "м²"
+            },
+            "xps": {
+                "name": "Экструдированный пенополистирол XPS",
+                "price": 280,
+                "unit": "м²"
+            },
+            "ecowool": {
+                "name": "Эковата",
+                "price": 90,
+                "unit": "м²"
+            }
+        },
+        "cladding": {
+            "brick_veneer": {
+                "name": "Облицовочный кирпич (250x65x120 мм)",
+                "price": 35,
+                "unit": "шт"
+            },
+            "siding_metal": {
+                "name": "Металлический сайдинг",
+                "price": 350,
+                "unit": "м²"
+            },
+            "siding_vinyl": {
+                "name": "Виниловый сайдинг",
+                "price": 280,
+                "unit": "м²"
+            },
+            "facade_panel_ceramic": {
+                "name": "Керамогранитная фасадная панель",
+                "price": 650,
+                "unit": "м²"
+            },
+            "plaster_decorative": {
+                "name": "Декоративная штукатурка фасада",
+                "price": 320,
+                "unit": "м²"
+            }
+        },
+        "finishing": {
+            "plaster_gypsum": {
+                "name": "Гипсовая штукатурка (мешок 30 кг)",
+                "price": 280,
+                "unit": "мешок"
+            },
+            "plaster_cement": {
+                "name": "Цементная штукатурка (мешок 25 кг)",
+                "price": 300,
+                "unit": "мешок"
+            },
+            "putty": {
+                "name": "Шпатлевка (мешок 20 кг)",
+                "price": 350,
+                "unit": "мешок"
+            },
+            "drywall": {
+                "name": "Гипсокартон (лист 2500x1200)",
+                "price": 290,
+                "unit": "м²"
+            }
+        },
+        "vapor": {
+            "vapor_barrier_film": {
+                "name": "Пароизоляционная плёнка",
+                "price": 35,
+                "unit": "м²"
+            },
+            "wind_barrier_membrane": {
+                "name": "Ветрозащитная мембрана",
+                "price": 45,
+                "unit": "м²"
+            }
+        }
+    },
+    "consumption_rates": {
+        "brick_waste": 1.05,
+        "block_waste": 1.03,
+        "timber_waste": 1.05,
+        "concrete_shrinkage": 1.02,
+        "panel_waste": 1.05,
+        "mortar_per_1000_bricks_m3": 0.25,
+        "adhesive_per_m2_block_kg": 5,
+        "rebar_per_m3_wall_kg": 90,
+        "rebar_per_m3_slab_kg": 80,
+        "rebar_per_m3_foundation_strip_kg": 70,
+        "rebar_per_m3_foundation_slab_kg": 80,
+        "rebar_longitudinal_diameter_mm": 12,
+        "rebar_transverse_diameter_mm": 8,
+        "rebar_longitudinal_count": 4,
+        "rebar_stirrup_spacing_mm": 500,
+        "formwork_reuse_factor": 1.2,
+        "roof_covering_waste": 1.10,
+        "waterproofing_overlap": 1.15,
+        "sand_compaction": 1.15,
+        "insulation_waste": 1.03,
+        "cladding_waste": 1.05,
+        "finishing_waste": 1.05,
+        "brick_per_m2_half": 51,
+        "brick_per_m2_single": 102,
+        "block_face_area_aerated_m2": 0.18,
+        "block_face_area_expanded_clay_m2": 0.08,
+        "panel_face_area_sip_m2": 3.125,
+        "panel_face_area_concrete_m2": 3.259,
+        "panel_face_area_sandwich_m2": 1.0,
+        "timber_interlayer_per_crown": 1.0
     }
 }

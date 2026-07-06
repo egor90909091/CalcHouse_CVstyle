@@ -11,3 +11,4 @@ openai==0.27.8
 torch
 torchvision
 async-lru
+shapely>=2.0.0
