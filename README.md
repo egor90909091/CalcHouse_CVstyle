@@ -35,18 +35,19 @@
 
 ### Backend
 - FastAPI
-- Pydantic
+- Pydantic + Shapely (расчёт геометрии)
 - PyTorch (для модели распознавания мебели)
 - Uvicorn
 
 ### Frontend
-- HTML, CSS, JavaScript
-- Адаптивная верстка
-- Поддержка темной/светлой темы
+- React 18 + TypeScript + Vite
+- Zustand (управление состоянием)
+- Fabric.js (рисование плана дома на canvas)
+- Поддержка тёмной/светлой темы
 
 ## Установка и запуск
 
-python3.11
+Требования: Python 3.11+, Node.js 18+, npm 9+.
 
 1. Клонируйте репозиторий:
 ```
@@ -60,24 +61,43 @@ python -m venv venv311
 source venv311/bin/activate  # На Windows: venv311\Scripts\activate
 ```
 
-3. Установите зависимости:
+3. Установите Python-зависимости:
 ```
 pip install -r requirements.txt
 ```
 
-4. Запустите сервер:
+4. Установите и соберите фронтенд:
+```
+cd frontend
+npm install
+npm run build
+cd ..
+```
+
+Команда `npm run build` запускает `tsc -b` (проверка типов) и затем `vite build` — результат кладётся в `app/static/react/`, откуда FastAPI раздаёт его как статику.
+
+При разработке фронтенда используйте:
+```
+cd frontend
+npm run dev
+```
+
+Vite запустит dev-сервер на `localhost:5173` с горячей перезагрузкой и проксированием API-запросов на `localhost:8000`.
+
+5. Запустите сервер:
 ```
 python main.py
 ```
 
-5. Откройте в браузере: http://localhost:8000
+6. Откройте в браузере: http://localhost:8000
 
 ## API Endpoints
 
-- `/api/calculate` - Расчет стоимости строительства
-- `/api/recommendations` - Получение ИИ-рекомендаций
-- `/api/recognize-furniture` - Распознавание мебели на фотографии
-- `/api/calculate-materials` - Детальный расчет необходимых материалов
+- `POST /api/v2/geometry/compute` — геометрия: периметр, площадь застройки, метрики стен, помещения
+- `POST /api/v2/materials/calculate` — полная смета материалов
+- `GET  /api/v2/materials` — каталог материалов и цен
+- `/api/recommendations` — ИИ-рекомендации
+- `/api/recognize-furniture` — распознавание мебели
 
 ## Модель распознавания мебели
 
