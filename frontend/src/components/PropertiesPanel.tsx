@@ -1,14 +1,28 @@
 import { useStore } from "../store/useProjectStore";
 import type { WallSegment } from "../types/project";
 
-const MATERIALS: { key: string; label: string }[] = [
-  { key: "aerated_concrete", label: "Газобетон" },
-  { key: "brick_solid", label: "Кирпич полнотелый" },
-  { key: "brick_hollow", label: "Кирпич пустотелый" },
-  { key: "foam_concrete", label: "Пенобетон" },
-  { key: "expanded_clay", label: "Керамзитобетон" },
-  { key: "timber_200", label: "Брус 200×200" },
-  { key: "concrete_b25", label: "Монолитный бетон" },
+const WALL_MATERIAL_GROUPS: { label: string; options: { key: string; label: string }[] }[] = [
+  {
+    label: "Газобетонные блоки",
+    options: [
+      { key: "aerated_concrete", label: "Газобетон 300×600" },
+      { key: "foam_concrete", label: "Пенобетон 300×600" },
+    ],
+  },
+  {
+    label: "Древесина",
+    options: [
+      { key: "timber_200", label: "Брус 200×200" },
+      { key: "round_log", label: "Оцилиндрованное бревно" },
+    ],
+  },
+  {
+    label: "Строительный кирпич",
+    options: [
+      { key: "brick_solid", label: "Кирпич полнотелый" },
+      { key: "brick_hollow", label: "Кирпич пустотелый" },
+    ],
+  },
 ];
 
 export default function PropertiesPanel() {
@@ -92,8 +106,12 @@ export default function PropertiesPanel() {
             })
           }
         >
-          {MATERIALS.map((m) => (
-            <option key={m.key} value={m.key}>{m.label}</option>
+          {WALL_MATERIAL_GROUPS.map((g) => (
+            <optgroup key={g.label} label={g.label}>
+              {g.options.map((m) => (
+                <option key={m.key} value={m.key}>{m.label}</option>
+              ))}
+            </optgroup>
           ))}
         </select>
       </div>

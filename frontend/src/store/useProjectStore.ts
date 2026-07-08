@@ -17,6 +17,48 @@ import { calculateMaterials, computeGeometry } from "../api/client";
 
 const STORAGE_KEY = "wallBuilderProject";
 
+// Толщина стен по material_key: { ext, int } в мм
+export const WALL_MAT_THICKNESS: Record<string, { ext: number; int: number }> = {
+  aerated_concrete: { ext: 400, int: 200 },
+  foam_concrete: { ext: 400, int: 200 },
+  timber_200: { ext: 200, int: 150 },
+  round_log: { ext: 240, int: 200 },
+  brick_solid: { ext: 510, int: 250 },
+  brick_hollow: { ext: 510, int: 250 },
+};
+
+// Конфигурация типов стен и подвидов для глобального выбора
+export const WALL_MAT_GROUPS: {
+  type: WallMatType;
+  label: string;
+  options: { key: string; label: string }[];
+}[] = [
+  {
+    type: "block",
+    label: "Газобетонные блоки",
+    options: [
+      { key: "aerated_concrete", label: "Газобетон 300×600" },
+      { key: "foam_concrete", label: "Пенобетон 300×600" },
+    ],
+  },
+  {
+    type: "wood",
+    label: "Древесина",
+    options: [
+      { key: "timber_200", label: "Брус 200×200" },
+      { key: "round_log", label: "Оцилиндрованное бревно" },
+    ],
+  },
+  {
+    type: "brick",
+    label: "Строительный кирпич",
+    options: [
+      { key: "brick_solid", label: "Кирпич полнотелый" },
+      { key: "brick_hollow", label: "Кирпич пустотелый" },
+    ],
+  },
+];
+
 // Значения по умолчанию
 const defaultFoundation: FoundationConfig = {
   type: "strip",
@@ -62,9 +104,14 @@ const defaultProject: Project = {
   floor_config: defaultFloorConfig,
 };
 
+export type WallMatType = "block" | "wood" | "brick";
+
 interface StoreState {
   // Проект
   project: Project;
+  // Глобальный материал стен (применяется ко всем стенам)
+  wallMatType: WallMatType;
+  wallMatKey: string;
   // Редактор
   mode: EditorMode;
   currentFloor: number;
@@ -103,6 +150,7 @@ interface StoreState {
   updateFoundation: (updates: Partial<FoundationConfig>) => void;
   updateRoof: (updates: Partial<RoofConfig>) => void;
   updateFloorConfig: (updates: Partial<FloorConfig>) => void;
+  setWallMaterial: (type: WallMatType, key: string) => void;
   // Действия: расчёт
   calculate: () => Promise<void>;
   updateGeometry: () => Promise<void>;
@@ -113,6 +161,8 @@ interface StoreState {
 
 export const useStore = create<StoreState>((set, get) => ({
   project: defaultProject,
+  wallMatType: "block",
+  wallMatKey: "aerated_concrete",
   mode: "draw",
   currentFloor: 1,
   selectedWallId: null,
@@ -152,19 +202,22 @@ export const useStore = create<StoreState>((set, get) => ({
   addWall: (p1, p2, isExternal) => {
     const id = "w" + (++get().wallIdCounter);
     const isExt = isExternal;
+    const matKey = get().wallMatKey;
+    const thk = WALL_MAT_THICKNESS[matKey] ?? { ext: 400, int: 200 };
+    const thickness = isExt ? thk.ext : thk.int;
     const wall: WallSegment = {
       id,
       p1: { ...p1 },
       p2: { ...p2 },
-      thickness: isExt ? 400 : 200,
+      thickness,
       height: get().project.floor_height,
       load_bearing: true,
       external: isExt,
       layers: [
         {
           role: "loadbearing",
-          material_key: "aerated_concrete",
-          thickness: isExt ? 400 : 200,
+          material_key: matKey,
+          thickness,
         },
       ],
       openings: [],
@@ -341,6 +394,35 @@ export const useStore = create<StoreState>((set, get) => ({
       },
     })),
 
+  setWallMaterial: (type, key) => {
+    const extThk = WALL_MAT_THICKNESS[key]?.ext ?? 400;
+    const intThk = WALL_MAT_THICKNESS[key]?.int ?? 200;
+    set((s) => {
+      const apply = (w: WallSegment, isExt: boolean): WallSegment => {
+        const thickness = isExt ? extThk : intThk;
+        const layers = w.layers.length
+          ? w.layers.map((l, i) =>
+              i === 0 ? { ...l, material_key: key, thickness } : l
+            )
+          : [{ role: "loadbearing" as const, material_key: key, thickness }];
+        return { ...w, thickness, layers };
+      };
+      const project: Project = {
+        ...s.project,
+        external_walls: s.project.external_walls.map((w) => apply(w, true)),
+        internal_walls: Object.fromEntries(
+          Object.entries(s.project.internal_walls).map(([f, walls]) => [
+            f,
+            walls.map((w) => apply(w, false)),
+          ])
+        ),
+      };
+      return { project, wallMatType: type, wallMatKey: key };
+    });
+    get().updateGeometry();
+    get().save();
+  },
+
   calculate: async () => {
     set({ calculating: true });
     try {
@@ -367,6 +449,8 @@ export const useStore = create<StoreState>((set, get) => ({
 
   save: () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(get().project));
+    localStorage.setItem("wallMatType", get().wallMatType);
+    localStorage.setItem("wallMatKey", get().wallMatKey);
   },
 
   load: () => {
@@ -381,12 +465,16 @@ export const useStore = create<StoreState>((set, get) => ({
           .flat()
           .map((w) => parseInt(w.id.replace(/\D/g, "")) || 0)
       );
+      const savedType = localStorage.getItem("wallMatType") as WallMatType | null;
+      const savedKey = localStorage.getItem("wallMatKey");
       set({
         project: { ...defaultProject, ...proj },
         wallIdCounter: maxId,
         currentFloor: 1,
         geometry: null,
         results: null,
+        wallMatType: savedType ?? get().wallMatType,
+        wallMatKey: savedKey ?? get().wallMatKey,
       });
       get().updateGeometry();
     } catch (e) {

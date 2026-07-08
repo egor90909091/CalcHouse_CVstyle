@@ -23,6 +23,9 @@ venv/
 env/
 ENV/
 app/static/data/sessions/
+
+# React build output (generated from frontend/)
+app/static/react/
 app/services/__pycache__/
 
 .opencode/

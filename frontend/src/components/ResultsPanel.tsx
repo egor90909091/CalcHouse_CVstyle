@@ -13,13 +13,20 @@ function SectionTable({ title, section }: { title: string; section: SectionResul
         <span className="section-total">{fmt(section.section_total)} ₽</span>
       </h3>
       <table>
-        <thead>
+        <colgroup>
+            <col className="col-name" />
+            <col className="col-qty" />
+            <col className="col-unit" />
+            <col className="col-price" />
+            <col className="col-sum" />
+          </colgroup>
+          <thead>
           <tr>
             <th>Материал</th>
-            <th>Кол-во</th>
-            <th>Ед.</th>
-            <th>Цена</th>
-            <th>Сумма</th>
+            <th className="num">Кол-во</th>
+            <th className="unit">Ед.</th>
+            <th className="num">Цена</th>
+            <th className="num">Сумма</th>
           </tr>
         </thead>
         <tbody>
@@ -27,7 +34,7 @@ function SectionTable({ title, section }: { title: string; section: SectionResul
             <tr key={i}>
               <td>{m.name}</td>
               <td className="num">{m.quantity.toLocaleString("ru-RU", { maximumFractionDigits: 2 })}</td>
-              <td>{m.unit}</td>
+              <td className="unit">{m.unit}</td>
               <td className="num">{m.price ? fmt(m.price) : "—"}</td>
               <td className="num">{m.total_cost ? fmt(m.total_cost) : "—"}</td>
             </tr>
@@ -101,6 +108,9 @@ export default function ResultsPanel() {
       {floorPlans.length > 0 && (
         <div className="floor-plans-section">
           <h3>План строения</h3>
+          <div className="geo-pill">
+            S={g.footprint_area_m2}м² · P={(g.perimeter_mm / 1000).toFixed(1)}м
+          </div>
           <div className="floor-plans-grid">
             {floorPlans.map((plan, idx) => (
               <div key={idx} className="floor-plan-frame">

@@ -1,11 +1,15 @@
-import { useStore } from "../store/useProjectStore";
+import { useStore, WALL_MAT_GROUPS, WALL_MAT_THICKNESS } from "../store/useProjectStore";
 import type { FoundationType, RoofConstruction, FloorType } from "../types/project";
+import type { WallMatType } from "../store/useProjectStore";
 
 export default function ProjectSettings() {
-  const { project, updateFoundation, updateRoof, updateFloorConfig, currentFloor } = useStore();
+  const { project, updateFoundation, updateRoof, updateFloorConfig, currentFloor, wallMatType, wallMatKey, setWallMaterial } = useStore();
   const foundation = project.foundation;
   const roof = project.roof;
   const floor = project.floor_config;
+
+  const currentGroup = WALL_MAT_GROUPS.find((g) => g.type === wallMatType) ?? WALL_MAT_GROUPS[0];
+  const currentThk = WALL_MAT_THICKNESS[wallMatKey] ?? { ext: 400, int: 200 };
 
   if (!foundation || !roof || !floor) return null;
 
@@ -77,6 +81,41 @@ export default function ProjectSettings() {
             </div>
           </>
         )}
+      </div>
+
+      <div className="settings-section">
+        <h3>Стены</h3>
+        <div className="prop-row">
+          <label>Тип стен</label>
+          <select
+            value={wallMatType}
+            onChange={(e) => {
+              const type = e.target.value as WallMatType;
+              const grp = WALL_MAT_GROUPS.find((g) => g.type === type) ?? WALL_MAT_GROUPS[0];
+              setWallMaterial(type, grp.options[0].key);
+            }}
+          >
+            {WALL_MAT_GROUPS.map((g) => (
+              <option key={g.type} value={g.type}>{g.label}</option>
+            ))}
+          </select>
+        </div>
+        <div className="prop-row">
+          <label>Подвид</label>
+          <select
+            value={wallMatKey}
+            onChange={(e) => setWallMaterial(wallMatType, e.target.value)}
+          >
+            {currentGroup.options.map((o) => (
+              <option key={o.key} value={o.key}>{o.label}</option>
+            ))}
+          </select>
+        </div>
+        <div className="prop-row hint-row">
+          <span className="hint-text">
+            Внешние: {currentThk.ext} мм · Внутренние: {currentThk.int} мм
+          </span>
+        </div>
       </div>
 
       <div className="settings-section">
