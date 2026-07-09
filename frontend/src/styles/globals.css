@@ -794,6 +794,20 @@ html.dark-theme .hero-logo-platform-dark  { display: block; }
   -webkit-text-fill-color: transparent;
 }
 
+.estimate-disclaimer {
+  width: 100%;
+  margin: 24px 0 4px;
+  text-align: center;
+  padding: 12px 18px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
 .result-section { margin: 18px 0; }
 .result-section h3 {
   display: flex;
@@ -842,7 +856,6 @@ html.dark-theme .hero-logo-platform-dark  { display: block; }
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
-  margin-top: 16px;
   transition: background var(--speed) var(--easing);
 }
 .btn-close:hover { background: var(--surface-hover); }
@@ -852,6 +865,8 @@ html.dark-theme .hero-logo-platform-dark  { display: block; }
   gap: 12px;
   margin-top: 16px;
   flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
 }
 .btn-print {
   background: var(--accent-grad);
@@ -897,6 +912,7 @@ html.dark-theme .hero-logo-platform-dark  { display: block; }
   margin: 28px 0;
   padding-top: 24px;
   border-top: 1px solid var(--border);
+  text-align: center;
 }
 .floor-plans-section h3 {
   color: var(--text-primary);
@@ -921,6 +937,7 @@ html.dark-theme .hero-logo-platform-dark  { display: block; }
   display: flex;
   flex-wrap: wrap;
   gap: 20px;
+  justify-content: center;
 }
 .floor-plan-frame {
   background: var(--surface-2);
@@ -1634,6 +1651,13 @@ html.dark-theme .hero-logo-platform-dark  { display: block; }
   }
   .geo-summary b {
     color: #000 !important;
+  }
+
+  .estimate-disclaimer {
+    background: #fff !important;
+    border: 1px solid #ccc !important;
+    color: #555 !important;
+    page-break-inside: avoid;
   }
 
   .result-section {

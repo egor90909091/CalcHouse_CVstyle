@@ -121,24 +121,50 @@ def build_external_polygon(walls: List[WallSegment]) -> Optional[Polygon]:
     """
     Построить полигон внешнего контура из стен.
     Возвращает Shapely Polygon или None, если контур не замкнут.
+
+    Сначала пробуем строгую последовательную сцепку стен
+    (order_walls_into_loop). Если она не замыкается (лишняя/ответвляющаяся
+    внешняя стена, T-узел, стены не в том порядке) — строим контур через
+    polygonize(unary_union(...)) по сети отрезков, как в compute_rooms.
+    Это даёт площадь застройки всегда, когда стены образуют замкнутые
+    помещения, даже без идеальной последовательности обхода.
     """
     if len(walls) < 3:
         return None
 
+    # --- Способ 1: строгий обход по вершинам ---
     ordered, is_closed = order_walls_into_loop(walls)
-    if not is_closed or len(ordered) < 3:
-        return None
+    if is_closed and len(ordered) >= 3:
+        # Вершины полигона = p1 каждой упорядоченной стены
+        coords = [(w.p1.x, w.p1.y) for w in ordered]
+        try:
+            poly = Polygon(coords)
+            if not poly.is_valid:
+                # Пытаемся починить простые ошибки (самопересечения)
+                poly = poly.buffer(0)
+            if not poly.is_empty:
+                return poly
+        except Exception:
+            pass
 
-    # Вершины полигона = p1 каждой упорядоченной стены
-    coords = [(w.p1.x, w.p1.y) for w in ordered]
+    # --- Способ 2 (фолбэк): контур из сети отрезков ---
+    # Объединяем все стены в один мультилинстринг, расщепляем в точках
+    # пересечения и выделяем замкнутые ячейки. Их объединение = внешний
+    # контур застройки (внутренние перегородки исчезают при union).
     try:
-        poly = Polygon(coords)
-        if not poly.is_valid:
-            # Пытаемся починить простые ошибки (самопересечения)
-            poly = poly.buffer(0)
-        return poly if not poly.is_empty else None
+        lines = [LineString([(w.p1.x, w.p1.y), (w.p2.x, w.p2.y)]) for w in walls]
+        merged = unary_union(lines)
+        polys = list(polygonize(merged))
+        if not polys:
+            return None
+        union = unary_union(polys)
+        union = union.buffer(0)
+        if union.is_valid and not union.is_empty:
+            return union
     except Exception:
-        return None
+        pass
+
+    return None
 
 
 def compute_wall_metrics(wall: WallSegment) -> WallMetrics:

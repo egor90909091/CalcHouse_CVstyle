@@ -93,8 +93,8 @@ function CanvasStatusBar() {
     hint = drawInProgress
       ? `Длина и угол у курсора · ${angleLabel} · Esc — отмена · Enter — замкнуть`
       : `Клик — начало стены · ${angleLabel}`;
-  } else if (mode === "select") {
-    hint = "Клик по стене — выбор · Del — удалить";
+  } else if (mode === "erase") {
+    hint = "Клик по стене/проёму — удалить";
   } else if (mode === "opening") {
     hint = `Клик по стене — добавить ${openingType === "door" ? "дверь" : "окно"}`;
   }

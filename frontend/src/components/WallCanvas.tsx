@@ -72,6 +72,7 @@ export default function WallCanvas() {
   const tempStartRef = useRef<Point | null>(null);
   const tempLineRef = useRef<any>(null);
   const snapRingRef = useRef<any>(null);
+  const eraseHoverRef = useRef<any>(null);
   const [initError, setInitError] = useState<string | null>(null);
   const [isEmpty, setIsEmpty] = useState(true);
 
@@ -289,16 +290,13 @@ export default function WallCanvas() {
           if (!wall.openings?.length) continue;
           const x1 = mmToPx(wall.p1.x) + offX, y1 = mmToPx(wall.p1.y) + offY;
           const x2 = mmToPx(wall.p2.x) + offX, y2 = mmToPx(wall.p2.y) + offY;
-          const wLen = Math.hypot(wall.p2.x - wall.p1.x, wall.p2.y - wall.p1.y);
+          const wLen = Math.hypot(wall.p2.x - wall.p1.x, wall.p2.y - wall.p1.y) || 1;
+          const angleDeg = Math.atan2(wall.p2.y - wall.p1.y, wall.p2.x - wall.p1.x) * 180 / Math.PI;
           for (const op of wall.openings) {
             const t = op.offset / wLen;
             const cx = x1 + (x2 - x1) * t;
             const cy = y1 + (y2 - y1) * t;
-            tempCanvas.add(new fabric.Rect({
-              left: cx - 4, top: cy - 4, width: 8, height: 8,
-              fill: op.type === "door" ? colors.door : colors.window,
-              selectable: false, evented: false,
-            }));
+            addOpeningSymbol(tempCanvas, op, cx, cy, angleDeg, colors, false);
           }
         }
 
@@ -393,9 +391,9 @@ export default function WallCanvas() {
 
       canvas.on("mouse:down", (opt: any) => handleMouseDown(opt));
       canvas.on("mouse:move", (opt: any) => handleMouseMove(opt));
-      canvas.on("selection:created", (opt: any) => handleSelected(opt));
-      canvas.on("selection:updated", (opt: any) => handleSelected(opt));
-      canvas.on("selection:cleared", () => stateRef.current.selectWall(null, true));
+      canvas.on("selection:created", () => {});
+      canvas.on("selection:updated", () => {});
+      canvas.on("selection:cleared", () => {});
 
       // Keyboard
       const onKey = (e: KeyboardEvent) => {
@@ -407,7 +405,7 @@ export default function WallCanvas() {
           clearSnapRing();
           renderWalls();
         } else if (e.key === "Delete" || e.key === "Backspace") {
-          if (s.selectedWallId && s.mode === "select") {
+          if (s.selectedWallId) {
             s.deleteWall(s.selectedWallId, s.selectedWallIsExternal);
           }
         } else if (e.key === "Enter") {
@@ -468,9 +466,13 @@ export default function WallCanvas() {
   useEffect(() => {
     const canvas = fabricRef.current;
     if (!canvas) return;
-    canvas.selection = store.mode === "select";
+    canvas.selection = false;
     canvas.defaultCursor =
-      store.mode === "draw" ? "crosshair" : store.mode === "opening" ? "pointer" : "default";
+      store.mode === "draw" ? "crosshair" :
+      store.mode === "opening" ? "pointer" :
+      store.mode === "erase" ? "pointer" : "default";
+    canvas.hoverCursor = canvas.defaultCursor;
+    clearEraseHover();
     canvas.renderAll();
   }, [store.mode]);
 
@@ -593,20 +595,80 @@ export default function WallCanvas() {
   function drawOpenings(canvas: any, wall: WallSegment) {
     if (!wall.openings?.length) return;
     const colors = getThemeColors();
+    const wLen = Math.hypot(wall.p2.x - wall.p1.x, wall.p2.y - wall.p1.y) || 1;
+    const angleDeg = Math.atan2(wall.p2.y - wall.p1.y, wall.p2.x - wall.p1.x) * 180 / Math.PI;
     const x1 = mmToPx(wall.p1.x), y1 = mmToPx(wall.p1.y);
     const x2 = mmToPx(wall.p2.x), y2 = mmToPx(wall.p2.y);
-    const len = Math.hypot(wall.p2.x - wall.p1.x, wall.p2.y - wall.p1.y);
-    for (const op of wall.openings) {
-      const t = op.offset / len;
+    for (let i = 0; i < wall.openings.length; i++) {
+      const op = wall.openings[i];
+      const t = op.offset / wLen;
       const cx = x1 + (x2 - x1) * t;
       const cy = y1 + (y2 - y1) * t;
-      const marker = new fabric.Rect({
-        left: cx - 4, top: cy - 4, width: 8, height: 8,
-        fill: op.type === "door" ? colors.door : colors.window,
+      addOpeningSymbol(canvas, op, cx, cy, angleDeg, colors, false, i);
+    }
+  }
+
+  // Универсальный символ проёма в локальных координатах (стена горизонтальна, центр в 0,0),
+  // затем поворот на angleDeg и сдвиг в (cx, cy).
+  // idx — индекс проёма на стене (для интерактивных маркеров). evented=true — в интерактивном canvas.
+  function addOpeningSymbol(
+    canvas: any, op: any, cx: number, cy: number, angleDeg: number,
+    palette: any, evented: boolean, idx: number = -1,
+  ) {
+    const wPx = Math.max(10, mmToPx(op.width));
+    const halfW = wPx / 2;
+    const color = op.type === "door" ? palette.door : palette.window;
+    const objs: any[] = [];
+
+    if (op.type === "door") {
+      // Четверть-дуга открывания (петля на левом краю, радиус = ширина проёма)
+      // Локально: петля в (-halfW, 0), дуга от (halfW, 0) до (-halfW, -halfW)
+      const sweep = halfW;
+      const ax = -halfW, ay = 0;
+      const bx = halfW, by = 0;
+      const ex = -halfW, ey = -sweep;
+      const arcPath = `M ${ax} ${ay} L ${bx} ${by} A ${sweep} ${sweep} 0 0 0 ${ex} ${ey} Z`;
+      const arc = new fabric.Path(arcPath, {
+        stroke: color, strokeWidth: 1.5, fill: "transparent",
+        strokeLineJoin: "round", selectable: false, evented: false,
+      });
+      objs.push(arc);
+      // Панель двери: линия от петли к открытому концу
+      const panel = new fabric.Line([ax, ay, ex, ey], {
+        stroke: color, strokeWidth: 3, strokeLineCap: "round",
         selectable: false, evented: false,
       });
-      canvas.add(marker);
+      objs.push(panel);
+    } else {
+      // Окно: две параллельные линии вдоль стены (символ стеклянной полосы) + тонкая центральная линия
+      const gap = 4;
+      const top = new fabric.Line([-halfW, -gap, halfW, -gap], {
+        stroke: color, strokeWidth: 2, selectable: false, evented: false,
+      });
+      const bot = new fabric.Line([-halfW, gap, halfW, gap], {
+        stroke: color, strokeWidth: 2, selectable: false, evented: false,
+      });
+      const mid = new fabric.Line([-halfW, 0, halfW, 0], {
+        stroke: color, strokeWidth: 0.8, strokeDashArray: [3, 3], selectable: false, evented: false,
+      });
+      objs.push(top, bot, mid);
+      // Короткие торцевые штрихи
+      const capL = new fabric.Line([-halfW, -gap, -halfW, gap], { stroke: color, strokeWidth: 1.5, selectable: false, evented: false });
+      const capR = new fabric.Line([halfW, -gap, halfW, gap], { stroke: color, strokeWidth: 1.5, selectable: false, evented: false });
+      objs.push(capL, capR);
     }
+
+    // Объединяем в группу и поворачиваем
+    const group = new fabric.Group(objs, { selectable: false, evented: false });
+    group.set({
+      left: cx, top: cy,
+      originX: "center", originY: "center",
+      angle: angleDeg,
+    });
+    // Сохраняем метаданные для hit-test взаимодействия в интерактивном canvas
+    group._isOpening = true;
+    group._openingIndex = idx;
+    canvas.add(group);
   }
 
   function drawJunctionNodes(canvas: any, walls: WallSegment[]) {
@@ -795,6 +857,33 @@ export default function WallCanvas() {
     return Math.hypot(px - (p1.x + t * dx), py - (p1.y + t * dy));
   }
 
+  // Hit-test проёма: возвращает { wall, isExternal, index } ближайшего проёма в радиусе
+  function findNearOpening(mmX: number, mmY: number): { wall: WallSegment; isExternal: boolean; index: number } | null {
+    const s = stateRef.current;
+    const all = [...s.externalWalls];
+    if (s.internalWalls[s.currentFloor]) all.push(...s.internalWalls[s.currentFloor]);
+    const tol = 300; // мм
+    let best: { wall: WallSegment; isExternal: boolean; index: number } | null = null;
+    let bestDist = tol;
+    for (const w of all) {
+      if (!w.openings?.length) continue;
+      const wLen = Math.hypot(w.p2.x - w.p1.x, w.p2.y - w.p1.y) || 1;
+      for (let i = 0; i < w.openings.length; i++) {
+        const op = w.openings[i];
+        const t = op.offset / wLen;
+        const ox = w.p1.x + (w.p2.x - w.p1.x) * t;
+        const oy = w.p1.y + (w.p2.y - w.p1.y) * t;
+        const d = Math.hypot(ox - mmX, oy - mmY);
+        const opPxHalf = Math.max(200, op.width / 2);
+        if (d <= opPxHalf && d < bestDist) {
+          bestDist = d;
+          best = { wall: w, isExternal: w.external, index: i };
+        }
+      }
+    }
+    return best;
+  }
+
   function findNearestWall(mmX: number, mmY: number): WallSegment | null {
     const s = stateRef.current;
     const all = [...s.externalWalls];
@@ -836,34 +925,107 @@ export default function WallCanvas() {
     canvas.renderAll();
   }
 
+  function clearEraseHover() {
+    const canvas = fabricRef.current;
+    if (!canvas || !eraseHoverRef.current) return;
+    for (const obj of eraseHoverRef.current) canvas.remove(obj);
+    eraseHoverRef.current = null;
+    canvas.renderAll();
+  }
+
+  // Подсветка стены при наведении ластиком (glow) или кольца вокруг проёма
+  function drawEraseHover(target: { wall: WallSegment } | { wall: WallSegment; index: number } | null) {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    clearEraseHover();
+    if (!target) return;
+    const colors = getThemeColors();
+    const objs: any[] = [];
+    const wall = target.wall;
+    const x1 = mmToPx(wall.p1.x), y1 = mmToPx(wall.p1.y);
+    const x2 = mmToPx(wall.p2.x), y2 = mmToPx(wall.p2.y);
+    const thickPx = Math.max(3, mmToPx(wall.thickness));
+    const glow = new fabric.Line([x1, y1, x2, y2], {
+      stroke: colors.accent,
+      strokeWidth: thickPx + 8,
+      strokeLineCap: "round",
+      opacity: 0.22,
+      selectable: false,
+      evented: false,
+    });
+    objs.push(glow);
+
+    if ("index" in target) {
+      const wLen = Math.hypot(wall.p2.x - wall.p1.x, wall.p2.y - wall.p1.y) || 1;
+      const op = wall.openings[target.index];
+      const t = op.offset / wLen;
+      const ox = x1 + (x2 - x1) * t;
+      const oy = y1 + (y2 - y1) * t;
+      const r = 14;
+      const ring = new fabric.Circle({
+        left: ox - r, top: oy - r, radius: r,
+        fill: "transparent",
+        stroke: "#ef4444",
+        strokeWidth: 2.5,
+        selectable: false, evented: false,
+      });
+      objs.push(ring);
+    }
+    for (const o of objs) canvas.add(o);
+    eraseHoverRef.current = objs;
+    canvas.renderAll();
+  }
+
   function handleMouseDown(opt: any) {
     const s = stateRef.current;
     if (s.mode === "draw") handleDrawClick(opt);
     else if (s.mode === "opening") handleOpeningClick(opt);
+    else if (s.mode === "erase") handleEraseClick(opt);
+  }
+
+  function handleEraseClick(opt: any) {
+    const p = getPointer(opt);
+    const nearOp = findNearOpening(p.mmX, p.mmY);
+    if (nearOp) {
+      stateRef.current.removeOpening(nearOp.wall.id, nearOp.isExternal, nearOp.index);
+      clearEraseHover();
+      renderWalls();
+      return;
+    }
+    const wall = findNearestWall(p.mmX, p.mmY);
+    if (!wall) return;
+    stateRef.current.deleteWall(wall.id, wall.external);
+    clearEraseHover();
+    renderWalls();
   }
 
   function handleDrawClick(opt: any) {
     const p = getPointer(opt);
     const vertex = findNearVertex(p.mmX, p.mmY);
-    const point = vertex || { x: p.mmX, y: p.mmY };
 
     if (!tempStartRef.current) {
+      const point = vertex || { x: p.mmX, y: p.mmY };
       tempStartRef.current = point;
       stateRef.current.setDrawInProgress(true);
-    } else {
-      if (point.x === tempStartRef.current.x && point.y === tempStartRef.current.y) {
-        tempStartRef.current = null;
-        stateRef.current.setDrawInProgress(false);
-        clearTempLine();
-        renderWalls();
-        return;
-      }
-      const isExt = stateRef.current.currentFloor === 1;
-      stateRef.current.addWall(tempStartRef.current, point, isExt);
-      tempStartRef.current = point;
-      stateRef.current.setDrawInProgress(true);
-      clearTempLine();
+      return;
     }
+
+    // При наличии стартовой точки — snap к углу должен honourся точно как в превью
+    const rawEnd = vertex || { x: p.mmX, y: p.mmY };
+    const snapped = snapAngle(tempStartRef.current, rawEnd).point;
+
+    if (snapped.x === tempStartRef.current.x && snapped.y === tempStartRef.current.y) {
+      tempStartRef.current = null;
+      stateRef.current.setDrawInProgress(false);
+      clearTempLine();
+      renderWalls();
+      return;
+    }
+    const isExt = stateRef.current.currentFloor === 1;
+    stateRef.current.addWall(tempStartRef.current, snapped, isExt);
+    tempStartRef.current = snapped;
+    stateRef.current.setDrawInProgress(true);
+    clearTempLine();
   }
 
   function handleMouseMove(opt: any) {
@@ -882,6 +1044,20 @@ export default function WallCanvas() {
         clearSnapRing();
       }
     }
+
+    // Erase-hover (ластик подсвечивает цель)
+    if (s.mode === "erase") {
+      const p = getPointer(opt);
+      const nearOp = findNearOpening(p.mmX, p.mmY);
+      if (nearOp) {
+        drawEraseHover({ wall: nearOp.wall, index: nearOp.index });
+      } else {
+        const wall = findNearestWall(p.mmX, p.mmY);
+        drawEraseHover(wall ? { wall } : null);
+      }
+      return;
+    }
+    clearEraseHover();
 
     if (s.mode !== "draw" || !tempStartRef.current) return;
     const p = getPointer(opt);
@@ -958,7 +1134,7 @@ export default function WallCanvas() {
           <div className="canvas-empty-title">Начните рисовать контур</div>
           <div className="canvas-empty-hint">
             Кликните, чтобы поставить первую точку стены.
-            Следующий клик — конец стены. Углы привязываются кратно 15°.
+            Следующий клик — конец стены. По умолчанию углы строго 90°.
           </div>
         </div>
       )}

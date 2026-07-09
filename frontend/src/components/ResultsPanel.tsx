@@ -33,7 +33,7 @@ function SectionTable({ title, section }: { title: string; section: SectionResul
           {section.materials.map((m, i) => (
             <tr key={i}>
               <td>{m.name}</td>
-              <td className="num">{m.quantity.toLocaleString("ru-RU", { maximumFractionDigits: 2 })}</td>
+              <td className="num">{m.quantity.toLocaleString("ru-RU", { maximumFractionDigits: 0 })}</td>
               <td className="unit">{m.unit}</td>
               <td className="num">{m.price ? fmt(m.price) : "—"}</td>
               <td className="num">{m.total_cost ? fmt(m.total_cost) : "—"}</td>
@@ -100,6 +100,7 @@ export default function ResultsPanel() {
         </div>
         <div className="total-cost">ИТОГО: {fmt(r.total_cost)} ₽</div>
       </div>
+
       <SectionTable title="Фундамент" section={r.foundation} />
       <SectionTable title="Стены" section={r.walls} />
       <SectionTable title="Перекрытия" section={r.floors} />
@@ -121,6 +122,10 @@ export default function ResultsPanel() {
           </div>
         </div>
       )}
+
+      <div className="estimate-disclaimer">
+        Наш расчёт близок к реальным затратам. Для точной сметы под ваш проект рекомендуем обратиться к специалистам.
+      </div>
 
       <div className="results-actions">
         <button className="btn-print" onClick={handlePrint}>

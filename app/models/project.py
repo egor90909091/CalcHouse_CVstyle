@@ -276,7 +276,7 @@ class MaterialItem(BaseModel):
     """Одна позиция материала в спецификации."""
 
     name: str = Field(..., description="Наименование")
-    quantity: float = Field(..., description="Количество")
+    quantity: int = Field(..., description="Количество (округляется до целого в большую сторону)")
     unit: str = Field(..., description="Единица измерения")
     price: Optional[float] = Field(None, description="Цена за единицу, руб")
     total_cost: Optional[float] = Field(None, description="Суммарная стоимость, руб")
@@ -287,7 +287,7 @@ class SectionResult(BaseModel):
     """Результат расчёта по одному разделу (фундамент/стены/перекрытия/кровля)."""
 
     materials: List[MaterialItem] = Field(default_factory=list)
-    section_total: float = Field(0, description="Итог по разделу, руб")
+    section_total: float = Field(0.0, description="Итог по разделу, руб")
 
 
 class MaterialsResult(BaseModel):
@@ -298,4 +298,4 @@ class MaterialsResult(BaseModel):
     walls: SectionResult = Field(default_factory=SectionResult)
     floors: SectionResult = Field(default_factory=SectionResult)
     roof: SectionResult = Field(default_factory=SectionResult)
-    total_cost: float = Field(0, description="Итоговая стоимость материалов, руб")
+    total_cost: float = Field(0.0, description="Итоговая стоимость материалов, руб")

@@ -129,6 +129,51 @@ class MaterialsServiceV2:
                     return e
         return entries[0]
 
+    def _lookup_variant(
+        self, key: str, thickness_mm: int, section: Optional[str] = None
+    ) -> Dict:
+        """
+        Найти материал с выбором варианта по толщине (для блоков/панелей).
+        В materials.json варианты хранятся как:
+          "variants": {"200": {...}, "300": {...}, "400": {...}}
+        где ключ — толщина в мм.
+
+        Логика: берём наименьший вариант с толщиной >= целевой;
+        если такого нет — берём самый толстый.
+        """
+        mat = self._lookup(key, section)
+        raw = mat.get("raw", {}) or {}
+        variants = raw.get("variants", {}) or {}
+        if not variants or not thickness_mm:
+            return mat
+
+        candidates: List[Tuple[int, Dict]] = []
+        for v_key, v_data in variants.items():
+            try:
+                candidates.append((int(v_key), v_data if isinstance(v_data, dict) else {}))
+            except (ValueError, TypeError):
+                continue
+        if not candidates:
+            return mat
+
+        candidates.sort(key=lambda c: c[0])
+        chosen: Optional[Dict] = None
+        for v_thickness, v_data in candidates:
+            if v_thickness >= thickness_mm:
+                chosen = v_data
+                break
+        if chosen is None:
+            chosen = candidates[-1][1]
+
+        return {
+            "name": chosen.get("name", mat.get("name", key)),
+            "price": chosen.get("price", mat.get("price", 0)) or 0,
+            "unit": chosen.get("unit", mat.get("unit", "")),
+            "category": mat.get("category", ""),
+            "subcategory": mat.get("subcategory", ""),
+            "raw": raw,
+        }
+
     def _rate(self, name: str, default: float = 1.0) -> float:
         """Получить норму расхода из consumption_rates."""
         return float(self._rates.get(name, default))
@@ -139,14 +184,24 @@ class MaterialsServiceV2:
         quantity: float,
         detail: Optional[str] = None,
         section: Optional[str] = None,
+        thickness_mm: Optional[int] = None,
     ) -> MaterialItem:
-        """Создать позицию материала с ценой и итоговой стоимостью."""
-        mat = self._lookup(key, section)
-        price = mat.get("price", 0) or 0
-        total = round(quantity * price, 2) if price else None
+        """Создать позицию материала с ценой и итоговой стоимостью.
+        Если задан thickness_mm и у материала есть variants — выбирается
+        вариант, соответствующий толщине (для блоков/панелей)."""
+        if thickness_mm:
+            mat = self._lookup_variant(key, thickness_mm, section)
+        else:
+            mat = self._lookup(key, section)
+        price = float(mat.get("price", 0) or 0)
+        # Кол-во округляем до целого в большую сторону (ceil);
+        # стоимость (Сумма) считается от округлённого количества,
+        # т.к. закупка идёт целыми единицами.
+        qty = math.ceil(quantity)
+        total = round(qty * price, 2) if price else None
         return MaterialItem(
             name=mat.get("name", key),
-            quantity=round(quantity, 3),
+            quantity=qty,
             unit=mat.get("unit", ""),
             price=price if price else None,
             total_cost=total,
@@ -210,9 +265,9 @@ class MaterialsServiceV2:
             f"Продольная d{self._rate('rebar_longitudinal_diameter_mm', 12)}мм × {self._rate('rebar_longitudinal_count', 4)} + хомуты"
         ))
 
-        # Опалубка
-        formwork_m2 = length_m * (depth_m + height_m) * 2 * self._rate("formwork_reuse_factor", 1.2)
-        items.append(self._make_item(config.formwork_key, formwork_m2, "Опалубка с двух сторон"))
+        # Опалубка (только надземная часть — подземная опирается на грунт)
+        formwork_m2 = length_m * height_m * 2 * self._rate("formwork_reuse_factor", 1.2)
+        items.append(self._make_item(config.formwork_key, formwork_m2, "Опалубка надземной части"))
 
         # Гидроизоляция
         waterproofing_m2 = length_m * width_m * self._rate("waterproofing_overlap", 1.15)
@@ -425,8 +480,12 @@ class MaterialsServiceV2:
             else:
                 face_area = self._rate("block_face_area_aerated_m2", 0.18)
             count = (net_area_m2 / face_area) * self._rate("block_waste", 1.03)
-            # Если есть варианты по толщине — берём цену варианта
-            items.append(self._make_item(key, count, f"Лицо {face_area}м² × {net_area_m2:.1f}м² × отход 3%"))
+            # Цена выбирается по варианту, соответствующему толщине стены
+            items.append(self._make_item(
+                key, count,
+                f"Лицо {face_area}м² × {net_area_m2:.1f}м² × отход 3%",
+                thickness_mm=thickness_mm,
+            ))
             # Клей
             adhesive_kg = net_area_m2 * self._rate("adhesive_per_m2_block_kg", 5)
             items.append(self._make_item("adhesive_standard", adhesive_kg, "Клей для блоков"))
@@ -460,11 +519,11 @@ class MaterialsServiceV2:
                 face_area = self._rate("panel_face_area_concrete_m2", 3.259)
             else:
                 face_area = self._rate("panel_face_area_sandwich_m2", 1.0)
-            count = math.ceil(net_area_m2 / face_area) * self._rate("panel_waste", 1.05)
-            items.append(self._make_item(key, count, f"{net_area_m2:.1f}м² / {face_area}м² × отход 5%"))
-            # Герметик швов
-            sealant_l = wall_length_m * 0.1  # ~0.1 л/м шва
-            items.append(self._make_item("sealant", sealant_l, "Герметизация швов"))
+            count = math.ceil(net_area_m2 / face_area * self._rate("panel_waste", 1.05))
+            items.append(self._make_item(
+                key, count, f"{net_area_m2:.1f}м² / {face_area}м² × отход 5%",
+                thickness_mm=thickness_mm,
+            ))
 
         else:
             # Неизвестный несущий материал — считаем по объёму
@@ -550,13 +609,13 @@ class MaterialsServiceV2:
         elif config.type == FloorType.SLAB:
             # Сборные плиты ПК 60-12-8 (6×1.2м = 7.2м²)
             slab_area = 6.0 * 1.2
-            count = math.ceil(total_area / slab_area) * self._rate("panel_waste", 1.05)
+            count = math.ceil(total_area / slab_area * self._rate("panel_waste", 1.05))
             items.append(self._make_item(
                 config.slab_key, count, f"{slab_count} перекрытие, {total_area:.1f}м² / {slab_area}м²"
             ))
             # Раствор для швов
             mortar_m3 = total_area * 0.01  # ~10мм слой
-            items.append(self._make_item(config.mortar_key, mortar_m3, "Заделка швов"))
+            items.append(self._make_item(config.mortar_key, mortar_m3, "Заделка швов", section="floors"))
 
         total = sum(i.total_cost for i in items if i.total_cost)
         return SectionResult(materials=items, section_total=round(total, 2))
@@ -575,8 +634,8 @@ class MaterialsServiceV2:
             items = self._calc_flat_roof(geom, config)
         else:
             # Скатная кровля
-            # Стропила
-            rafter_len = geom.bbox_width_mm / 2 / math.cos(math.radians(config.angle)) / 1000.0
+            # Стропила (длина включает свес кровли)
+            rafter_len = (geom.bbox_width_mm / 2 + config.overhang) / math.cos(math.radians(config.angle)) / 1000.0
             rafter_count = math.ceil((geom.bbox_length_mm / 1000.0) / 0.6) + 1
             rafter_total_m = rafter_len * rafter_count * 2  # два ската
             items.append(self._make_item(
@@ -610,19 +669,14 @@ class MaterialsServiceV2:
         if key == "metal":
             area = roof_area * waste
             items.append(self._make_item("metal_tile_standard", area, f"Металлочерепица {roof_area:.1f}м² × отход 10%"))
-            # Конёковые элементы (шт по 2м)
+            # Коньковые элементы (шт по 2м)
             ridge_count = math.ceil(ridge_m / 2.0) if ridge_m > 0 else 0
             items.append(self._make_item("ridge_elements", ridge_count, f"Конёк {ridge_m:.1f}м"))
-            # Саморезы (~10 шт/м²)
-            screws = roof_area * 10
-            items.append(self._make_item("screws", screws, "Кровельные саморезы"))
 
         elif key == "tile":
             tiles = roof_area * 10 * waste  # 10 шт/м²
             items.append(self._make_item("ceramic_tile", tiles, f"Черепица 10 шт/м² × отход 10%"))
             items.append(self._make_item("ridge_elements", ridge_m, f"Конёк {ridge_m:.1f}м"))
-            fasteners = roof_area * 8
-            items.append(self._make_item("fasteners", fasteners, "Крепления"))
 
         elif key == "shingle":
             area = roof_area * waste
@@ -632,10 +686,9 @@ class MaterialsServiceV2:
 
         elif key == "slate":
             sheet_area = 1.75 * 1.13  # м²
-            sheets = math.ceil(roof_area / sheet_area * 0.85) * waste  # 0.85 — полезная площадь
+            # 0.85 — коэффициент полезной площади листа (нахлёст)
+            sheets = math.ceil((roof_area / (sheet_area * 0.85)) * waste)
             items.append(self._make_item("slate", sheets, f"Шифер {roof_area:.1f}м² / {sheet_area}м²"))
-            nails = sheets * 4
-            items.append(self._make_item("nails", nails, "Гвозди"))
 
         else:
             area = roof_area * waste

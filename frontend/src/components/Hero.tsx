@@ -1,6 +1,13 @@
+const BACKGROUNDS = [
+  "/static/images/BackGround.png",
+  "/static/images/BackGround2.png",
+  "/static/images/BackGround3.png",
+];
+
 export default function Hero() {
+  const bg = BACKGROUNDS[Math.floor(Math.random() * BACKGROUNDS.length)];
   return (
-    <section className="hero">
+    <section className="hero" style={{ backgroundImage: `url('${bg}')` }}>
       <div className="hero-inner">
         <div className="hero-card">
           <h2 className="hero-title">Рассчитайте материалы для строительства дома</h2>

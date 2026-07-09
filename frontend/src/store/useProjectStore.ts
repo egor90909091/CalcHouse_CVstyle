@@ -170,7 +170,7 @@ export const useStore = create<StoreState>((set, get) => ({
   openingType: "window",
   wallIdCounter: 0,
   drawInProgress: false,
-  angleSnapMode: "standard",
+  angleSnapMode: "strict",
   geometry: null,
   results: null,
   calculating: false,

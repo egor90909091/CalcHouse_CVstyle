@@ -1,10 +1,10 @@
 import { useStore } from "../store/useProjectStore";
 import type { EditorMode } from "../types/project";
 
-const MODES: { mode: EditorMode; label: string }[] = [
-  { mode: "draw", label: "✏️ Стены" },
-  { mode: "select", label: "✋ Выбрать" },
-  { mode: "opening", label: "🚪 Проём" },
+const MODES: { mode: EditorMode; label: string; title: string }[] = [
+  { mode: "draw", label: "✏️ Стены", title: "Рисование стен" },
+  { mode: "erase", label: "🧽 Ластик", title: "Удаление стен и проёмов кликом" },
+  { mode: "opening", label: "🚪 Проём", title: "Добавление дверей и окон" },
 ];
 
 const ANGLE_MODES: { mode: "strict" | "standard" | "free"; label: string; title: string }[] = [
@@ -44,6 +44,7 @@ export default function Toolbar() {
             key={m.mode}
             className={`tool-btn ${mode === m.mode ? "active" : ""}`}
             onClick={() => setMode(m.mode)}
+            title={m.title}
           >
             {m.label}
           </button>

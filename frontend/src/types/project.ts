@@ -159,4 +159,4 @@ export interface MaterialsResult {
 }
 
 // Состояние редактора
-export type EditorMode = "draw" | "select" | "opening";
+export type EditorMode = "draw" | "erase" | "opening";
