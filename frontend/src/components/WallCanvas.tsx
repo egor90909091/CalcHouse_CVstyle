@@ -20,6 +20,10 @@ const fabric: any =
 const MM_PER_PX = 50;
 const GRID_MM = 1000;
 const SNAP_TOL_MM = 200;
+const WALL_SNAP_TOL_MM = 400;   // привязка к точке на существующей стене
+const CLOSE_TOL_MM = 300;      // замыкание контура по стартовой точке
+const DUP_ANGLE_TOL = 1.5;     // допуск угла при поиске дублирующей стены (град.)
+const DUP_OVERLAP = 0.7;       // порог перекрытия для блокировки дубликата
 
 const mmToPx = (mm: number) => mm / MM_PER_PX;
 const pxToMm = (px: number) => Math.round(px * MM_PER_PX);
@@ -56,6 +60,8 @@ interface CanvasState {
   selectedWallId: string | null;
   selectedWallIsExternal: boolean;
   addWall: (p1: Point, p2: Point, isExternal: boolean) => void;
+  addWallWithSplit: (p1: Point, p2: Point, isExternal: boolean, split?: { wallId: string; isExternal: boolean; point: Point } | null) => void;
+  splitWall: (wallId: string, isExternal: boolean, point: Point) => void;
   selectWall: (id: string | null, isExternal: boolean) => void;
   deleteWall: (id: string, isExternal: boolean) => void;
   addOpening: (wallId: string, isExternal: boolean, opening: any) => void;
@@ -72,6 +78,8 @@ export default function WallCanvas() {
   const tempStartRef = useRef<Point | null>(null);
   const tempLineRef = useRef<any>(null);
   const snapRingRef = useRef<any>(null);
+  const snapCircleRef = useRef<any>(null);
+  const dupWarnRef = useRef<any>(null);
   const eraseHoverRef = useRef<any>(null);
   const [initError, setInitError] = useState<string | null>(null);
   const [isEmpty, setIsEmpty] = useState(true);
@@ -88,6 +96,8 @@ export default function WallCanvas() {
     selectedWallId: store.selectedWallId,
     selectedWallIsExternal: store.selectedWallIsExternal,
     addWall: store.addWall,
+    addWallWithSplit: store.addWallWithSplit,
+    splitWall: store.splitWall,
     selectWall: store.selectWall,
     deleteWall: store.deleteWall,
     addOpening: store.addOpening,
@@ -403,6 +413,8 @@ export default function WallCanvas() {
           s.setDrawInProgress(false);
           clearTempLine();
           clearSnapRing();
+          clearSnapCircle();
+          clearDuplicateWarn();
           renderWalls();
         } else if (e.key === "Delete" || e.key === "Backspace") {
           if (s.selectedWallId) {
@@ -458,6 +470,8 @@ export default function WallCanvas() {
       tempStartRef.current = null;
       clearTempLine();
       clearSnapRing();
+      clearSnapCircle();
+      clearDuplicateWarn();
       renderWalls();
     }
   }, [store.drawInProgress]);
@@ -897,6 +911,89 @@ export default function WallCanvas() {
     return bestDist < 500 ? best : null;
   }
 
+  // Проекция точки на сегмент: возвращает { point, t } где t ∈ [0,1]
+  function pointToSegProj(px: number, py: number, p1: Point, p2: Point): { x: number; y: number; t: number } {
+    const dx = p2.x - p1.x, dy = p2.y - p1.y;
+    const len2 = dx * dx + dy * dy;
+    if (len2 === 0) return { x: p1.x, y: p1.y, t: 0 };
+    let t = ((px - p1.x) * dx + (py - p1.y) * dy) / len2;
+    t = Math.max(0, Math.min(1, t));
+    return { x: Math.round(p1.x + t * dx), y: Math.round(p1.y + t * dy), t };
+  }
+
+  // Привязка к точке на существующей стене (внутри сегмента, не на концах).
+  // Возвращает ближайшего кандидата в радиусе WALL_SNAP_TOL_MM.
+  function findSnapOnWall(mmX: number, mmY: number): { point: Point; wall: WallSegment; isExternal: boolean } | null {
+    const s = stateRef.current;
+    const all: WallSegment[] = [...s.externalWalls];
+    if (s.internalWalls[s.currentFloor]) all.push(...s.internalWalls[s.currentFloor]);
+    let best: { point: Point; wall: WallSegment; isExternal: boolean } | null = null;
+    let bestDist = WALL_SNAP_TOL_MM;
+    for (const w of all) {
+      const proj = pointToSegProj(mmX, mmY, w.p1, w.p2);
+      // Только внутри сегмента (концы покрыты вершинной привязкой)
+      if (proj.t <= 0.001 || proj.t >= 0.999) continue;
+      const d = Math.hypot(proj.x - mmX, proj.y - mmY);
+      if (d < bestDist) {
+        bestDist = d;
+        best = { point: { x: proj.x, y: proj.y }, wall: w, isExternal: w.external };
+      }
+    }
+    return best;
+  }
+
+  // Замыкание контура по стартовой точке цепи: если рисуем и курсор у начала — это замыкание.
+  function findChainCloseSnap(mmX: number, mmY: number): Point | null {
+    const s = stateRef.current;
+    if (!tempStartRef.current) return null;
+    if (s.currentFloor !== 1) return null; // замыкание актуально для внешнего контура (1 этаж)
+    const ext = s.externalWalls;
+    if (ext.length < 1) return null;
+    const start = ext[0].p1;
+    if (Math.hypot(start.x - mmX, start.y - mmY) <= CLOSE_TOL_MM) {
+      return { x: start.x, y: start.y };
+    }
+    return null;
+  }
+
+  // Проверка, ложится ли новая стена [p1,p2] поверх существующей (дубликат).
+  // Коллинеарность + перекрытие по длине > DUP_OVERLAP.
+  function isDuplicateWall(a1: Point, a2: Point, isExt: boolean): boolean {
+    const s = stateRef.current;
+    const all: WallSegment[] = [];
+    if (isExt) all.push(...s.externalWalls);
+    if (s.internalWalls[s.currentFloor]) all.push(...s.internalWalls[s.currentFloor]);
+    const newLen = Math.hypot(a2.x - a1.x, a2.y - a1.y);
+    if (newLen < 1) return false;
+    const newDx = a2.x - a1.x, newDy = a2.y - a1.y;
+    for (const w of all) {
+      const wLen = Math.hypot(w.p2.x - w.p1.x, w.p2.y - w.p1.y);
+      if (wLen < 1) continue;
+      const wDx = w.p2.x - w.p1.x, wDy = w.p2.y - w.p1.y;
+      // Углы обеих стен
+      const angNew = Math.atan2(newDy, newDx) * 180 / Math.PI;
+      const angW = Math.atan2(wDy, wDx) * 180 / Math.PI;
+      let dAng = Math.abs(((angNew - angW) % 360 + 360) % 360);
+      if (dAng > 180) dAng = 360 - dAng;
+      // Коллинеарны, если угол ~0 (сонаправлены) ИЛИ ~180 (противонаправлены, та же прямая)
+      if (dAng > DUP_ANGLE_TOL && Math.abs(dAng - 180) > DUP_ANGLE_TOL) continue;
+      // Коллинеарность: расстояние от p1 новой до прямой старой
+      const cross = (a1.x - w.p1.x) * wDy - (a1.y - w.p1.y) * wDx;
+      const distToLine = Math.abs(cross) / wLen;
+      if (distToLine > 50) continue; // не на одной прямой (>5см — разные стены)
+      // Перекрытие проекций вдоль направления старой стены
+      const t1 = ((a1.x - w.p1.x) * wDx + (a1.y - w.p1.y) * wDy) / (wLen * wLen);
+      const t2 = ((a2.x - w.p1.x) * wDx + (a2.y - w.p1.y) * wDy) / (wLen * wLen);
+      const lo = Math.max(0, Math.min(t1, t2));
+      const hi = Math.min(1, Math.max(t1, t2));
+      if (hi <= lo) continue; // нет перекрытия
+      const overlapLen = (hi - lo) * wLen;
+      const shorter = Math.min(newLen, wLen);
+      if (overlapLen / shorter >= DUP_OVERLAP) return true;
+    }
+    return false;
+  }
+
   function clearSnapRing() {
     const canvas = fabricRef.current;
     if (!canvas || !snapRingRef.current) return;
@@ -908,6 +1005,7 @@ export default function WallCanvas() {
     const canvas = fabricRef.current;
     if (!canvas) return;
     clearSnapRing();
+    clearSnapCircle();
     const colors = getThemeColors();
     const r = 10;
     const ring = new fabric.Circle({
@@ -922,6 +1020,73 @@ export default function WallCanvas() {
     });
     canvas.add(ring);
     snapRingRef.current = ring;
+    canvas.renderAll();
+  }
+
+  function clearSnapCircle() {
+    const canvas = fabricRef.current;
+    if (!canvas || !snapCircleRef.current) return;
+    canvas.remove(snapCircleRef.current);
+    snapCircleRef.current = null;
+    canvas.renderAll();
+  }
+
+  // Тонкий полупрозрачный круг-контур — индикатор привязки к точке на стене / замыкания.
+  // kind: "onWall" (привязка) | "close" (замыкание контура)
+  function drawSnapCircle(p: Point, kind: "onWall" | "close") {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    clearSnapCircle();
+    clearSnapRing();
+    const colors = getThemeColors();
+    const r = 12;
+    const color = kind === "close" ? colors.preview : colors.window;
+    const circle = new fabric.Circle({
+      left: mmToPx(p.x) - r,
+      top: mmToPx(p.y) - r,
+      radius: r,
+      fill: "transparent",
+      stroke: color,
+      strokeWidth: 1.5,
+      strokeDashArray: [3, 3],
+      opacity: 0.7,
+      selectable: false,
+      evented: false,
+    });
+    canvas.add(circle);
+    snapCircleRef.current = circle;
+    canvas.renderAll();
+  }
+
+  // Предупреждение о дублирующей стене: красная линия на 600мс.
+  function drawDuplicateWarn(p1: Point, p2: Point) {
+    const canvas = fabricRef.current;
+    if (!canvas) return;
+    clearDuplicateWarn();
+    const colors = getThemeColors();
+    const line = new fabric.Line(
+      [mmToPx(p1.x), mmToPx(p1.y), mmToPx(p2.x), mmToPx(p2.y)],
+      {
+        stroke: colors.door,
+        strokeWidth: 4,
+        strokeDashArray: [8, 4],
+        strokeLineCap: "round",
+        selectable: false,
+        evented: false,
+        opacity: 0.85,
+      }
+    );
+    canvas.add(line);
+    dupWarnRef.current = line;
+    canvas.renderAll();
+    window.setTimeout(() => clearDuplicateWarn(), 650);
+  }
+
+  function clearDuplicateWarn() {
+    const canvas = fabricRef.current;
+    if (!canvas || !dupWarnRef.current) return;
+    canvas.remove(dupWarnRef.current);
+    dupWarnRef.current = null;
     canvas.renderAll();
   }
 
@@ -1001,30 +1166,81 @@ export default function WallCanvas() {
 
   function handleDrawClick(opt: any) {
     const p = getPointer(opt);
+    const s = stateRef.current;
+    // Приоритет привязки: вершина > замыкание по старту > точка на стене > сетка
     const vertex = findNearVertex(p.mmX, p.mmY);
+    const closePt = findChainCloseSnap(p.mmX, p.mmY);
+    const onWall = !vertex && !closePt ? findSnapOnWall(p.mmX, p.mmY) : null;
+    const snapPoint = vertex || closePt || onWall?.point || null;
 
+    // Первый клик — установка стартовой точки
     if (!tempStartRef.current) {
-      const point = vertex || { x: p.mmX, y: p.mmY };
+      const point = snapPoint || { x: p.mmX, y: p.mmY };
       tempStartRef.current = point;
-      stateRef.current.setDrawInProgress(true);
+      s.setDrawInProgress(true);
       return;
     }
 
-    // При наличии стартовой точки — snap к углу должен honourся точно как в превью
-    const rawEnd = vertex || { x: p.mmX, y: p.mmY };
-    const snapped = snapAngle(tempStartRef.current, rawEnd).point;
+    const start = tempStartRef.current;
+    // Конец: приоритет у snap-точки; иначе angle-snap по сетке
+    const rawEnd = snapPoint || { x: p.mmX, y: p.mmY };
+    const snapped = snapPoint
+      ? snapPoint
+      : snapAngle(start, rawEnd).point;
 
-    if (snapped.x === tempStartRef.current.x && snapped.y === tempStartRef.current.y) {
+    // Замыкание: конец лёг на стартовую точку цепи → закрыть контур
+    if (closePt || (snapped.x === start.x && snapped.y === start.y)) {
+      const ext = s.externalWalls;
+      if (s.currentFloor === 1 && ext.length >= 1) {
+        // Если последняя стена не доходит до начала — добавим замыкающий сегмент
+        const last = ext[ext.length - 1];
+        const first = ext[0];
+        const isClosed =
+          last && first &&
+          last.p2.x === first.p1.x && last.p2.y === first.p1.y;
+        if (!isClosed && last) {
+          s.addWall(last.p2, first.p1, true);
+        }
+        tempStartRef.current = null;
+        s.setDrawInProgress(false);
+        clearTempLine();
+        clearSnapCircle();
+        clearSnapRing();
+        renderWalls();
+        return;
+      }
+      // На не-внешнем этаже: просто завершить сегмент, не замыкая контур
       tempStartRef.current = null;
-      stateRef.current.setDrawInProgress(false);
+      s.setDrawInProgress(false);
       clearTempLine();
+      clearSnapCircle();
+      clearSnapRing();
       renderWalls();
       return;
     }
-    const isExt = stateRef.current.currentFloor === 1;
-    stateRef.current.addWall(tempStartRef.current, snapped, isExt);
+
+    // Блокировка дублирующей стены (полное перекрытие поверх существующей)
+    const isExt = s.currentFloor === 1;
+    if (isDuplicateWall(start, snapped, isExt)) {
+      drawDuplicateWarn(start, snapped);
+      // Сбрасываем текущий сегмент, чтобы пользователь видел отказ
+      tempStartRef.current = null;
+      s.setDrawInProgress(false);
+      clearTempLine();
+      clearSnapCircle();
+      clearSnapRing();
+      renderWalls();
+      return;
+    }
+
+    // Атомарное добавление + деление старой стены в точке привязки
+    const splitTarget = onWall
+      ? { wallId: onWall.wall.id, isExternal: onWall.isExternal, point: snapped }
+      : null;
+    s.addWallWithSplit(start, snapped, isExt, splitTarget);
+
     tempStartRef.current = snapped;
-    stateRef.current.setDrawInProgress(true);
+    s.setDrawInProgress(true);
     clearTempLine();
   }
 
@@ -1034,14 +1250,22 @@ export default function WallCanvas() {
     if (!canvas) return;
     const colors = getThemeColors();
 
-    // Snap ring indicator (draw mode)
+    // Snap-индикаторы (draw mode)
     if (s.mode === "draw") {
       const p = getPointer(opt);
       const vertex = findNearVertex(p.mmX, p.mmY);
+      const closePt = findChainCloseSnap(p.mmX, p.mmY);
+      const onWall = !vertex && !closePt ? findSnapOnWall(p.mmX, p.mmY) : null;
       if (vertex) {
+        clearSnapCircle();
         drawSnapRing(vertex);
+      } else if (closePt) {
+        drawSnapCircle(closePt, "close");
+      } else if (onWall) {
+        drawSnapCircle(onWall.point, "onWall");
       } else {
         clearSnapRing();
+        clearSnapCircle();
       }
     }
 
@@ -1061,22 +1285,34 @@ export default function WallCanvas() {
 
     if (s.mode !== "draw" || !tempStartRef.current) return;
     const p = getPointer(opt);
+    const start = tempStartRef.current;
     const vertex = findNearVertex(p.mmX, p.mmY);
-    const rawEnd = vertex || { x: p.mmX, y: p.mmY };
-    const { point: snapped, angleDeg } = snapAngle(tempStartRef.current, rawEnd);
+    const closePt = findChainCloseSnap(p.mmX, p.mmY);
+    const onWall = !vertex && !closePt ? findSnapOnWall(p.mmX, p.mmY) : null;
+    const snapPoint = vertex || closePt || onWall?.point || null;
+    const rawEnd = snapPoint || { x: p.mmX, y: p.mmY };
+    // snapAngle не переприменяем к snap-точкам — иначе он сбивает привязку
+    const { point: snapped, angleDeg } = snapPoint
+      ? { point: snapPoint, angleDeg: 0 }
+      : snapAngle(start, rawEnd);
+
+    // Если наводимся на дублирующую стену — красим preview в красный
+    const isExt = s.currentFloor === 1;
+    const isDup = isDuplicateWall(start, snapped, isExt);
+    const previewColor = isDup ? colors.door : colors.preview;
 
     clearTempLine();
     tempLineRef.current = new fabric.Line(
-      [mmToPx(tempStartRef.current.x), mmToPx(tempStartRef.current.y),
+      [mmToPx(start.x), mmToPx(start.y),
        mmToPx(snapped.x), mmToPx(snapped.y)],
-      { stroke: colors.preview, strokeWidth: 3, strokeDashArray: [6, 4],
+      { stroke: previewColor, strokeWidth: 3, strokeDashArray: [6, 4],
         strokeLineCap: "round", selectable: false, evented: false }
     );
-    const lenMm = Math.hypot(snapped.x - tempStartRef.current.x, snapped.y - tempStartRef.current.y);
+    const lenMm = Math.hypot(snapped.x - start.x, snapped.y - start.y);
     const labelText = (lenMm / 1000).toFixed(1) + " м  " + angleDeg + "°";
     const label = new fabric.Text(labelText, {
       left: mmToPx(snapped.x) + 10, top: mmToPx(snapped.y) + 10,
-      fontSize: 14, fontWeight: 600, fill: colors.preview, selectable: false, evented: false,
+      fontSize: 14, fontWeight: 600, fill: previewColor, selectable: false, evented: false,
     });
     canvas.add(tempLineRef.current);
     canvas.add(label);

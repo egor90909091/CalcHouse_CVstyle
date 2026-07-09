@@ -138,6 +138,8 @@ interface StoreState {
   setFloorHeight: (h: number) => void;
   // Действия: стены
   addWall: (p1: Point, p2: Point, isExternal: boolean) => void;
+  addWallWithSplit: (p1: Point, p2: Point, isExternal: boolean, split?: { wallId: string; isExternal: boolean; point: Point } | null) => void;
+  splitWall: (wallId: string, isExternal: boolean, point: Point) => void;
   selectWall: (id: string | null, isExternal: boolean) => void;
   updateWall: (id: string, isExternal: boolean, updates: Partial<WallSegment>) => void;
   deleteWall: (id: string, isExternal: boolean) => void;
@@ -241,6 +243,221 @@ export const useStore = create<StoreState>((set, get) => ({
       };
     });
     // Обновляем геометрию в фоне
+    get().updateGeometry();
+  },
+
+  // Атомарная транзакция: добавить стену и (опционально) разрезать
+  // существующую стену в точке привязки. Геометрия обновляется один раз.
+  addWallWithSplit: (p1, p2, isExternal, split) => {
+    const id = "w" + (++get().wallIdCounter);
+    const isExt = isExternal;
+    const matKey = get().wallMatKey;
+    const thk = WALL_MAT_THICKNESS[matKey] ?? { ext: 400, int: 200 };
+    const thickness = isExt ? thk.ext : thk.int;
+    const wall: WallSegment = {
+      id,
+      p1: { ...p1 },
+      p2: { ...p2 },
+      thickness,
+      height: get().project.floor_height,
+      load_bearing: true,
+      external: isExt,
+      layers: [{ role: "loadbearing", material_key: matKey, thickness }],
+      openings: [],
+    };
+    set((s) => {
+      let external_walls = s.project.external_walls;
+      let internal_walls = s.project.internal_walls;
+      if (isExt) {
+        external_walls = [...external_walls, wall];
+      } else {
+        internal_walls = { ...internal_walls };
+        const floor = s.currentFloor;
+        internal_walls[floor] = [...(internal_walls[floor] || []), wall];
+      }
+      return {
+        project: { ...s.project, external_walls, internal_walls },
+        wallIdCounter: s.wallIdCounter + 1,
+      };
+    });
+
+    // Деление старой стены — отдельная set-операция, но геометрию обновим один раз
+    if (split) {
+      const splitId = "w" + (++get().wallIdCounter);
+      const splitId2 = "w" + (++get().wallIdCounter);
+      set((s) => {
+        const matKey2 = s.wallMatKey;
+        const thk2 = WALL_MAT_THICKNESS[matKey2] ?? { ext: 400, int: 200 };
+        let external_walls = s.project.external_walls;
+        let internal_walls = s.project.internal_walls;
+
+        const replaceIn = (
+          arr: WallSegment[],
+          wallId: string,
+          replacements: WallSegment[]
+        ): WallSegment[] => {
+          const out: WallSegment[] = [];
+          let done = false;
+          for (const w of arr) {
+            if (!done && w.id === wallId) {
+              out.push(...replacements);
+              done = true;
+            } else {
+              out.push(w);
+            }
+          }
+          return out;
+        };
+
+        const buildSplit = (w: WallSegment): WallSegment[] => {
+          const dx = w.p2.x - w.p1.x, dy = w.p2.y - w.p1.y;
+          const len2 = dx * dx + dy * dy;
+          let t = 0.5;
+          if (len2 > 0) {
+            t = ((split.point.x - w.p1.x) * dx + (split.point.y - w.p1.y) * dy) / len2;
+            t = Math.max(0.001, Math.min(0.999, t));
+          }
+          const splitPt = { x: Math.round(w.p1.x + t * dx), y: Math.round(w.p1.y + t * dy) };
+          const splitLen = Math.hypot(splitPt.x - w.p1.x, splitPt.y - w.p1.y);
+          const fullLen = Math.hypot(dx, dy);
+          const wThk = w.external ? thk2.ext : thk2.int;
+          // Проёмы: те, что до точки деления — в первый сегмент; остальные — во второй со сдвигом offset
+          const ops1: Opening[] = [];
+          const ops2: Opening[] = [];
+          for (const op of (w.openings || [])) {
+            const opMid = op.offset + op.width / 2;
+            if (opMid <= splitLen + 1) {
+              ops1.push({ ...op });
+            } else {
+              ops2.push({ ...op, offset: op.offset - splitLen });
+            }
+          }
+          const seg1: WallSegment = {
+            id: splitId, p1: { ...w.p1 }, p2: { ...splitPt },
+            thickness: w.thickness, height: w.height,
+            load_bearing: w.load_bearing, external: w.external,
+            layers: w.layers.map((l) => ({ ...l })),
+            openings: ops1,
+          };
+          const seg2: WallSegment = {
+            id: splitId2, p1: { ...splitPt }, p2: { ...w.p2 },
+            thickness: w.thickness, height: w.height,
+            load_bearing: w.load_bearing, external: w.external,
+            layers: w.layers.map((l) => ({ ...l })),
+            openings: ops2,
+          };
+          return [seg1, seg2];
+        };
+
+        if (split.isExternal) {
+          const target = external_walls.find((w) => w.id === split.wallId);
+          if (target) {
+            external_walls = replaceIn(external_walls, split.wallId, buildSplit(target));
+          }
+        } else {
+          internal_walls = { ...internal_walls };
+          const floor = s.currentFloor;
+          const arr = internal_walls[floor] || [];
+          const target = arr.find((w) => w.id === split.wallId);
+          if (target) {
+            internal_walls[floor] = replaceIn(arr, split.wallId, buildSplit(target));
+          }
+        }
+
+        return {
+          project: { ...s.project, external_walls, internal_walls },
+          wallIdCounter: s.wallIdCounter + 2,
+        };
+      });
+    }
+
+    // Одно обновление геометрии на всю транзакцию
+    get().updateGeometry();
+  },
+
+  // Разделить существующую стену в точке point на два сегмента.
+  // Проёмы корректно распределяются между сегментами по offset.
+  splitWall: (wallId, isExternal, point) => {
+    const splitId = "w" + (++get().wallIdCounter);
+    const splitId2 = "w" + (++get().wallIdCounter);
+    set((s) => {
+      const matKey = s.wallMatKey;
+      const thk = WALL_MAT_THICKNESS[matKey] ?? { ext: 400, int: 200 };
+
+      const replaceIn = (
+        arr: WallSegment[],
+        replacements: WallSegment[]
+      ): WallSegment[] => {
+        const out: WallSegment[] = [];
+        let done = false;
+        for (const w of arr) {
+          if (!done && w.id === wallId) {
+            out.push(...replacements);
+            done = true;
+          } else {
+            out.push(w);
+          }
+        }
+        return out;
+      };
+
+      const buildSplit = (w: WallSegment): WallSegment[] => {
+        const dx = w.p2.x - w.p1.x, dy = w.p2.y - w.p1.y;
+        const len2 = dx * dx + dy * dy;
+        let t = 0.5;
+        if (len2 > 0) {
+          t = ((point.x - w.p1.x) * dx + (point.y - w.p1.y) * dy) / len2;
+          t = Math.max(0.001, Math.min(0.999, t));
+        }
+        const splitPt = { x: Math.round(w.p1.x + t * dx), y: Math.round(w.p1.y + t * dy) };
+        const splitLen = Math.hypot(splitPt.x - w.p1.x, splitPt.y - w.p1.y);
+        const ops1: Opening[] = [];
+        const ops2: Opening[] = [];
+        for (const op of (w.openings || [])) {
+          const opMid = op.offset + op.width / 2;
+          if (opMid <= splitLen + 1) {
+            ops1.push({ ...op });
+          } else {
+            ops2.push({ ...op, offset: op.offset - splitLen });
+          }
+        }
+        const seg1: WallSegment = {
+          id: splitId, p1: { ...w.p1 }, p2: { ...splitPt },
+          thickness: w.thickness, height: w.height,
+          load_bearing: w.load_bearing, external: w.external,
+          layers: w.layers.map((l) => ({ ...l })),
+          openings: ops1,
+        };
+        const seg2: WallSegment = {
+          id: splitId2, p1: { ...splitPt }, p2: { ...w.p2 },
+          thickness: w.thickness, height: w.height,
+          load_bearing: w.load_bearing, external: w.external,
+          layers: w.layers.map((l) => ({ ...l })),
+          openings: ops2,
+        };
+        return [seg1, seg2];
+      };
+
+      if (isExternal) {
+        const target = s.project.external_walls.find((w) => w.id === wallId);
+        if (!target) return {};
+        const external_walls = replaceIn(s.project.external_walls, buildSplit(target));
+        return {
+          project: { ...s.project, external_walls },
+          wallIdCounter: s.wallIdCounter + 2,
+        };
+      }
+      const internal_walls = { ...s.project.internal_walls };
+      const floor = s.currentFloor;
+      const arr = internal_walls[floor] || [];
+      const target = arr.find((w) => w.id === wallId);
+      if (!target) return {};
+      internal_walls[floor] = replaceIn(arr, buildSplit(target));
+      return {
+        project: { ...s.project, internal_walls },
+        wallIdCounter: s.wallIdCounter + 2,
+      };
+    });
     get().updateGeometry();
   },
 
