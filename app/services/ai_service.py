@@ -1,88 +1,52 @@
 import json
 import os
 import logging
-import traceback
-from typing import Dict, List, Optional
-from pathlib import Path
 import asyncio
 import aiohttp
-from async_lru import alru_cache
 from dotenv import load_dotenv
-from app.models.calculator import (
-    RecommendationRequest,
-    RecommendationResponse,
-    Recommendation,
-)
+from app.models.chat import ChatRequest
 
-# Настройка логирования
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Загрузка переменных окружения
 load_dotenv()
 
-# Конфигурация API
 DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions"
-MAX_CONCURRENT_REQUESTS = int(os.getenv("MAX_CONCURRENT_REQUESTS", "5"))
-API_TIMEOUT = int(os.getenv("API_TIMEOUT", "300"))
+DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash")
+CHAT_MAX_TOKENS = int(os.getenv("CHAT_MAX_TOKENS", "8000"))
 HTTP_TIMEOUT = int(os.getenv("HTTP_TIMEOUT", "240"))
-RETRY_ATTEMPTS = int(os.getenv("RETRY_ATTEMPTS", "3"))
+RETRY_ATTEMPTS = int(os.getenv("RETRY_ATTEMPTS", "2"))
 
-# Вывод информации о найденных переменных
 if DEEPSEEK_API_KEY:
     logger.info(f"API ключ DeepSeek найден, длина: {len(DEEPSEEK_API_KEY)}")
 else:
     logger.warning("API ключ DeepSeek не найден в переменных окружения")
 
-logger.info(
-    f"Настройки: concurrent_requests={MAX_CONCURRENT_REQUESTS}, retries={RETRY_ATTEMPTS}"
-)
-logger.info(f"Таймауты: API={API_TIMEOUT}с, HTTP={HTTP_TIMEOUT}с")
+logger.info(f"Модель чата: {DEEPSEEK_MODEL}, max_tokens: {CHAT_MAX_TOKENS}")
 
 
 class AIService:
-    """Сервис для работы с ИИ-рекомендациями через DeepSeek API"""
+    """Stateless сервис чата с DeepSeek API"""
 
     _instance = None
     _session = None
-    _workers = []
 
     def __new__(cls):
-        """Реализация синглтона для AIService"""
         if not cls._instance:
             cls._instance = super().__new__(cls)
         return cls._instance
 
     def __init__(self):
-        """Инициализация сервиса AI"""
         if hasattr(self, "_initialized"):
             return
-
-        # Путь к файлу с заглушками рекомендаций
-        self.fallback_data_path = (
-            Path(__file__).parent.parent
-            / "static"
-            / "data"
-            / "recommendations_fallback.json"
-        )
-        self.ensure_fallback_data()
-
-        # Инициализация очереди запросов и семафора
-        self.request_queue = asyncio.Queue()
-        self.api_semaphore = asyncio.Semaphore(MAX_CONCURRENT_REQUESTS)
         self._initialized = True
-
-        # Проверка наличия API ключа при инициализации
         if not DEEPSEEK_API_KEY:
-            logger.warning(
-                "API ключ DeepSeek не найден в .env файле. Будут использованы заглушки."
-            )
+            logger.warning("API ключ DeepSeek не найден в .env файле.")
         else:
             logger.info("Сервис AI инициализирован с DeepSeek API")
 
     async def init_session(self):
-        """Инициализация общей сессии"""
         if not self._session:
             self._session = aiohttp.ClientSession(
                 timeout=aiohttp.ClientTimeout(
@@ -96,634 +60,115 @@ class AIService:
                     "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
                 },
             )
-            logger.info("Инициализирована общая HTTP сессия")
+            logger.info("Инициализирована HTTP сессия для DeepSeek")
 
-    async def start_workers(self):
-        """Запуск обработчиков очереди"""
-        if not self._workers:
-            self._workers = [
-                asyncio.create_task(self._process_queue())
-                for _ in range(MAX_CONCURRENT_REQUESTS)
-            ]
-            logger.info(
-                f"Запущено {MAX_CONCURRENT_REQUESTS} воркеров обработки запросов"
-            )
+    async def chat(self, request: ChatRequest) -> str:
+        if not DEEPSEEK_API_KEY:
+            raise RuntimeError("DeepSeek API ключ не настроен (DEEPSEEK_API_KEY в .env)")
 
-    async def _process_queue(self):
-        """Обработчик очереди с ретраями"""
-        try:
-            while True:
-                request_data, future = await self.request_queue.get()
-                try:
-                    result = await self._process_request_with_retry(request_data)
-                    future.set_result(result)
-                except Exception as e:
-                    logger.error(f"Ошибка при обработке запроса: {str(e)}")
-                    logger.debug(f"Трассировка: {traceback.format_exc()}")
-                    future.set_exception(e)
-                finally:
-                    self.request_queue.task_done()
-        except asyncio.CancelledError:
-            logger.info("Остановлен обработчик очереди")
-        except Exception as e:
-            logger.error(f"Критическая ошибка в обработчике очереди: {str(e)}")
-            logger.error(f"Трассировка: {traceback.format_exc()}")
+        await self.init_session()
 
-    async def _process_request_with_retry(self, request_data):
-        """Обработка запроса с повторными попытками при ошибках"""
+        context_json = json.dumps(request.context.model_dump(), ensure_ascii=False)
+
+        system_prompt = (
+    "Ты — ИИ-ассистент по строительству с 20-летним опытом. "
+    "Пользователь построил смету дома в калькуляторе. "
+    f"Вот его смета: {context_json}. "
+    "Твоя задача — дать конкретные, практичные советы по строительству, "
+    "исходя из материалов из сметы. "
+    "О чём говорить: "
+    "- Неочевидные нюансы конкретных материалов из сметы: газобетон требует "
+    "армпояса под перекрытием и мауэрлатом, иначе трескается; брус 200мм "
+    "даёт усадку 2-3 года, нельзя сразу стеклить окна; металлочерепица "
+    "нуждается в идеально ровной обрешётке с шагом 350мм, иначе листы "
+    "не стыкуются. "
+    "- Защитные приёмы для фундамента и кровли: марка бетона не ниже М300, "
+    "толщина защитного слоя 40мм, вертикальная гидроизоляция ленты "
+    "рубероидом или мембраной, вентиляция подкровельного пространства — "
+    "приток через софиты и вытяжка через конёк, шаг обрешётки 350±10мм. "
+    "- Соотношение цена-практичность: где можно оптимизировать расходы "
+    "без потери качества (например, песчаная подушка 200мм под лентой, "
+    "замена монолитного на сборно-монолитное перекрытие, или упрощённый "
+    "стропильный шаг для двускатной кровли). "
+    "- Конкретные цифры и параметры, применимые на стройке: шаг стропил, "
+    "марка бетона, диаметр арматуры, тип гидроизоляции, толщина утеплителя "
+    "по региону, и т.д. "
+    "Отвечай на русском, ёмко, живо — как опытный прораб объясняет другу. "
+    "Форматируй ответ в Markdown: заголовки (##), жирный шрифт, нумерованные "
+    "и маркированные списки. Можно использовать таблицы Markdown для "
+    "сравнения материалов или параметров. "
+    "СТРОГИЕ ЗАПРЕТЫ: "
+    "- КАТЕГОРИЧЕСКИ НЕ упоминай в любом виде окна, двери, инженерные сети "
+    "(электрику, водопровод, отопление, канализацию) и отделку. "
+    "Эти позиции не входят в смету калькулятора и не являются «отсутствием» "
+    "или «ошибкой» — они просто рассчитываются отдельно. "
+    "НЕ пиши про «скрытые проблемы», «что не учтено», что чего-то «нет» "
+    "или «не хватает» в смете. "
+    "- НЕ комментируй итоговую стоимость сметы (не говори что она «низкая», "
+    "«высокая», «подозрительная» или «нереалистичная»). "
+    "- НЕ советуй «перепроверить смету» или «запросить полный расчёт». "
+    "- НЕ давай банальных советов вроде «выбирайте качественные материалы» "
+    "или «обратитесь к специалисту». "
+    "Концентрируйся только на конкретных, полезных, неочевидных советах "
+    "по материалам и конструкциям из сметы — с цифрами и параметрами, "
+    "которые можно применить прямо на стройке. "
+    "ТЕМАТИЧЕСКИЙ КОНТРОЛЬ: "
+    "Ты отвечаешь ИСКЛЮЧИТЕЛЬНО на темы строительства, ремонта, материалов, "
+    "конструкций, смет и сопутствующих строительных работ. "
+    "Если вопрос пользователя НЕ связан со строительством или ремонтом "
+    "(например: политика, религия, спорт, наука, программирование, "
+    "медицина, финансы, личные отношения, кулинария, путешествия, "
+    "развлечения, философия и т.п.) — КАТЕГОРИЧЕСКИ откажись отвечать. "
+    "Формат отказа — строго одна короткая фраза в blockquote Markdown: "
+    "\"> Этот вопрос вне темы нашей консультации. Я отвечаю только по строительству, "
+    "ремонту и материалам из вашей сметы.\" "
+    "Не пытайся ответить на поставленный вопрос даже частично, не комментируй его, "
+    "не проявляй любопытство. Просто дай отказ вышеуказанным шаблоном. "
+    "Если вопрос связан со строительством лишь частично — отвечай только "
+    "на строительную часть, остальное игнорируй. "
+    "Не вступай в дискуссии о причинах отказа, не извиняйся многословно. "
+    "Один отказ — одна строка в blockquote. "
+    "ПОЛИТИКА, РЕЛИГИЯ И КОНТРОВЕРСИВНЫЕ ТЕМЫ: "
+    "При любых вопросах о политике, религии, национальности, идеологии, "
+    "войнах, выборах, общественных дебатах и т.п. — сразу отказ по шаблону, "
+    "без каких-либо пояснений или комментариев по существу."
+)
+
+        messages: list[dict[str, str]] = [{"role": "system", "content": system_prompt}]
+        for msg in request.history:
+            messages.append({"role": msg.role, "content": msg.content})
+        messages.append({"role": "user", "content": request.question})
+
+        payload = {
+            "model": DEEPSEEK_MODEL,
+            "messages": messages,
+            "temperature": 0.7,
+            "max_tokens": CHAT_MAX_TOKENS,
+        }
+
         last_error = None
-
         for attempt in range(RETRY_ATTEMPTS):
             try:
-                async with self.api_semaphore:
-                    logger.info(f"Попытка запроса к API {attempt+1}/{RETRY_ATTEMPTS}")
-                    result = await self._make_ai_request(request_data)
-                    logger.info(f"Запрос успешно выполнен (попытка {attempt+1})")
-                    return result
-            except (aiohttp.ClientError, asyncio.TimeoutError) as e:
+                assert self._session is not None
+                async with self._session.post(
+                    DEEPSEEK_API_URL, json=payload, raise_for_status=True
+                ) as response:
+                    data = await response.json()
+                    answer = data["choices"][0]["message"]["content"]
+                    logger.info(f"DeepSeek ответил ({len(answer)} символов)")
+                    return answer
+            except (aiohttp.ClientError, asyncio.TimeoutError, KeyError) as e:
                 last_error = e
-                if attempt == RETRY_ATTEMPTS - 1:
-                    # Это последняя попытка, ошибку пробрасываем дальше
-                    logger.error(f"Все попытки исчерпаны. Последняя ошибка: {str(e)}")
+                if attempt < RETRY_ATTEMPTS - 1:
+                    wait = 2**attempt
+                    logger.warning(f"Ошибка ({attempt+1}/{RETRY_ATTEMPTS}): {e}, retry через {wait}с")
+                    await asyncio.sleep(wait)
+                else:
                     raise
 
-                # Делаем экспоненциальную задержку между попытками
-                wait_time = 2**attempt
-                logger.warning(
-                    f"Ошибка запроса (попытка {attempt+1}/{RETRY_ATTEMPTS}): {str(e)}"
-                )
-                logger.warning(f"Повторная попытка через {wait_time} сек...")
-                await asyncio.sleep(wait_time)
-
-        # На всякий случай, хотя мы должны были выйти по raise выше
-        raise last_error or Exception("Превышено количество попыток")
-
-    @alru_cache(ttl=3600, maxsize=1000)
-    async def get_recommendations(
-        self, request: RecommendationRequest, optimization_focus: Optional[str] = None
-    ) -> RecommendationResponse:
-        """Получение рекомендаций с кэшированием"""
-        try:
-            if not DEEPSEEK_API_KEY:
-                logger.warning("API ключ DeepSeek не найден, используем заглушки")
-                return await self._get_fallback_recommendations(
-                    request, optimization_focus
-                )
-
-            # Инициализируем сессию и воркеры при первом запросе
-            await self.init_session()
-            await self.start_workers()
-
-            # Создаем промпт для DeepSeek
-            prompt = self._create_recommendation_prompt(request, optimization_focus)
-            logger.debug(f"Создан промпт: {prompt[:100]}...")
-
-            # Параметры запроса
-            payload = {
-                "model": "deepseek-v4-flash",
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.8,
-                "max_tokens": 2500,
-                "response_format": {"type": "json_object"},
-            }
-
-            # Добавляем запрос в очередь и ждем результата
-            future = asyncio.Future()
-            await self.request_queue.put((payload, future))
-            logger.info(
-                f"Запрос добавлен в очередь. Текущая длина очереди: {self.request_queue.qsize()}"
-            )
-
-            try:
-                # Ожидаем результат с таймаутом
-                logger.info(
-                    f"Ожидаем ответ от DeepSeek API (таймаут: {API_TIMEOUT} сек)..."
-                )
-                start_time = asyncio.get_event_loop().time()
-                response_data = await asyncio.wait_for(future, timeout=API_TIMEOUT)
-                elapsed = asyncio.get_event_loop().time() - start_time
-                logger.info(f"Получен ответ от DeepSeek API за {elapsed:.2f} секунд")
-
-                # Парсим и форматируем ответ
-                return self._parse_api_response(response_data)
-
-            except asyncio.TimeoutError:
-                logger.error(
-                    f"Превышено время ожидания ответа от DeepSeek API (таймаут: {API_TIMEOUT} сек)"
-                )
-                return await self._get_fallback_recommendations(
-                    request, optimization_focus
-                )
-
-        except Exception as e:
-            logger.error(f"Ошибка при получении рекомендаций: {str(e)}")
-            logger.error(f"Трассировка: {traceback.format_exc()}")
-            # В случае любой ошибки возвращаем заглушки
-            return await self._get_fallback_recommendations(request, optimization_focus)
-
-    async def _make_ai_request(self, payload):
-        """Выполнение запроса с общей сессией"""
-        try:
-            start_time = asyncio.get_event_loop().time()
-            logger.info(f"Отправка запроса к API (таймаут: {HTTP_TIMEOUT} сек)...")
-
-            async with self._session.post(
-                DEEPSEEK_API_URL, json=payload, raise_for_status=True
-            ) as response:
-                result = await response.json()
-                elapsed = asyncio.get_event_loop().time() - start_time
-                logger.info(f"Запрос к API выполнен успешно за {elapsed:.2f} секунд")
-                return result
-
-        except Exception as e:
-            elapsed = asyncio.get_event_loop().time() - start_time
-            logger.error(f"Ошибка при запросе к API ({elapsed:.2f} сек): {str(e)}")
-            raise
-
-    def _parse_api_response(self, response_data):
-        """Парсинг структурированного ответа API"""
-        try:
-            content = response_data["choices"][0]["message"]["content"]
-            logger.info(f"Получен ответ от DeepSeek API: {content[:100]}...")
-
-            # Парсим JSON — при json_object structured output это всегда валидный JSON
-            try:
-                data = json.loads(content)
-            except json.JSONDecodeError:
-                # Fallback: ищем JSON-объект внутри текста
-                json_start = content.find("{")
-                json_end = content.rfind("}") + 1
-                if json_start == -1 or json_end == 0:
-                    logger.error(f"JSON не найден в ответе: {content[:200]}...")
-                    raise ValueError("JSON не найден в ответе API")
-                data = json.loads(content[json_start:json_end])
-
-            recommendations = []
-            for rec_data in data.get("recommendations", []):
-                recommendations.append(
-                    Recommendation(
-                        title=rec_data.get("title", "Рекомендация"),
-                        description=rec_data.get("description", ""),
-                        impact=rec_data.get("impact", ""),
-                        estimated_savings=None,
-                    )
-                )
-
-            if not recommendations:
-                raise ValueError("Список рекомендаций пуст в ответе API")
-
-            summary = data.get("summary") or self._generate_summary(recommendations)
-            logger.info(f"Успешно создано {len(recommendations)} рекомендаций")
-
-            return RecommendationResponse(
-                recommendations=recommendations,
-                summary=summary,
-            )
-
-        except (KeyError, json.JSONDecodeError) as e:
-            logger.error(f"Ошибка парсинга ответа API: {str(e)}")
-            raise ValueError(f"Некорректный формат ответа API: {str(e)}")
-
-    def ensure_fallback_data(self):
-        """Создание файла с заглушками рекомендаций"""
-        data_dir = Path(__file__).parent.parent / "static" / "data"
-        os.makedirs(data_dir, exist_ok=True)
-
-        if not self.fallback_data_path.exists():
-            fallback_data = {
-                "general": [
-                    {
-                        "title": "Оптимизация планировки",
-                        "description": "Рассмотрите более компактную планировку для снижения затрат на материалы и отопление.",
-                        "impact": "Снижение стоимости строительства на 5-10%",
-                        "estimated_savings": 7.5,
-                    },
-                    {
-                        "title": "Энергоэффективность",
-                        "description": "Инвестируйте в качественную теплоизоляцию стен, пола и кровли.",
-                        "impact": "Снижение затрат на отопление на 20-30% ежегодно",
-                        "estimated_savings": 0,
-                    },
-                    {
-                        "title": "Сезонность строительства",
-                        "description": "Планируйте основные работы на весну-лето для ускорения строительства.",
-                        "impact": "Сокращение сроков строительства на 15-20%",
-                        "estimated_savings": 0,
-                    },
-                ],
-                "foundation": {
-                    "strip": [
-                        {
-                            "title": "Оптимизация ленточного фундамента",
-                            "description": "Используйте технологию несъемной опалубки для ленточного фундамента.",
-                            "impact": "Ускорение строительства на 20%, экономия на трудозатратах",
-                            "estimated_savings": 10,
-                        }
-                    ],
-                    "pile": [
-                        {
-                            "title": "Выбор свай",
-                            "description": "Рассмотрите использование винтовых свай вместо буронабивных для легких конструкций.",
-                            "impact": "Экономия до 15% на работах по установке фундамента",
-                            "estimated_savings": 15,
-                        }
-                    ],
-                    "slab": [
-                        {
-                            "title": "Оптимизация плитного фундамента",
-                            "description": "Используйте монолитную плиту с утепленной шведской плитой (УШП) для повышения энергоэффективности.",
-                            "impact": "Экономия на отоплении до 15% ежегодно",
-                            "estimated_savings": 0,
-                        }
-                    ],
-                    "column": [
-                        {
-                            "title": "Усиление столбчатого фундамента",
-                            "description": "Для повышения устойчивости используйте армирование и ростверк.",
-                            "impact": "Повышение надежности конструкции",
-                            "estimated_savings": 0,
-                        }
-                    ],
-                },
-                "walls": {
-                    "brick": [
-                        {
-                            "title": "Выбор кирпича",
-                            "description": "Рассмотрите поризованные керамические блоки вместо обычного кирпича.",
-                            "impact": "Снижение затрат на теплоизоляцию до 20%",
-                            "estimated_savings": 20,
-                        }
-                    ],
-                    "wood": [
-                        {
-                            "title": "Оптимизация деревянных стен",
-                            "description": "Используйте брус из лиственницы вместо обычного для снижения теплопотерь и усадки.",
-                            "impact": "Снижение затрат на отделку и утепление до 15%",
-                            "estimated_savings": 15,
-                        }
-                    ],
-                    "block": [
-                        {
-                            "title": "Выбор блоков",
-                            "description": "Рассмотрите газобетонные блоки для лучшей теплоизоляции и легкости монтажа.",
-                            "impact": "Ускорение строительства на 15-20%, экономия на утеплении",
-                            "estimated_savings": 15,
-                        }
-                    ],
-                    "concrete": [
-                        {
-                            "title": "Монолитные стены",
-                            "description": "Используйте несъемную опалубку для ускорения процесса.",
-                            "impact": "Ускорение строительства на 25-30%",
-                            "estimated_savings": 0,
-                        }
-                    ],
-                    "panel": [
-                        {
-                            "title": "Оптимизация панельного строительства",
-                            "description": "Заказывайте панели с предустановленной электропроводкой и утеплителем.",
-                            "impact": "Сокращение сроков строительства на 30-40%",
-                            "estimated_savings": 0,
-                        }
-                    ],
-                },
-                "roof": {
-                    "metal": [
-                        {
-                            "title": "Металлочерепица",
-                            "description": "Выбирайте металлочерепицу с толщиной стали не менее 0.5 мм для долговечности.",
-                            "impact": "Увеличение срока службы кровли",
-                            "estimated_savings": 0,
-                        }
-                    ],
-                    "tile": [
-                        {
-                            "title": "Керамическая черепица",
-                            "description": "Убедитесь, что стропильная система рассчитана на повышенную нагрузку от керамической черепицы.",
-                            "impact": "Предотвращение проблем с конструкцией крыши",
-                            "estimated_savings": 0,
-                        }
-                    ],
-                    "shingle": [
-                        {
-                            "title": "Гибкая черепица",
-                            "description": "Используйте качественную подкровельную гидроизоляцию для предотвращения протечек.",
-                            "impact": "Снижение рисков повреждения внутренней отделки",
-                            "estimated_savings": 0,
-                        }
-                    ],
-                    "slate": [
-                        {
-                            "title": "Шифер",
-                            "description": "Рассмотрите современные материалы вместо асбестосодержащего шифера.",
-                            "impact": "Улучшение экологичности и долговечности",
-                            "estimated_savings": 0,
-                        }
-                    ],
-                    "flat": [
-                        {
-                            "title": "Плоская кровля",
-                            "description": "Используйте качественную гидроизоляцию и продумайте систему водоотведения.",
-                            "impact": "Предотвращение протечек и увеличение срока службы",
-                            "estimated_savings": 0,
-                        }
-                    ],
-                },
-                "floors": {
-                    "1": [
-                        {
-                            "title": "Одноэтажный дом",
-                            "description": "Рассмотрите возможность увеличения площади за счет чердачного пространства.",
-                            "impact": "Увеличение полезной площади при минимальных затратах",
-                            "estimated_savings": 15,
-                        }
-                    ],
-                    "2": [
-                        {
-                            "title": "Двухэтажный дом",
-                            "description": "Оптимизируйте расположение лестницы для экономии пространства.",
-                            "impact": "Увеличение полезной площади на 5-7%",
-                            "estimated_savings": 0,
-                        }
-                    ],
-                    "3": [
-                        {
-                            "title": "Трехэтажный дом",
-                            "description": "Уделите особое внимание фундаменту и несущим конструкциям.",
-                            "impact": "Предотвращение проблем с несущей способностью",
-                            "estimated_savings": 0,
-                        }
-                    ],
-                },
-            }
-
-            with open(self.fallback_data_path, "w", encoding="utf-8") as f:
-                json.dump(fallback_data, f, ensure_ascii=False, indent=4)
-
-    def _create_recommendation_prompt(
-        self, request: RecommendationRequest, optimization_focus: Optional[str]
-    ) -> str:
-        """Создание промпта для запроса к DeepSeek API"""
-        # Базовая информация о доме
-        calculator_data = request.calculator_data
-
-        # Определение приоритета
-        priority = request.priority or "общие рекомендации"
-        if optimization_focus:
-            if optimization_focus == "cost":
-                priority = "экономия"
-            elif optimization_focus == "quality":
-                priority = "качество"
-            elif optimization_focus == "speed":
-                priority = "скорость"
-
-        # Получаем информацию о дополнительных опциях
-        additional_options = calculator_data.additional_options or []
-        additional_options_str = (
-            ", ".join([opt.value for opt in additional_options])
-            if additional_options
-            else "нет"
-        )
-
-        # Преобразование значения в человекочитаемый формат
-        foundation_type_display = {
-            "strip": "ленточный фундамент",
-            "pile": "свайный фундамент",
-            "slab": "плитный фундамент",
-            "column": "столбчатый фундамент",
-        }.get(
-            calculator_data.foundation_type.value, calculator_data.foundation_type.value
-        )
-
-        wall_material_display = {
-            "brick": "кирпич",
-            "wood": "дерево",
-            "block": "блоки",
-            "concrete": "монолитный бетон",
-            "panel": "панели",
-        }.get(calculator_data.wall_material.value, calculator_data.wall_material.value)
-
-        roof_type_display = {
-            "metal": "металлочерепица",
-            "tile": "керамическая черепица",
-            "shingle": "гибкая черепица",
-            "slate": "шифер",
-            "flat": "плоская кровля",
-        }.get(calculator_data.roof_type.value, calculator_data.roof_type.value)
-
-        prompt = f"""
-        Ты — опытный прораб с 20-летним стажем, который знает массу неочевидных трюков.
-        Дай ЧЕТЫРЕ живых, конкретных совета для дома {calculator_data.area}м², {calculator_data.floors} эт., стены — {wall_material_display}.
-        Приоритет заказчика: {priority}.
-
-        СТРОГИЕ ЗАПРЕТЫ (за нарушение — ответ считается неверным):
-        — Никаких банальностей: "утеплите стены", "выберите качественные материалы", "обратитесь к специалисту"
-        — Никаких советов делать простую форму дома или экономить на материалах
-        — Никакого упоминания бюджета и экономии в summary
-        — Описание должно быть живым, как будто рассказываешь другу за чаем — с деталями, цифрами, личным опытом
-
-        Темы четырёх советов:
-        1. Неочевидный лайфхак по эксплуатации, планировке или микроклимату дома {calculator_data.area}м² из {wall_material_display} ({calculator_data.floors} эт.) — что-то, о чём редко говорят, но очень жалеют потом
-        2. Хитрость при устройстве {foundation_type_display}а — конкретный приём, который спасает нервы или деньги
-        3. Неожиданный совет по стенам из {wall_material_display}а — то, что делают профессионалы, но не афишируют
-        4. Практичный трюк для кровли типа «{roof_type_display}» — что нужно сделать на этапе монтажа, чтобы не пожалеть через 5 лет
-
-        Каждое описание: 400–500 символов, конкретно, живо, с деталями.
-
-        Формат строго JSON:
-        {{
-          "summary": "Одно живое предложение — о чём эти советы (без слов 'экономия', 'бюджет')",
-          "recommendations": [
-            {{
-              "category": "Лайфхак",
-              "title": "Короткий цепляющий заголовок",
-              "description": "400–500 символов живого текста с конкретикой",
-              "impact": "Одна строка — что это даёт на практике"
-            }},
-            {{
-              "category": "Фундамент",
-              "title": "Короткий цепляющий заголовок",
-              "description": "400–500 символов живого текста с конкретикой",
-              "impact": "Одна строка — что это даёт на практике"
-            }},
-            {{
-              "category": "Стены",
-              "title": "Короткий цепляющий заголовок",
-              "description": "400–500 символов живого текста с конкретикой",
-              "impact": "Одна строка — что это даёт на практике"
-            }},
-            {{
-              "category": "Кровля",
-              "title": "Короткий цепляющий заголовок",
-              "description": "400–500 символов живого текста с конкретикой",
-              "impact": "Одна строка — что это даёт на практике"
-            }}
-          ]
-        }}
-
-        ТОЛЬКО JSON, БЕЗ ПОЯСНЕНИЙ.
-        """
-
-        return prompt
-
-    def _generate_summary(self, recommendations: List[Recommendation]) -> str:
-        """Генерация краткого резюме на основе рекомендаций"""
-        if not recommendations:
-            return "Рекомендации не найдены."
-
-        # Группируем рекомендации по категориям, если есть достаточно данных
-        categories = {}
-        for rec in recommendations:
-            # Попытка извлечь категорию из заголовка, если она не указана явно
-            title = rec.title.lower()
-            if "фундамент" in title:
-                category = "фундамент"
-            elif "стен" in title:
-                category = "стены"
-            elif "крыш" in title:
-                category = "крыша"
-            else:
-                category = "общее"
-
-            if category not in categories:
-                categories[category] = 0
-            categories[category] += 1
-
-        # Составляем резюме на основе категорий
-        if len(categories) > 1:
-            category_summary = ", ".join(
-                [f"{count} по {cat}" for cat, count in categories.items()]
-            )
-            return f"Предоставлено {len(recommendations)} рекомендаций: {category_summary}. Рекомендации учитывают выбранные параметры строительства и направлены на оптимизацию процесса и повышение качества строительства."
-        else:
-            return f"Предоставлено {len(recommendations)} практических рекомендаций для оптимизации строительства."
-
-    async def _get_fallback_recommendations(
-        self, request: RecommendationRequest, optimization_focus: Optional[str]
-    ) -> RecommendationResponse:
-        """Получение заглушек лайфхаков из локального файла"""
-        try:
-            logger.info("Подготовка заглушки лайфхака")
-
-            # Предопределенные лайфхаки для разных типов домов
-            fallback_lifehacks = {
-                "general": [
-                    "Перед закрытием стен сфотографируйте все скрытые коммуникации с линейкой в кадре и привязкой к дверным проёмам — трубы, проводку, гильзы. Загрузите фото в облако и подпишите каждую комнату отдельной папкой. Через 10 лет, когда понадобится повесить полку или проложить новый кабель, эти фото сэкономят вам дырку в трубе и несколько часов поиска. Хороший прораб делает такую съёмку автоматически, а вот большинство хозяев — никогда, и потом горько об этом жалеют при любом ремонте.",
-                    "Проверьте уровень радона на вашем участке до начала строительства — это делается простым тест-набором за 1 500 ₽ и занимает всего 3 дня. В некоторых регионах России его концентрация превышает допустимую норму в 5–10 раз, и это реальная угроза здоровью. Если это ваш случай, достаточно добавить вентиляционный контур из перфорированной трубы под плитой фундамента с выводом наружу — и проблема исчезает без дорогостоящих переделок после сдачи дома. Стоимость такого контура — 15–20 тысяч рублей против сотен тысяч на переустройство готового здания.",
-                    "Закладывайте гофрированные трубы ПВХ диаметром 50 мм в каждую стену ещё на этапе кладки — минимум одну горизонтальную на высоте 30 см и одну на высоте 90 см от пола в каждом помещении. Это ваши «магистрали будущего»: когда через несколько лет решите добавить розетку, систему видеонаблюдения или умный дом, кабель протянется за полчаса, а не за три дня штробления. Трубы вместе с заглушками стоят около 200–300 ₽ на комнату, штробление стены под один кабель — 1 500–3 000 ₽ плюс шум, пыль и ремонт.",
-                ],
-                "foundation": {
-                    "strip": "До заливки ленточного фундамента вставьте в опалубку отрезки канализационной трубы диаметром 110 мм в каждом месте, где будут проходить коммуникации — водопровод, канализация, кабели. Многие прорабы намеренно об этом молчат, потому что потом зарабатывают на сверлении алмазным буром — от 8 000 до 15 000 ₽ за одно отверстие. Сделайте подробную схему расположения всех гильз с привязкой к осям, заламинируйте её и прикрепите к техническому паспорту дома — пригодится при любом ремонте. Заглушите трубы скомканным пенопластом до начала бетонирования, иначе смесь затечёт внутрь.",
-                    "pile": "После завинчивания свай и до заливки оголовков набейте внутрь каждой трубы щебень фракции 20–40 мм и пролейте его жидким цементным молочком — это увеличивает несущую способность сваи на 20–30% практически без дополнительных затрат. Ещё один обязательный трюк: покрасьте металл свай ниже уровня грунта битумной мастикой минимум в два слоя с промежуточной сушкой — заводская окраска там чисто символическая и через 3–5 лет в грунте начинает слезать. Разница в итоговом сроке службы — от 15 до 50+ лет, а работа занимает один день.",
-                    "slab": "Когда будете армировать плиту фундамента, проложите петли из трубы PEX-16 по всей площади с шагом 150–200 мм, даже если тёплый пол сейчас не входит в ваши планы и бюджет. Концы петель выведите в технический шкаф и закройте заглушками. Стоимость трубы — около 40 ₽/м.п., а петли в 100 м² потребуют примерно 5 000–7 000 ₽ материала. Подключить котёл и насосный узел можно будет в любой момент без вскрытия стяжки. Те, кто этого не сделал и потом решил добавить тёплый пол, вскрывают стяжку за 80 000–150 000 ₽ — очень грустная история.",
-                    "column": "Столбчатый фундамент боится не мороза как такового, а морозного пучения — когда насыщенный влагой грунт расширяется и буквально выдавливает столбы снизу, перекашивая всю конструкцию. Решение: после установки каждого столба обмотайте его ниже глубины промерзания слоем экструдированного пенополистирола (ЭППС) толщиной 50 мм — это физически разрывает сцепление между замёрзшим грунтом и телом столба. Плюс обязательно засыпьте все пазухи вокруг столбов крупным речным песком, а не родным пучинистым грунтом — песок дренирует воду и не удерживает её при замерзании.",
-                },
-                "walls": {
-                    "brick": "Перед кладкой замочите каждый кирпич в воде на 1–2 минуты — сухой кирпич вытягивает влагу из раствора быстрее, чем тот успевает схватиться, и шов получается хрупким и непрочным. Профессиональные каменщики это знают и делают автоматически, шабашники — почти никогда. Второй важный момент: первые три ряда от фундамента кладите исключительно на цементный раствор М200 (1:3), а не на привычный пескоцемент 1:4 — именно нижние ряды принимают максимальную нагрузку от капиллярного подъёма влаги, конденсата и морозных циклов, и именно там кладка разрушается раньше всего.",
-                    "wood": "Торцы бруса — главное уязвимое место деревянного дома: дерево в торцевом срезе поглощает влагу в 15 раз быстрее, чем по боковой поверхности, и именно оттуда начинается гниение. Запечатайте торцы горячей смесью воска и льняного масла в пропорции 2:1, нанося широкой кистью при температуре около 70°C — состав буквально вплавляется в волокна и создаёт эластичную защитную плёнку. Заодно промажьте все продольные трещины (усушины) герметиком на льняной основе, а не акриловым: акриловый трескается при усадке дома, льняной — двигается вместе с деревом.",
-                    "block": "Газобетон и пенобетон режутся обычной ножовкой — это очень удобно, но края распиленного блока становятся открытопористыми и начинают интенсивно впитывать влагу из кладочного клея и окружающей среды. После каждого распила немедленно обрабатывайте срезы грунтовкой-концентратом прямо на рабочем месте, не откладывая до следующего дня. И обязательно наносите клей зубчатым шпателем с зубом 8 мм — производители рекомендуют шов толщиной 2–3 мм, и это не просто рекомендация: каждый лишний миллиметр клея — это мостик холода и перерасход материала до 40%, что заметно сказывается и на бюджете, и на теплопотерях.",
-                    "concrete": "При возведении монолитных стен добавляйте в бетонную смесь пластификатор С-3 из расчёта 0,5–0,7% от массы цемента — он радикально снижает водоцементное соотношение без потери подвижности и удобоукладываемости смеси. Результат: итоговая прочность бетона выше на 20–25%, усадочных трещин в разы меньше, поверхность получается плотнее. Стоит пластификатор около 80–100 ₽/кг, расход минимальный. И ещё: снимайте опалубку не раньше чем через 72 часа при температуре +20°C, а после снятия укрывайте бетон влажной мешковиной или плёнкой на первые 7 суток — это не прихоть, а базовая физика твердения цемента.",
-                    "panel": "На стыках СИП-панелей между собой и в местах примыкания к обвязочному брусу обязательно задувайте монтажную пену в два отдельных прохода с интервалом не менее 30 минут — первый слой схватывается, полимеризуется и создаёт плотную основу, второй заполняет все усадочные полости и пустоты, которые неизбежно образуются при первом нанесении. После полного отверждения пены проклейте все внутренние швы фольгированным армированным скотчем шириной 100 мм. Без этих двух шагов через стыки уходит до 80% всех теплопотерь здания — и никакое дополнительное утепление снаружи эту проблему не решит.",
-                },
-                "roof": {
-                    "metal": "Металлочерепица барабанит под дождём — с этим мирятся, считая это нормой. Но можно полностью решить проблему ещё на этапе монтажа: перед укладкой листов нанесите автомобильный антигравий (серый, на водной основе, без растворителей) на обратную сторону в местах опирания на планки обрешётки. Снижение уровня шума — примерно вдвое, субъективно — в разы. Заодно антигравий защищает заводское лакокрасочное покрытие от истирания о деревянные рейки, что продлевает срок службы листов. Банка 650 мл стоит около 400 ₽ и хватает на обработку 15–20 м² кровли.",
-                    "tile": "Керамическая черепица весит 40–60 кг/м² — это почти в три раза тяжелее металлочерепицы и в пять раз тяжелее гибкой. Если проект стропильной системы изначально рассчитывался под другой кровельный материал или вообще без привязки к конкретному покрытию, обязательно закажите пересчёт сечений стропил у конструктора с лицензией. Критически важны также мауэрлат и способ его крепления к стене: для керамики нужны химические анкеры с расчётной нагрузкой, а не проволочные скрутки сквозь кладку. Сэкономить на этом этапе — значит получить деформацию или обрушение стропильной системы через 5–7 суровых зим.",
-                    "shingle": "Гибкая черепица без качественного сплошного основания — это выброшенные деньги. OSB-3 толщиной 12 мм — абсолютный минимум, 18 мм — оптимум для нормального климата. Стыки плит обязательно располагайте вразбежку (вперевязку), как кирпичная кладка, и оставляйте компенсационный зазор 3 мм на температурное расширение — иначе летом в жару плиты вспучатся и черепица начнёт отставать. Подкладочный ковёр клейте немедленно после укладки каждой секции основания — гибкая черепица без него в ендовах, у примыканий и у конька протекает уже на первом сезоне дождей.",
-                    "slate": "Перед сверлением крепёжных отверстий в шиферном листе смочите место сверления водой из бутылки и используйте сверло по бетону диаметром на 2 мм больше самореза, работая на малых оборотах строго без режима удара — трещины в шифере появляются именно от вибрации, а не от самого сверления. После монтажа обязательно замажьте все шляпки саморезов или гвоздей кровельным морозостойким герметиком: вода, попавшая под шляпку в микротрещину, при первом же замерзании раскалывает лист изнутри. При соблюдении этих двух правил срок службы шифера составляет 40–50 лет вместо стандартных 15–20.",
-                    "flat": "На плоской кровле самая частая и дорогостоящая ошибка — недостаточный уклон поверхности. Минимально допустимый — 1,5°, рекомендуемый — 2–3°, иначе вода после дождя и таяния снега стоит лужами по несколько суток, и гидроизоляционный ковёр деградирует за 3–5 лет вместо расчётных 15–20. Уклон правильнее всего формировать керамзитобетонной стяжкой переменной толщины или клиновидными плитами утеплителя ещё до укладки гидроизоляции. И ещё: воронки внутреннего водостока располагайте ближе к геометрическому центру секции кровли, а не у парапета — вода уходит равномерно и не образует ледяных пробок у стен зимой.",
-                },
-                "floors": {
-                    "1": "В одноэтажном доме утеплённая отмостка шириной не менее 1,2 м — это не элемент благоустройства, а полноценное инженерное решение. Слой ЭППС толщиной 100 мм, уложенный горизонтально под отмосткой с небольшим уклоном от дома, снижает глубину промерзания грунта у фундамента с 1,5 м до 0,2–0,3 м. В результате пол первого этажа становится теплее на 3–5°C без какого-либо дополнительного отопления, а на фундамент перестают действовать силы морозного пучения. Делается при благоустройстве территории и обходится в 4–7 раз дешевле, чем потом обогревать промерзающий пол или ремонтировать трещины в фундаменте.",
-                    "2": "В двухэтажном доме лестница работает как акустическая антенна: каждый шаг, скрип, удар передаётся через конструктив в обе стороны и слышен буквально везде. Решение закладывается исключительно на этапе строительства и никак иначе: прокладывайте виброгасящие прокладки из плотной резины или специальной ленты под каждым косоуром в точке опирания на перекрытие, а ступени крепите через резиновые или полиуретановые втулки — металл к металлу нигде не должен касаться. После чистовой отделки переделать это физически невозможно без полного демонтажа лестницы. Заодно при устройстве перекрытия второго этажа обязательно закладывайте звукоизоляционный слой из каменной ваты толщиной 50–80 мм — разница в комфорте колоссальная.",
-                    "3": "В трёхэтажном доме инженерные системы — принципиально более сложная задача, чем в одно- или двухэтажном. Ключевое решение, о котором думают в последнюю очередь: предусмотрите отдельный технический шкаф на каждом этаже с удобным доступом к коллекторам отопления, водоснабжения и этажному электрощитку. Это кажется излишней тратой площади ровно до первой аварии — потом все жалеют, что не сделали. Обязательный второй момент: межэтажные перекрытия трёхэтажного здания несут расчётную нагрузку от 300 кг/м² и выше — убедитесь, что армирование выполнено с коэффициентом запаса не менее 1,5 и подтверждено проектными расчётами, а не сделано «на глаз».",
-                },
-            }
-
-            import random
-
-            foundation_type = request.calculator_data.foundation_type.value
-            wall_material = request.calculator_data.wall_material.value
-            roof_type = request.calculator_data.roof_type.value
-            floors = str(request.calculator_data.floors)
-
-            # Лайфхак дня — из общих или по этажности
-            if floors in fallback_lifehacks.get("floors", {}):
-                general_tip = fallback_lifehacks["floors"][floors]
-            else:
-                general_tip = random.choice(fallback_lifehacks["general"])
-
-            foundation_tip = fallback_lifehacks["foundation"].get(
-                foundation_type,
-                fallback_lifehacks["foundation"]["strip"],
-            )
-            wall_tip = fallback_lifehacks["walls"].get(
-                wall_material,
-                fallback_lifehacks["walls"]["brick"],
-            )
-            roof_tip = fallback_lifehacks["roof"].get(
-                roof_type,
-                fallback_lifehacks["roof"]["metal"],
-            )
-
-            recommendations = [
-                Recommendation(
-                    title="Лайфхак дня",
-                    description=general_tip,
-                    impact="Экономит нервы и деньги при последующих ремонтах",
-                    estimated_savings=None,
-                ),
-                Recommendation(
-                    title="Фундамент: неочевидный приём",
-                    description=foundation_tip,
-                    impact="Повышает надёжность и срок службы фундамента",
-                    estimated_savings=None,
-                ),
-                Recommendation(
-                    title="Стены: секрет профессионалов",
-                    description=wall_tip,
-                    impact="Улучшает качество кладки и долговечность стен",
-                    estimated_savings=None,
-                ),
-                Recommendation(
-                    title="Кровля: что сделать сейчас, чтобы не жалеть потом",
-                    description=roof_tip,
-                    impact="Предотвращает типичные проблемы через 5–10 лет",
-                    estimated_savings=None,
-                ),
-            ]
-
-            logger.info(f"Подготовлено {len(recommendations)} fallback-рекомендаций")
-
-            return RecommendationResponse(
-                recommendations=recommendations,
-                summary="Практические советы от опытных строителей для вашего проекта",
-            )
-
-        except Exception as e:
-            logger.exception(f"Ошибка при получении fallback-рекомендаций: {e}")
-            return RecommendationResponse(
-                recommendations=[
-                    Recommendation(
-                        title="Лайфхак дня",
-                        description="Сделайте фотографии каждого этапа строительства перед закрытием стен и полов. Это бесценная информация при последующих ремонтах, когда нужно найти скрытые коммуникации.",
-                        impact="",
-                        estimated_savings=None,
-                    )
-                ],
-                summary="Полезный совет для строительства",
-            )
+        raise RuntimeError(f"DeepSeek API недоступен после {RETRY_ATTEMPTS} попыток: {last_error}")
 
     async def close(self):
-        """Корректное завершение работы сервиса"""
         if self._session:
             await self._session.close()
             logger.info("HTTP сессия закрыта")
-
-        for worker in self._workers:
-            worker.cancel()
-
-        if self._workers:
-            await asyncio.gather(*self._workers, return_exceptions=True)
-            logger.info(f"Остановлено {len(self._workers)} воркеров")
-
-        logger.info("Сервис AI корректно остановлен")

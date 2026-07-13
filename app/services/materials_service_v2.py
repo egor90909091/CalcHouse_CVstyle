@@ -50,6 +50,7 @@ class MaterialsServiceV2:
             self._db: Dict = json.load(f)
         self._rates = self._db.get("consumption_rates", {})
         self._index = self._build_material_index()
+        self._missing_keys: List[str] = []
 
     # ============================================================
     # Индекс материалов (плоский lookup по ключу)
@@ -122,6 +123,8 @@ class MaterialsServiceV2:
         Индекс хранит список записей на ключ (дубликаты из разных секций)."""
         entries = self._index.get(key)
         if not entries:
+            if key not in self._missing_keys:
+                self._missing_keys.append(key)
             return {"name": key, "price": 0, "unit": "", "category": "", "subcategory": ""}
         if section:
             for e in entries:
@@ -199,10 +202,22 @@ class MaterialsServiceV2:
         # т.к. закупка идёт целыми единицами.
         qty = math.ceil(quantity)
         total = round(qty * price, 2) if price else None
+
+        # Если материал не найден в каталоге — помечаем для пользователя:
+        # ⚠ в имени, "?" в единице, "Уточнить цену." в пояснении.
+        is_missing = key in self._missing_keys
+        if is_missing:
+            name = "Требует уточнения"
+            unit = "—"
+            detail = "Уточните материал и цену у поставщика"
+        else:
+            name = mat.get("name", key)
+            unit = mat.get("unit", "")
+
         return MaterialItem(
-            name=mat.get("name", key),
+            name=name,
             quantity=qty,
-            unit=mat.get("unit", ""),
+            unit=unit,
             price=price if price else None,
             total_cost=total,
             detail=detail,
@@ -274,8 +289,11 @@ class MaterialsServiceV2:
         items.append(self._make_item(config.waterproofing_key, waterproofing_m2, "Низ ленты"))
 
         # Песчаная подушка (если задана)
-        if config.slab_cushion and config.slab_cushion > 0:
-            sand_m3 = length_m * width_m * (config.slab_cushion / 1000.0) * self._rate("sand_compaction", 1.15)
+        cushion = config.strip_cushion
+        if cushion is None:
+            cushion = config.slab_cushion  # legacy-совместимость
+        if cushion and cushion > 0:
+            sand_m3 = length_m * width_m * (cushion / 1000.0) * self._rate("sand_compaction", 1.15)
             items.append(self._make_item(config.sand_key, sand_m3, "Песчаная подушка"))
 
         return items
@@ -339,7 +357,9 @@ class MaterialsServiceV2:
         diameter_m = (config.pile_diameter or 300) / 1000.0
         depth_m = (config.pile_depth or 2000) / 1000.0
 
-        pile_count = math.ceil(length_m / step_m) + 4  # +4 на углы
+        pile_count = math.ceil(length_m / step_m)
+        if pile_count < 4:
+            pile_count = 4
         pile_concrete = math.pi * (diameter_m / 2) ** 2 * depth_m * pile_count
         pile_concrete *= self._rate("concrete_shrinkage", 1.02)
 
@@ -373,7 +393,9 @@ class MaterialsServiceV2:
         size_m = (config.column_size or 400) / 1000.0
         depth_m = (config.column_depth or 800) / 1000.0
 
-        col_count = math.ceil(length_m / step_m) + 4
+        col_count = math.ceil(length_m / step_m)
+        if col_count < 4:
+            col_count = 4
         col_concrete = size_m ** 2 * depth_m * col_count
         col_concrete *= self._rate("concrete_shrinkage", 1.02)
 
@@ -632,28 +654,101 @@ class MaterialsServiceV2:
 
         if config.construction == RoofConstruction.FLAT:
             items = self._calc_flat_roof(geom, config)
-        else:
-            # Скатная кровля
-            # Стропила (длина включает свес кровли)
-            rafter_len = (geom.bbox_width_mm / 2 + config.overhang) / math.cos(math.radians(config.angle)) / 1000.0
-            rafter_count = math.ceil((geom.bbox_length_mm / 1000.0) / 0.6) + 1
-            rafter_total_m = rafter_len * rafter_count * 2  # два ската
+            total = sum(i.total_cost for i in items if i.total_cost)
+            return SectionResult(materials=items, section_total=round(total, 2))
+
+        # --- Скатная кровля ---
+        angle_rad = math.radians(config.angle)
+        cos_a = math.cos(angle_rad)
+        if cos_a < 0.01:
+            cos_a = 0.01
+        tan_a = math.tan(angle_rad)
+        len_m = geom.bbox_length_mm / 1000.0
+        wid_m = geom.bbox_width_mm / 1000.0
+        ovhang_m = config.overhang / 1000.0
+        step_m = (config.rafter_step_mm or 600) / 1000.0
+
+        # Мауэрлат — брус по верху наружных несущих стен под стропила.
+        if config.mauerplat_required:
+            mauer_m = geom.perimeter_mm / 1000.0
             items.append(self._make_item(
-                config.rafter_section_key, rafter_total_m,
-                f"{rafter_count}×2 стропил × {rafter_len:.1f}м"
+                config.rafter_section_key, mauer_m,
+                f"Мауэрлат по периметру {mauer_m:.1f}м"
             ))
 
-            # Обрешётка
-            batten_m = roof_area / 0.3  # шаг 300мм
-            items.append(self._make_item(config.batten_key, batten_m, "Обрешётка шаг 300мм"))
+        # Стропила — раздельно по типам конструкции.
+        rafter_detail_parts: List[str] = []
+        if config.construction == RoofConstruction.MONO:
+            # Одинскат. Длина от нижней стены до верхней + свес.
+            rafter_len = (wid_m + ovhang_m) / cos_a
+            count = math.ceil(len_m / step_m) + 1
+            rafter_total_m = rafter_len * count
+            rafter_detail_parts.append(f"{count} стропил × {rafter_len:.1f}м")
+        elif config.construction == RoofConstruction.GABLE:
+            rafter_len = (wid_m / 2 + ovhang_m) / cos_a
+            count_per_slope = math.ceil(len_m / step_m) + 1
+            rafter_total_m = rafter_len * count_per_slope * 2
+            rafter_detail_parts.append(
+                f"{count_per_slope}×2 стропил × {rafter_len:.1f}м"
+            )
+        elif config.construction == RoofConstruction.HIP:
+            # Два трапециевидных ската (рядовые) + 2 вальмовых (накосные + нарожные).
+            rafter_len = (wid_m / 2 + ovhang_m) / cos_a
+            ridge_len_m = geom.roof_ridge_length_mm / 1000.0
+            count_trap = math.ceil(ridge_len_m / step_m) + 1
+            rows_m = rafter_len * count_trap * 2
+            # 4 накосные ноги: длина ~1.4× рядовой (гипотенуза в плане).
+            diag_len = rafter_len * 1.4
+            diag_m = diag_len * 4
+            # Нарожные на вальмах: упрощённо по 3 шт на каждую четверть вальмы (12 шт).
+            narozh_m = rafter_len * 0.6 * 12
+            rafter_total_m = rows_m + diag_m + narozh_m
+            rafter_detail_parts.append(
+                f"Вальма: {count_trap}×2 рядовых × {rafter_len:.1f}м + "
+                f"4 накосных × {diag_len:.1f}м + 12 нарожных"
+            )
+        else:
+            # На всякий случай — fallback как gable.
+            rafter_len = (wid_m / 2 + ovhang_m) / cos_a
+            count_per_slope = math.ceil(len_m / step_m) + 1
+            rafter_total_m = rafter_len * count_per_slope * 2
+            rafter_detail_parts.append(
+                f"{count_per_slope}×2 стропил × {rafter_len:.1f}м (fallback)"
+            )
 
-            # Гидроизоляция
-            membrane_m2 = roof_area * self._rate("waterproofing_overlap", 1.15)
-            items.append(self._make_item(config.waterproofing_key, membrane_m2, "Гидроизоляция"))
+        items.append(self._make_item(
+            config.rafter_section_key, rafter_total_m,
+            "; ".join(rafter_detail_parts),
+        ))
 
-            # Покрытие
-            covering_items = self._calc_roof_covering(config, roof_area, ridge_m, eaves_m)
-            items.extend(covering_items)
+        # Обрешётка
+        batten_m = roof_area / 0.3  # шаг 300мм
+        items.append(self._make_item(config.batten_key, batten_m, "Обрешётка шаг 300мм"))
+
+        # Гидро-ветрозащитная мембрана
+        membrane_m2 = roof_area * self._rate("waterproofing_overlap", 1.15)
+        items.append(self._make_item(config.waterproofing_key, membrane_m2, "Гидроизоляция"))
+
+        # Утепление скатной кровли (тёплая мансарда) + пароизоляция.
+        if config.warm:
+            ins_area = roof_area * self._rate("insulation_waste", 1.03)
+            ins_key = config.insulation_key or "insulation_mineral"
+            items.append(self._make_item(
+                ins_key, ins_area,
+                f"Утеплитель между стропил {roof_area:.1f}м² × отход 3%",
+            ))
+            items.append(self._make_item(
+                config.vapor_key,
+                roof_area * self._rate("waterproofing_overlap", 1.15),
+                "Пароизоляция скатной кровли (со стороны мансарды)",
+            ))
+
+        # Покрытие
+        covering_items = self._calc_roof_covering(config, roof_area, ridge_m, eaves_m)
+        items.extend(covering_items)
+
+        # Расширенные элементы кровли.
+        items.extend(self._calc_roof_accessories(geom, config, cos_a, tan_a, eaves_m))
 
         total = sum(i.total_cost for i in items if i.total_cost)
         return SectionResult(materials=items, section_total=round(total, 2))
@@ -696,6 +791,65 @@ class MaterialsServiceV2:
 
         return items
 
+    def _calc_roof_accessories(
+        self,
+        geom: GeometryResult,
+        config: RoofConfig,
+        cos_a: float,
+        tan_a: float,
+        eaves_m: float,
+    ) -> List[MaterialItem]:
+        """Расширенные элементы скатной кровли: ендовы, водосток,
+        снегозадержатели, ветровые/фронтонные планки, капельники."""
+        items: List[MaterialItem] = []
+        wid_m = geom.bbox_width_mm / 1000.0
+        ovhang_m = config.overhang / 1000.0
+
+        # Ендовы (ендовые планки; для гибкой черепицы — нижний ендовый ковёр).
+        valley_count = getattr(config, "valley_count", 0) or 0
+        if valley_count > 0:
+            valley_len_each = (wid_m / 2 + ovhang_m) / cos_a
+            valley_total_m = valley_len_each * valley_count
+            items.append(self._make_item(
+                "valley_plank", valley_total_m,
+                f"{valley_count} ендов × {valley_len_each:.1f}м",
+            ))
+            if config.material_key == "shingle":
+                items.append(self._make_item(
+                    "valley_underlay", valley_total_m,
+                    "Нижний ендовый ковёр (гибкая черепица)",
+                ))
+
+        # Ветровые/фронтонные планки (не у вальмовой — там фронтонов нет).
+        if getattr(config, "gable_planks", True) and config.construction != RoofConstruction.HIP:
+            rafter_len = (wid_m / 2 + ovhang_m) / cos_a
+            # Две фронтонные стены × длина стропила × 2 (нижняя+верхняя планки).
+            gable_m = rafter_len * 2 * 2
+            items.append(self._make_item(
+                "gable_plank", gable_m, "Ветровые/фронтонные планки",
+            ))
+
+        # Капельники по карнизу.
+        if getattr(config, "drip_edges", True):
+            items.append(self._make_item(
+                "drip_edge", eaves_m, "Капельники по карнизу",
+            ))
+
+        # Водосточная система — по длине карниза.
+        if getattr(config, "gutter", True):
+            items.append(self._make_item(
+                "gutter_system", eaves_m, "Водосток по карнизу",
+            ))
+
+        # Снегозадержатели — 1 комплект на ~3 м карниза.
+        if getattr(config, "snow_guards", True):
+            guard_count = math.ceil(eaves_m / 3.0)
+            items.append(self._make_item(
+                "snow_guard", guard_count, "Снегозадержатели",
+            ))
+
+        return items
+
     def _calc_flat_roof(self, geom: GeometryResult, config: RoofConfig) -> List[MaterialItem]:
         """Плоская кровля."""
         area = geom.footprint_area_m2 * 1.05  # небольшой запас на парапеты
@@ -728,7 +882,9 @@ class MaterialsServiceV2:
             if k in agg:
                 agg[k].quantity = round(agg[k].quantity + item.quantity, 3)
                 if agg[k].total_cost is not None and item.total_cost is not None:
-                    agg[k].total_cost = round(agg[k].total_cost + item.total_cost, 2)
+                    agg[k].total_cost = round(
+                        (agg[k].total_cost or 0.0) + (item.total_cost or 0.0), 2
+                    )
                 details = []
                 if agg[k].detail and item.detail:
                     details = [agg[k].detail, item.detail]
@@ -757,6 +913,18 @@ class MaterialsServiceV2:
             + roof.section_total
         )
 
+        # Опциональная оценка стоимости работ — коэффициент к материалам.
+        # Берётся из materials.json → work.default_percent (по умолчанию 0).
+        work_pct = float(self._db.get("work", {}).get("default_percent", 0) or 0)
+        works_cost = round(total * (work_pct / 100.0), 2)
+
+        # Проброс warnings о отсутствующих в каталоге материалах в errors геометрии.
+        if self._missing_keys:
+            geom.errors.append(
+                "Материалы не найдены в каталоге (цены обнулены): "
+                + ", ".join(dict.fromkeys(self._missing_keys))
+            )
+
         return MaterialsResult(
             geometry=geom,
             foundation=foundation,
@@ -764,4 +932,6 @@ class MaterialsServiceV2:
             floors=floors,
             roof=roof,
             total_cost=round(total, 2),
+            works_rate_percent=round(work_pct, 1),
+            works_estimate_cost=works_cost,
         )

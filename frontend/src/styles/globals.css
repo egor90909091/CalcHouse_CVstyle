@@ -41,12 +41,19 @@
 
   /* Стены на канвасе */
   --wall-external: #2563eb;
+  --wall-external-fill: #3b82f6;
+  --wall-external-edge: #1e40af;
   --wall-internal: #94a3b8;
+  --wall-internal-fill: #cbd5e1;
+  --wall-internal-edge: #64748b;
   --wall-locked: #cbd5e1;
+  --wall-locked-edge: #94a3b8;
   --wall-preview: #3b82f6;
   --wall-label: #475569;
   --opening-door: #f59e0b;
+  --opening-door-edge: #d97706;
   --opening-window: #10b981;
+  --opening-window-edge: #059669;
 
   /* Радиусы и движение */
   --radius: 14px;
@@ -86,12 +93,19 @@ html.dark-theme {
   --shadow-glow: 0 0 0 4px var(--accent-ring);
 
   --wall-external: #60a5fa;
+  --wall-external-fill: #3b82f6;
+  --wall-external-edge: #2563eb;
   --wall-internal: #6b7e99;
+  --wall-internal-fill: #334155;
+  --wall-internal-edge: #475569;
   --wall-locked: #3a4a66;
+  --wall-locked-edge: #1e293b;
   --wall-preview: #93c5fd;
   --wall-label: #9fb0c8;
   --opening-door: #fbbf24;
+  --opening-door-edge: #f59e0b;
   --opening-window: #34d399;
+  --opening-window-edge: #10b981;
 }
 
 /* ============================================================
@@ -346,6 +360,16 @@ html.dark-theme .hero-logo-platform-dark  { display: block; }
   flex-direction: column;
   height: calc(100vh - 60px - 0px);
   min-height: 520px;
+}
+
+/* When results panel is shown, let the page scroll naturally */
+.builder-wrap--results {
+  height: auto;
+  min-height: 520px;
+}
+.builder-wrap--results .builder-layout {
+  flex: none;
+  max-height: 70vh;
 }
 .builder-layout {
   display: flex;
@@ -769,7 +793,6 @@ html.dark-theme .hero-logo-platform-dark  { display: block; }
 .results-panel {
   background: var(--surface);
   padding: 28px;
-  overflow-y: auto;
   min-height: 100%;
 }
 .results-header { text-align: center; margin-bottom: 26px; }
@@ -846,6 +869,8 @@ html.dark-theme .hero-logo-platform-dark  { display: block; }
 }
 .result-section tr:last-child td { border-bottom: none; }
 .result-section td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.result-section tr.row-warn td { background: rgba(245, 158, 11, 0.08); color: #b45309; }
+.result-section tr.row-warn td.num { font-style: italic; opacity: 0.85; }
 
 .btn-close {
   background: var(--surface-2);
@@ -1597,6 +1622,725 @@ html.dark-theme .hero-logo-platform-dark  { display: block; }
 }
 
 /* ============================================================
+   ИИ-консультант по строительству
+   ============================================================ */
+
+.advisor-section {
+  margin: 24px 0 0;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+
+.advisor-chat {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.advisor-chat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+.advisor-chat-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+}
+.advisor-icon {
+  flex-shrink: 0;
+}
+.advisor-chat-header h3 {
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+}
+.advisor-print-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.advisor-print-toggle input {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* Empty state */
+.advisor-empty {
+  text-align: center;
+  padding: 16px 0 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.advisor-empty-icon {
+  margin-bottom: 4px;
+}
+.advisor-empty h4 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.advisor-cta {
+  background: var(--accent-grad);
+  color: var(--text-on-accent);
+  border: none;
+  padding: 13px 36px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  box-shadow: 0 4px 14px var(--accent-ring);
+  transition: transform var(--speed) var(--easing), box-shadow var(--speed) var(--easing);
+}
+.advisor-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px var(--accent-ring);
+}
+.advisor-cta:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.advisor-hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-muted);
+  max-width: 380px;
+}
+
+/* Messages — flowing naturally with the page, no nested scroll */
+.advisor-messages {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0;
+}
+.advisor-msg {
+  animation: advisor-fade-in 0.35s var(--easing);
+  max-width: 88%;
+}
+@keyframes advisor-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.advisor-msg--assistant {
+  border-left: 3px solid var(--accent);
+  background: var(--surface);
+  padding: 16px 18px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  align-self: flex-start;
+  box-shadow: var(--shadow-sm);
+}
+.advisor-msg__eyebrow {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+.advisor-msg__body {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--text-primary);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+/* Markdown rendering inside assistant messages */
+.advisor-msg--assistant .advisor-msg__body {
+  white-space: normal;
+}
+.advisor-msg--assistant .advisor-msg__body h1,
+.advisor-msg--assistant .advisor-msg__body h2,
+.advisor-msg--assistant .advisor-msg__body h3 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 14px 0 6px;
+  padding: 0;
+  border: none;
+  display: block;
+}
+.advisor-msg--assistant .advisor-msg__body h2:first-child {
+  margin-top: 0;
+}
+.advisor-msg--assistant .advisor-msg__body p {
+  margin: 8px 0;
+}
+.advisor-msg--assistant .advisor-msg__body ul,
+.advisor-msg--assistant .advisor-msg__body ol {
+  margin: 8px 0;
+  padding-left: 22px;
+}
+.advisor-msg--assistant .advisor-msg__body li {
+  margin: 4px 0;
+}
+.advisor-msg--assistant .advisor-msg__body strong {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.advisor-msg--assistant .advisor-msg__body code {
+  background: var(--surface-hover);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+.advisor-msg--assistant .advisor-msg__body code code,
+.advisor-msg--assistant .advisor-msg__body pre code {
+  background: none;
+  padding: 0;
+}
+.advisor-msg--assistant .advisor-msg__body pre {
+  background: var(--surface-sunken);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  overflow-x: auto;
+  margin: 8px 0;
+  font-size: 13px;
+}
+
+/* Markdown tables */
+.advisor-table-wrap {
+  overflow-x: auto;
+  margin: 10px 0;
+}
+.advisor-msg--assistant .advisor-msg__body table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 13px;
+}
+.advisor-msg--assistant .advisor-msg__body th,
+.advisor-msg--assistant .advisor-msg__body td {
+  border: 1px solid var(--border);
+  padding: 7px 12px;
+  text-align: left;
+}
+.advisor-msg--assistant .advisor-msg__body th {
+  background: var(--surface-sunken);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.advisor-msg--assistant .advisor-msg__body tr:nth-child(even) td {
+  background: var(--surface-2);
+}
+.advisor-msg--assistant .advisor-msg__body blockquote {
+  border-left: 3px solid var(--accent);
+  margin: 10px 0;
+  padding: 6px 14px;
+  color: var(--text-secondary);
+}
+
+.advisor-msg--user {
+  background: var(--accent-grad);
+  color: var(--text-on-accent);
+  padding: 12px 18px;
+  border-radius: var(--radius-sm) var(--radius-sm) 4px var(--radius-sm);
+  align-self: flex-end;
+  box-shadow: 0 2px 8px var(--accent-ring);
+}
+.advisor-msg--user .advisor-msg__body {
+  color: var(--text-on-accent);
+  white-space: pre-wrap;
+}
+
+/* Loading ripple — shown during first advisor request */
+.advisor-ripple {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 32px 8px;
+}
+.advisor-ripple-container {
+  position: relative;
+  width: 64px;
+  height: 64px;
+}
+.advisor-ripple-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid var(--accent);
+  opacity: 0;
+  animation: advisor-ripple-expand 1.8s var(--easing) infinite;
+  will-change: transform, opacity;
+}
+.advisor-ripple-ring:nth-child(2) { animation-delay: 0.6s; }
+.advisor-ripple-ring:nth-child(3) { animation-delay: 1.2s; }
+@keyframes advisor-ripple-expand {
+  0% { transform: scale(0.25); opacity: 0; }
+  20% { opacity: 0.8; }
+  100% { transform: scale(1); opacity: 0; }
+}
+.advisor-ripple-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+}
+
+/* Typing dots animation */
+.advisor-typing-dots {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  padding: 6px 0;
+}
+.advisor-typing-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.4;
+  animation: advisor-bounce 1.2s var(--easing) infinite;
+}
+.advisor-typing-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.advisor-typing-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes advisor-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-6px); opacity: 1; }
+}
+
+/* Error */
+.advisor-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--surface);
+  border-left: 3px solid #ef4444;
+  padding: 12px 16px;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin: 10px 0;
+  box-shadow: var(--shadow-sm);
+}
+.advisor-retry {
+  background: none;
+  border: 1px solid var(--border-strong);
+  color: var(--text-primary);
+  padding: 6px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background var(--speed) var(--easing);
+}
+.advisor-retry:hover {
+  background: var(--surface-hover);
+}
+
+/* Input */
+.advisor-input-row {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.advisor-input {
+  flex: 1;
+  min-width: 200px;
+  resize: vertical;
+  min-height: 44px;
+  max-height: 120px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1.5;
+  outline: none;
+  transition: border-color var(--speed) var(--easing), box-shadow var(--speed) var(--easing);
+}
+.advisor-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-ring);
+}
+.advisor-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.advisor-send {
+  background: var(--accent-grad);
+  color: var(--text-on-accent);
+  border: none;
+  padding: 12px 24px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: transform var(--speed) var(--easing), opacity var(--speed) var(--easing);
+}
+.advisor-send:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.advisor-send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.advisor-counter {
+  width: 100%;
+  text-align: right;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.advisor-limit-reached {
+  width: 100%;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 12px;
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .advisor-msg { animation: none; }
+  .advisor-typing-dots span { animation: none; opacity: 0.5; }
+}
+
+/* ============================================================
+   Мобильная адаптивность — ResultsPanel + AdvisorChat + таблицы
+   ============================================================ */
+
+@media (max-width: 768px) {
+  .results-panel {
+    padding: 16px;
+  }
+  .results-header {
+    margin-bottom: 18px;
+  }
+  .results-header h2 {
+    font-size: 20px;
+  }
+  .geo-summary {
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .total-cost {
+    font-size: 24px;
+  }
+
+  .result-section {
+    margin: 14px 0;
+  }
+  .result-section h3 {
+    font-size: 14px;
+  }
+  .result-section table {
+    font-size: 11px;
+    table-layout: fixed;
+  }
+  .result-section th {
+    padding: 6px 4px;
+    font-size: 10px;
+    letter-spacing: 0.03em;
+  }
+  .result-section td {
+    padding: 6px 4px;
+    font-size: 12px;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
+  .result-section th.unit,
+  .result-section td.unit {
+    font-size: 10px;
+  }
+
+  .floor-plans-section {
+    margin: 20px 0;
+    padding-top: 16px;
+  }
+  .floor-plans-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+  .floor-plan-frame {
+    padding: 10px;
+  }
+  .floor-plan-label {
+    font-size: 12px;
+  }
+
+  .estimate-disclaimer {
+    font-size: 11px;
+    padding: 10px 12px;
+  }
+
+  .advisor-section {
+    margin-top: 18px;
+    padding-top: 14px;
+  }
+  .advisor-chat {
+    padding: 16px 14px;
+  }
+  .advisor-chat-header {
+    margin-bottom: 14px;
+  }
+  .advisor-chat-header h3 {
+    font-size: 14px;
+  }
+  .advisor-print-toggle {
+    font-size: 11px;
+  }
+
+  .advisor-empty {
+    gap: 10px;
+  }
+  .advisor-empty h4 {
+    font-size: 15px;
+  }
+  .advisor-hint {
+    font-size: 12px;
+    max-width: 100%;
+    line-height: 1.5;
+  }
+  .advisor-cta {
+    padding: 12px 28px;
+    font-size: 14px;
+  }
+
+  .advisor-messages {
+    gap: 12px;
+  }
+  .advisor-msg {
+    max-width: 100%;
+  }
+  .advisor-msg--assistant {
+    padding: 12px 14px;
+    border-left-width: 3px;
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  }
+  .advisor-msg--user {
+    padding: 10px 14px;
+    max-width: 90%;
+  }
+  .advisor-msg__eyebrow {
+    font-size: 10px;
+  }
+  .advisor-msg__body {
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .advisor-msg--assistant .advisor-msg__body h1,
+  .advisor-msg--assistant .advisor-msg__body h2,
+  .advisor-msg--assistant .advisor-msg__body h3 {
+    font-size: 14px;
+    margin: 10px 0 4px;
+  }
+  .advisor-msg--assistant .advisor-msg__body p {
+    margin: 6px 0;
+  }
+  .advisor-msg--assistant .advisor-msg__body ul,
+  .advisor-msg--assistant .advisor-msg__body ol {
+    margin: 6px 0;
+    padding-left: 18px;
+  }
+  .advisor-msg--assistant .advisor-msg__body li {
+    margin: 3px 0;
+  }
+  .advisor-msg--assistant .advisor-msg__body table {
+    font-size: 11px;
+  }
+  .advisor-msg--assistant .advisor-msg__body th,
+  .advisor-msg--assistant .advisor-msg__body td {
+    padding: 5px 8px;
+  }
+  .advisor-msg--assistant .advisor-msg__body blockquote {
+    margin: 8px 0;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .advisor-input-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .advisor-input {
+    min-width: 0;
+    width: 100%;
+    min-height: 40px;
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  .advisor-send {
+    width: 100%;
+    padding: 10px;
+    font-size: 13px;
+  }
+  .advisor-counter {
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  .results-panel {
+    padding: 12px 10px;
+  }
+  .results-header h2 {
+    font-size: 18px;
+  }
+  .geo-summary {
+    font-size: 11px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px 8px;
+  }
+  .total-cost {
+    font-size: 22px;
+  }
+
+  .result-section {
+    margin: 12px 0;
+  }
+  .result-section h3 {
+    font-size: 13px;
+  }
+  .result-section table {
+    font-size: 10px;
+  }
+  .result-section th {
+    padding: 5px 3px;
+    font-size: 9px;
+  }
+  .result-section td {
+    padding: 5px 3px;
+    font-size: 11px;
+    line-height: 1.3;
+  }
+  .result-section td.num {
+    white-space: normal;
+    text-align: right;
+  }
+
+  .advisor-chat {
+    padding: 12px 10px;
+    border-radius: 10px;
+  }
+  .advisor-chat-header {
+    margin-bottom: 10px;
+  }
+  .advisor-chat-header h3 {
+    font-size: 13px;
+  }
+  .advisor-icon {
+    width: 18px;
+    height: 18px;
+  }
+
+  .advisor-empty {
+    padding: 8px 0;
+  }
+  .advisor-empty h4 {
+    font-size: 14px;
+  }
+  .advisor-cta {
+    width: 100%;
+    padding: 12px;
+    font-size: 14px;
+  }
+  .advisor-hint {
+    font-size: 11px;
+  }
+
+  .advisor-messages {
+    gap: 10px;
+  }
+  .advisor-msg--assistant {
+    padding: 10px 12px;
+  }
+  .advisor-msg--user {
+    padding: 9px 12px;
+    max-width: 85%;
+    font-size: 13px;
+  }
+  .advisor-msg__body {
+    font-size: 12px;
+    line-height: 1.55;
+  }
+  .advisor-msg--assistant .advisor-msg__body h1,
+  .advisor-msg--assistant .advisor-msg__body h2,
+  .advisor-msg--assistant .advisor-msg__body h3 {
+    font-size: 13px;
+    margin: 8px 0 3px;
+  }
+  .advisor-msg--assistant .advisor-msg__body p {
+    margin: 5px 0;
+  }
+  .advisor-msg--assistant .advisor-msg__body ul,
+  .advisor-msg--assistant .advisor-msg__body ol {
+    padding-left: 16px;
+    margin: 5px 0;
+  }
+  .advisor-msg--assistant .advisor-msg__body li {
+    margin: 2px 0;
+  }
+  .advisor-msg--assistant .advisor-msg__body code {
+    font-size: 11px;
+    padding: 1px 4px;
+  }
+  .advisor-msg--assistant .advisor-msg__body table {
+    font-size: 10px;
+  }
+  .advisor-msg--assistant .advisor-msg__body th,
+  .advisor-msg--assistant .advisor-msg__body td {
+    padding: 4px 6px;
+  }
+  .advisor-msg--assistant .advisor-msg__body blockquote {
+    margin: 6px 0;
+    padding: 6px 10px;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .advisor-input {
+    min-height: 38px;
+    padding: 9px 11px;
+    font-size: 12px;
+  }
+  .advisor-send {
+    padding: 10px;
+    font-size: 12px;
+  }
+  .advisor-counter {
+    font-size: 10px;
+  }
+
+  .ripple-container {
+    width: 48px;
+    height: 48px;
+  }
+  .advisor-ripple-text {
+    font-size: 12px;
+  }
+}
+
+/* ============================================================
    Печать — только смета + план этажа
    ============================================================ */
 @media print {
@@ -1726,5 +2470,62 @@ html.dark-theme .hero-logo-platform-dark  { display: block; }
   }
   .builder-wrap {
     display: block !important;
+  }
+
+  .advisor-section {
+    display: none !important;
+  }
+  .advisor-section:has(.advisor-chat.printable) {
+    display: block !important;
+    margin-top: 20px;
+    border-top: 1px solid #ccc;
+    padding-top: 16px;
+  }
+  .advisor-chat {
+    display: none !important;
+  }
+  .advisor-chat.printable {
+    display: block !important;
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+  .advisor-chat.printable .advisor-cta,
+  .advisor-chat.printable .advisor-input-row,
+  .advisor-chat.printable .advisor-error,
+  .advisor-chat.printable .advisor-loading-bar,
+  .advisor-chat.printable .advisor-ripple,
+  .advisor-chat.printable .advisor-print-toggle,
+  .advisor-chat.printable .advisor-empty {
+    display: none !important;
+  }
+  .advisor-chat.printable .advisor-messages {
+    overflow: visible;
+  }
+  .advisor-chat.printable .advisor-msg--assistant {
+    border-left: 3px solid #000;
+    background: #f5f5f5;
+    border-radius: 0 8px 8px 0;
+    page-break-inside: avoid;
+    box-shadow: none !important;
+  }
+  .advisor-chat.printable .advisor-msg__eyebrow {
+    color: #000;
+  }
+  .advisor-chat.printable .advisor-msg__body {
+    color: #000;
+  }
+  .advisor-chat.printable .advisor-msg--user {
+    background: #e8e8e8 !important;
+    color: #000 !important;
+    border-radius: 14px 14px 4px 14px;
+    box-shadow: none !important;
+  }
+  .advisor-chat.printable .advisor-msg--user .advisor-msg__body {
+    color: #000 !important;
+  }
+  .advisor-chat.printable .advisor-chat-header h3 {
+    color: #000 !important;
   }
 }

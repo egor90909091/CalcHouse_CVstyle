@@ -7,7 +7,8 @@ tests/
 frontend/node_modules/
 # JetBrains IDEs
 .idea/
-
+.codegraph/
+.agents/
 # VS Code
 .vscode/
 .env
@@ -27,5 +28,10 @@ app/static/data/sessions/
 # React build output (generated from frontend/)
 app/static/react/
 app/services/__pycache__/
-
+AGENTS.md
 .opencode/
+.mcp.json
+opencode.jsonc
+pyrightconfig.json
+skills-lock.json
+find-skills/

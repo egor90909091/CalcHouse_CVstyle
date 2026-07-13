@@ -3,7 +3,7 @@ import type { FoundationType, RoofConstruction, FloorType } from "../types/proje
 import type { WallMatType } from "../store/useProjectStore";
 
 export default function ProjectSettings() {
-  const { project, updateFoundation, updateRoof, updateFloorConfig, currentFloor, wallMatType, wallMatKey, setWallMaterial } = useStore();
+  const { project, updateFoundation, updateRoof, updateFloorConfig, wallMatType, wallMatKey, setWallMaterial } = useStore();
   const foundation = project.foundation;
   const roof = project.roof;
   const floor = project.floor_config;
@@ -11,7 +11,7 @@ export default function ProjectSettings() {
   const currentGroup = WALL_MAT_GROUPS.find((g) => g.type === wallMatType) ?? WALL_MAT_GROUPS[0];
   const currentThk = WALL_MAT_THICKNESS[wallMatKey] ?? { ext: 400, int: 200 };
 
-  if (!foundation || !roof || !floor) return null;
+  if (!foundation || !roof) return null;
 
   return (
     <>
@@ -158,26 +158,28 @@ export default function ProjectSettings() {
         </div>
       </div>
 
-      <div className="settings-section">
-        <h3>Перекрытия {currentFloor > 1 ? "" : "(для 2+ этажей)"}</h3>
-        <div className="prop-row">
-          <label>Тип</label>
-          <select
-            value={floor.type}
-            onChange={(e) => updateFloorConfig({ type: e.target.value as FloorType })}
-          >
-            <option value="concrete">Монолит ж/б</option>
-            <option value="slab">Сборные плиты</option>
-          </select>
-        </div>
-        {floor.type === "concrete" && (
+      {project.floors_count > 1 && floor && (
+        <div className="settings-section">
+          <h3>Перекрытия</h3>
           <div className="prop-row">
-            <label>Толщина, мм</label>
-            <input type="number" value={floor.thickness}
-              onChange={(e) => updateFloorConfig({ thickness: parseInt(e.target.value) })} />
+            <label>Тип</label>
+            <select
+              value={floor.type}
+              onChange={(e) => updateFloorConfig({ type: e.target.value as FloorType })}
+            >
+              <option value="concrete">Монолит ж/б</option>
+              <option value="slab">Сборные плиты</option>
+            </select>
           </div>
-        )}
-      </div>
+          {floor.type === "concrete" && (
+            <div className="prop-row">
+              <label>Толщина, мм</label>
+              <input type="number" value={floor.thickness}
+                onChange={(e) => updateFloorConfig({ thickness: parseInt(e.target.value) })} />
+            </div>
+          )}
+        </div>
+      )}
     </>
   );
 }

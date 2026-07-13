@@ -81,6 +81,15 @@ const defaultRoof: RoofConfig = {
   rafter_section_key: "rafters",
   batten_key: "batten",
   waterproofing_key: "waterproofing",
+  warm: true,
+  rafter_step_mm: 600,
+  mauerplat_required: true,
+  vapor_key: "vapor_barrier",
+  valley_count: 0,
+  gutter: true,
+  snow_guards: true,
+  gable_planks: true,
+  drip_edges: true,
 };
 
 const defaultFloorConfig: FloorConfig = {
@@ -193,7 +202,11 @@ export const useStore = create<StoreState>((set, get) => ({
     set({ currentFloor: n, selectedWallId: null }),
 
   setFloorsCount: (n) => {
-    const project = { ...get().project, floors_count: n };
+    const prev = get().project;
+    const floor_config = n > 1
+      ? (prev.floor_config ?? { ...defaultFloorConfig })
+      : null;
+    const project = { ...prev, floors_count: n, floor_config };
     const currentFloor = Math.min(get().currentFloor, n);
     set({ project, currentFloor });
   },

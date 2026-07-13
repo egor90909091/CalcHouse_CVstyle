@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useStore } from "../store/useProjectStore";
 import type { MaterialsResult, SectionResult } from "../types/project";
+import AdvisorChat from "./AdvisorChat";
 
 const fmt = (n: number) => n.toLocaleString("ru-RU", { maximumFractionDigits: 0 });
 
@@ -30,15 +31,18 @@ function SectionTable({ title, section }: { title: string; section: SectionResul
           </tr>
         </thead>
         <tbody>
-          {section.materials.map((m, i) => (
-            <tr key={i}>
+          {section.materials.map((m, i) => {
+            const warn = m.price == null;
+            return (
+            <tr key={i} className={warn ? "row-warn" : undefined}>
               <td>{m.name}</td>
               <td className="num">{m.quantity.toLocaleString("ru-RU", { maximumFractionDigits: 0 })}</td>
               <td className="unit">{m.unit}</td>
-              <td className="num">{m.price ? fmt(m.price) : "—"}</td>
-              <td className="num">{m.total_cost ? fmt(m.total_cost) : "—"}</td>
+              <td className="num">{warn ? "уточн." : fmt(m.price as number)}</td>
+              <td className="num">{warn ? "уточн." : fmt(m.total_cost as number)}</td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>
@@ -122,6 +126,8 @@ export default function ResultsPanel() {
           </div>
         </div>
       )}
+
+      <AdvisorChat results={r} />
 
       <div className="estimate-disclaimer">
         Наш расчёт близок к реальным затратам. Для точной сметы под ваш проект рекомендуем обратиться к специалистам.

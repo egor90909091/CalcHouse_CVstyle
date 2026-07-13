@@ -39,17 +39,216 @@ const getThemeColors = () => ({
   bg: cssVar("--bg-canvas", "#1e2a3a"),
   grid: cssVar("--grid-line", "#2a3a4a"),
   external: cssVar("--wall-external", "#7ab8d4"),
+  externalFill: cssVar("--wall-external-fill", "#3b82f6"),
+  externalEdge: cssVar("--wall-external-edge", "#1e40af"),
   internal: cssVar("--wall-internal", "#9aa8b8"),
+  internalFill: cssVar("--wall-internal-fill", "#cbd5e1"),
+  internalEdge: cssVar("--wall-internal-edge", "#64748b"),
   locked: cssVar("--wall-locked", "#5a6a7a"),
+  lockedFill: cssVar("--wall-locked", "#5a6a7a"),
+  lockedEdge: cssVar("--wall-locked-edge", "#94a3b8"),
   preview: cssVar("--wall-preview", "#4fc3f7"),
   label: cssVar("--wall-label", "#a0b0c0"),
   door: cssVar("--opening-door", "#ff9800"),
+  doorEdge: cssVar("--opening-door-edge", "#d97706"),
   window: cssVar("--opening-window", "#8bc34a"),
+  windowEdge: cssVar("--opening-window-edge", "#059669"),
   accent: cssVar("--accent", "#2563eb"),
+  accentStrong: cssVar("--accent-strong", "#1d4ed8"),
   surface: cssVar("--surface", "#ffffff"),
   border: cssVar("--border", "#e2e8f0"),
   textPrimary: cssVar("--text-primary", "#0f172a"),
 });
+
+// ── Shared wall/opening drawing helpers ──────────────────────────────
+// Used by both the interactive canvas (renderWalls) and the export path
+// (__wallCanvasExportAllFloors) so the printed image matches the editor.
+
+// Compute the solid (non-opening) sub-ranges of a wall as fractions of wall length.
+// Returns [[tStart, tEnd], ...] in [0,1] for solid parts.
+function computeSubsegments(wallLen: number, openings: any[]): Array<[number, number]> {
+  if (!openings || openings.length === 0) return [[0, 1]];
+  const gaps: Array<[number, number]> = [];
+  for (const op of openings) {
+    const s = Math.max(0, op.offset - op.width / 2);
+    const e = Math.min(wallLen, op.offset + op.width / 2);
+    if (e > s) gaps.push([s, e]);
+  }
+  gaps.sort((a, b) => a[0] - b[0]);
+  const merged: Array<[number, number]> = [];
+  for (const [s, e] of gaps) {
+    if (merged.length && s <= merged[merged.length - 1][1]) {
+      merged[merged.length - 1][1] = Math.max(merged[merged.length - 1][1], e);
+    } else {
+      merged.push([s, e]);
+    }
+  }
+  const solid: Array<[number, number]> = [];
+  let cursor = 0;
+  for (const [s, e] of merged) {
+    if (s > cursor) solid.push([cursor, s]);
+    cursor = Math.max(cursor, e);
+  }
+  if (cursor < wallLen) solid.push([cursor, wallLen]);
+  return solid.map(([s, e]) => [s / wallLen, e / wallLen]);
+}
+
+interface WallPxInfo {
+  x1: number; y1: number; x2: number; y2: number;
+  nx: number; ny: number; halfThick: number; lenPx: number;
+}
+
+function wallPxInfo(wall: WallSegment, offX: number = 0, offY: number = 0): WallPxInfo {
+  const x1 = mmToPx(wall.p1.x) + offX, y1 = mmToPx(wall.p1.y) + offY;
+  const x2 = mmToPx(wall.p2.x) + offX, y2 = mmToPx(wall.p2.y) + offY;
+  const dx = x2 - x1, dy = y2 - y1;
+  const lenPx = Math.hypot(dx, dy) || 1;
+  const nx = -dy / lenPx, ny = dx / lenPx;
+  const thickPx = Math.max(4, mmToPx(wall.thickness));
+  return { x1, y1, x2, y2, nx, ny, halfThick: thickPx / 2, lenPx };
+}
+
+function subSegPolyPts(w: WallPxInfo, tStart: number, tEnd: number, expand: number = 0): Array<{ x: number; y: number }> {
+  const sx = w.x1 + (w.x2 - w.x1) * tStart;
+  const sy = w.y1 + (w.y2 - w.y1) * tStart;
+  const ex = w.x1 + (w.x2 - w.x1) * tEnd;
+  const ey = w.y1 + (w.y2 - w.y1) * tEnd;
+  const ht = w.halfThick + expand;
+  return [
+    { x: sx + w.nx * ht, y: sy + w.ny * ht },
+    { x: ex + w.nx * ht, y: ey + w.ny * ht },
+    { x: ex - w.nx * ht, y: ey - w.ny * ht },
+    { x: sx - w.nx * ht, y: sy - w.ny * ht },
+  ];
+}
+
+// Draw a wall as filled rectangle(s), split around its openings.
+// opts: { selected, locked, palette, evented (default true) }
+function drawWallBody(
+  canvas: any, wall: WallSegment,
+  opts: { selected?: boolean; locked?: boolean; palette: any; evented?: boolean; offX?: number; offY?: number },
+): WallPxInfo {
+  const p = opts.palette;
+  const w = wallPxInfo(wall, opts.offX || 0, opts.offY || 0);
+  const wallLen = Math.hypot(wall.p2.x - wall.p1.x, wall.p2.y - wall.p1.y) || 1;
+  const subs = computeSubsegments(wallLen, wall.openings || []);
+
+  let fill: string, edge: string;
+  if (wall.external) {
+    if (opts.locked) { fill = p.lockedFill || p.locked; edge = p.lockedEdge || p.locked; }
+    else if (opts.selected) { fill = p.accent; edge = p.accentStrong || p.accent; }
+    else { fill = p.externalFill || p.external; edge = p.externalEdge || p.external; }
+  } else {
+    if (opts.selected) { fill = p.accent; edge = p.accentStrong || p.accent; }
+    else { fill = p.internalFill || p.internal; edge = p.internalEdge || p.internal; }
+  }
+
+  // Selection glow (under body)
+  if (opts.selected) {
+    for (const [s, e] of subs) {
+      if (e - s < 0.001) continue;
+      const pts = subSegPolyPts(w, s, e, 5);
+      canvas.add(new fabric.Polygon(pts, {
+        fill: p.accent, opacity: 0.18,
+        selectable: false, evented: false, excludeFromExport: true,
+      }));
+    }
+  }
+
+  // Body segments
+  const evented = opts.evented !== false;
+  for (const [s, e] of subs) {
+    if (e - s < 0.001) continue;
+    const pts = subSegPolyPts(w, s, e, 0);
+    const poly = new fabric.Polygon(pts, {
+      fill,
+      stroke: edge,
+      strokeWidth: 1,
+      strokeLineJoin: "miter",
+      selectable: false,
+      evented,
+      hasControls: false,
+      hasBorders: false,
+      lockMovementX: true,
+      lockMovementY: true,
+    });
+    poly._wallId = wall.id;
+    poly._isExternal = wall.external;
+    canvas.add(poly);
+  }
+
+  return w;
+}
+
+// Refined door symbol: hinge dot + solid leaf + thin swing arc.
+function drawDoorSymbol(
+  canvas: any, op: any, cx: number, cy: number, angleDeg: number,
+  palette: any, evented: boolean, idx: number = -1,
+) {
+  const wPx = Math.max(10, mmToPx(op.width));
+  const halfW = wPx / 2;
+  const color = palette.door;
+  const objs: any[] = [];
+
+  // Hinge dot at one end
+  objs.push(new fabric.Circle({
+    left: -halfW - 2, top: -2, radius: 2,
+    fill: color, selectable: false, evented: false,
+  }));
+
+  // Door leaf: solid line from hinge (-halfW, 0) to open end (-halfW, -halfW)
+  objs.push(new fabric.Line([-halfW, 0, -halfW, -halfW], {
+    stroke: color, strokeWidth: 3, strokeLineCap: "round",
+    selectable: false, evented: false,
+  }));
+
+  // Swing arc (thin) from (halfW, 0) sweeping to (-halfW, -halfW)
+  const arcPath = `M ${halfW} 0 A ${halfW} ${halfW} 0 0 0 ${-halfW} ${-halfW}`;
+  objs.push(new fabric.Path(arcPath, {
+    stroke: palette.doorEdge || color, strokeWidth: 1.2, fill: "transparent",
+    strokeLineJoin: "round", selectable: false, evented: false,
+  }));
+
+  const group = new fabric.Group(objs, { selectable: false, evented });
+  group.set({ left: cx, top: cy, originX: "center", originY: "center", angle: angleDeg });
+  group._isOpening = true;
+  group._openingIndex = idx;
+  canvas.add(group);
+}
+
+// Refined window symbol: parallel pair, dashed center line, end caps.
+function drawWindowSymbol(
+  canvas: any, op: any, cx: number, cy: number, angleDeg: number,
+  palette: any, evented: boolean, idx: number = -1,
+) {
+  const wPx = Math.max(10, mmToPx(op.width));
+  const halfW = wPx / 2;
+  const color = palette.window;
+  const edgeColor = palette.windowEdge || color;
+  const gap = 4;
+  const objs: any[] = [
+    new fabric.Line([-halfW, -gap, halfW, -gap], { stroke: color, strokeWidth: 2.2, strokeLineCap: "square", selectable: false, evented: false }),
+    new fabric.Line([-halfW, gap, halfW, gap], { stroke: color, strokeWidth: 2.2, strokeLineCap: "square", selectable: false, evented: false }),
+    new fabric.Line([-halfW, 0, halfW, 0], { stroke: edgeColor, strokeWidth: 0.8, strokeDashArray: [3, 3], selectable: false, evented: false }),
+    new fabric.Line([-halfW, -gap, -halfW, gap], { stroke: edgeColor, strokeWidth: 1.5, selectable: false, evented: false }),
+    new fabric.Line([halfW, -gap, halfW, gap], { stroke: edgeColor, strokeWidth: 1.5, selectable: false, evented: false }),
+  ];
+  const group = new fabric.Group(objs, { selectable: false, evented });
+  group.set({ left: cx, top: cy, originX: "center", originY: "center", angle: angleDeg });
+  group._isOpening = true;
+  group._openingIndex = idx;
+  canvas.add(group);
+}
+
+// Unified opening dispatcher.
+function drawOpeningSymbol(
+  canvas: any, op: any, cx: number, cy: number, angleDeg: number,
+  palette: any, evented: boolean, idx: number = -1,
+) {
+  if (op.type === "door") drawDoorSymbol(canvas, op, cx, cy, angleDeg, palette, evented, idx);
+  else drawWindowSymbol(canvas, op, cx, cy, angleDeg, palette, evented, idx);
+}
+// ── /Shared wall/opening drawing helpers ─────────────────────────────
 
 interface CanvasState {
   mode: EditorMode;
@@ -168,6 +367,25 @@ export default function WallCanvas() {
           gridLine: "#e2e8f0",
         };
 
+        // Unified export palette for shared wall/opening helpers
+        const expPal = {
+          external: expColors.exterior,
+          externalFill: expColors.exterior,
+          externalEdge: colors.externalEdge || expColors.exterior,
+          internal: expColors.interior,
+          internalFill: expColors.interior,
+          internalEdge: colors.internalEdge || expColors.interior,
+          locked: expColors.interior,
+          lockedFill: expColors.interior,
+          lockedEdge: colors.internalEdge || expColors.interior,
+          accent: expColors.exterior,
+          accentStrong: expColors.exterior,
+          door: colors.door,
+          doorEdge: colors.doorEdge || colors.door,
+          window: colors.window,
+          windowEdge: colors.windowEdge || colors.window,
+        };
+
         const tempCanvas = new fabric.StaticCanvas(null, {
           width: crop.width + 50,
           height: crop.height + 50,
@@ -192,19 +410,9 @@ export default function WallCanvas() {
         }
         tempCanvas.add(new fabric.Group(gridLines, { selectable: false, evented: false }));
 
-        // Walls
+        // Walls — filled bodies, split around openings (gaps show export bg)
         for (const wall of allWalls) {
-          const x1 = mmToPx(wall.p1.x) + offX, y1 = mmToPx(wall.p1.y) + offY;
-          const x2 = mmToPx(wall.p2.x) + offX, y2 = mmToPx(wall.p2.y) + offY;
-          const thickPx = Math.max(3, mmToPx(wall.thickness));
-          const line = new fabric.Line([x1, y1, x2, y2], {
-            stroke: wall.external ? expColors.exterior : expColors.interior,
-            strokeWidth: thickPx,
-            strokeLineCap: "round",
-            selectable: false,
-            evented: false,
-          });
-          tempCanvas.add(line);
+          drawWallBody(tempCanvas, wall, { palette: expPal, locked: false, evented: false, offX, offY });
         }
 
         // Junction nodes
@@ -295,18 +503,17 @@ export default function WallCanvas() {
           }
         }
 
-        // Openings
+        // Openings — refined door/window symbols (editor-identical)
         for (const wall of allWalls) {
           if (!wall.openings?.length) continue;
-          const x1 = mmToPx(wall.p1.x) + offX, y1 = mmToPx(wall.p1.y) + offY;
-          const x2 = mmToPx(wall.p2.x) + offX, y2 = mmToPx(wall.p2.y) + offY;
+          const wInfo = wallPxInfo(wall, offX, offY);
+          const angleDeg = Math.atan2(wInfo.y2 - wInfo.y1, wInfo.x2 - wInfo.x1) * 180 / Math.PI;
           const wLen = Math.hypot(wall.p2.x - wall.p1.x, wall.p2.y - wall.p1.y) || 1;
-          const angleDeg = Math.atan2(wall.p2.y - wall.p1.y, wall.p2.x - wall.p1.x) * 180 / Math.PI;
           for (const op of wall.openings) {
             const t = op.offset / wLen;
-            const cx = x1 + (x2 - x1) * t;
-            const cy = y1 + (y2 - y1) * t;
-            addOpeningSymbol(tempCanvas, op, cx, cy, angleDeg, colors, false);
+            const cx = wInfo.x1 + (wInfo.x2 - wInfo.x1) * t;
+            const cy = wInfo.y1 + (wInfo.y2 - wInfo.y1) * t;
+            drawOpeningSymbol(tempCanvas, op, cx, cy, angleDeg, expPal, false, -1);
           }
         }
 
@@ -541,17 +748,22 @@ export default function WallCanvas() {
     const externalLocked = s.currentFloor > 1;
     const all = getAllWalls();
 
-    // Pass 1: walls (lines with round caps)
+    // Pass 1: walls (filled bodies, split around openings — gaps show canvas bg)
     for (const wall of all) {
-      drawWallLine(canvas, wall, externalLocked && wall.external);
+      drawWallBody(canvas, wall, {
+        selected: stateRef.current.selectedWallId === wall.id,
+        locked: externalLocked && wall.external,
+        palette: colors,
+        evented: true,
+      });
     }
 
-    // Pass 2: openings
+    // Pass 2: openings (door/window symbols centered in wall gaps)
     for (const wall of all) {
       drawOpenings(canvas, wall);
     }
 
-    // Pass 3: junction nodes
+    // Pass 3: junction nodes (fill hairline gaps at angled corners)
     drawJunctionNodes(canvas, all);
 
     // Pass 4: labels (chip + badge)
@@ -569,43 +781,6 @@ export default function WallCanvas() {
     canvas.renderAll();
   }
 
-  function drawWallLine(canvas: any, wall: WallSegment, locked: boolean) {
-    const colors = getThemeColors();
-    const x1 = mmToPx(wall.p1.x), y1 = mmToPx(wall.p1.y);
-    const x2 = mmToPx(wall.p2.x), y2 = mmToPx(wall.p2.y);
-    const thickPx = Math.max(3, mmToPx(wall.thickness));
-    const isSelected = stateRef.current.selectedWallId === wall.id;
-
-    const stroke = wall.external
-      ? (locked ? colors.locked : (isSelected ? colors.accent : colors.external))
-      : (isSelected ? colors.accent : colors.internal);
-
-    if (isSelected) {
-      const glow = new fabric.Line([x1, y1, x2, y2], {
-        stroke: colors.accent,
-        strokeWidth: thickPx + 8,
-        strokeLineCap: "round",
-        opacity: 0.18,
-        selectable: false,
-        evented: false,
-      });
-      canvas.add(glow);
-    }
-
-    const line = new fabric.Line([x1, y1, x2, y2], {
-      stroke,
-      strokeWidth: isSelected ? thickPx + 2 : thickPx,
-      strokeLineCap: "round",
-      hasControls: false,
-      hasBorders: false,
-      lockMovementX: true,
-      lockMovementY: true,
-    });
-    line._wallId = wall.id;
-    line._isExternal = wall.external;
-    canvas.add(line);
-  }
-
   function drawOpenings(canvas: any, wall: WallSegment) {
     if (!wall.openings?.length) return;
     const colors = getThemeColors();
@@ -618,71 +793,8 @@ export default function WallCanvas() {
       const t = op.offset / wLen;
       const cx = x1 + (x2 - x1) * t;
       const cy = y1 + (y2 - y1) * t;
-      addOpeningSymbol(canvas, op, cx, cy, angleDeg, colors, false, i);
+      drawOpeningSymbol(canvas, op, cx, cy, angleDeg, colors, true, i);
     }
-  }
-
-  // Универсальный символ проёма в локальных координатах (стена горизонтальна, центр в 0,0),
-  // затем поворот на angleDeg и сдвиг в (cx, cy).
-  // idx — индекс проёма на стене (для интерактивных маркеров). evented=true — в интерактивном canvas.
-  function addOpeningSymbol(
-    canvas: any, op: any, cx: number, cy: number, angleDeg: number,
-    palette: any, evented: boolean, idx: number = -1,
-  ) {
-    const wPx = Math.max(10, mmToPx(op.width));
-    const halfW = wPx / 2;
-    const color = op.type === "door" ? palette.door : palette.window;
-    const objs: any[] = [];
-
-    if (op.type === "door") {
-      // Четверть-дуга открывания (петля на левом краю, радиус = ширина проёма)
-      // Локально: петля в (-halfW, 0), дуга от (halfW, 0) до (-halfW, -halfW)
-      const sweep = halfW;
-      const ax = -halfW, ay = 0;
-      const bx = halfW, by = 0;
-      const ex = -halfW, ey = -sweep;
-      const arcPath = `M ${ax} ${ay} L ${bx} ${by} A ${sweep} ${sweep} 0 0 0 ${ex} ${ey} Z`;
-      const arc = new fabric.Path(arcPath, {
-        stroke: color, strokeWidth: 1.5, fill: "transparent",
-        strokeLineJoin: "round", selectable: false, evented: false,
-      });
-      objs.push(arc);
-      // Панель двери: линия от петли к открытому концу
-      const panel = new fabric.Line([ax, ay, ex, ey], {
-        stroke: color, strokeWidth: 3, strokeLineCap: "round",
-        selectable: false, evented: false,
-      });
-      objs.push(panel);
-    } else {
-      // Окно: две параллельные линии вдоль стены (символ стеклянной полосы) + тонкая центральная линия
-      const gap = 4;
-      const top = new fabric.Line([-halfW, -gap, halfW, -gap], {
-        stroke: color, strokeWidth: 2, selectable: false, evented: false,
-      });
-      const bot = new fabric.Line([-halfW, gap, halfW, gap], {
-        stroke: color, strokeWidth: 2, selectable: false, evented: false,
-      });
-      const mid = new fabric.Line([-halfW, 0, halfW, 0], {
-        stroke: color, strokeWidth: 0.8, strokeDashArray: [3, 3], selectable: false, evented: false,
-      });
-      objs.push(top, bot, mid);
-      // Короткие торцевые штрихи
-      const capL = new fabric.Line([-halfW, -gap, -halfW, gap], { stroke: color, strokeWidth: 1.5, selectable: false, evented: false });
-      const capR = new fabric.Line([halfW, -gap, halfW, gap], { stroke: color, strokeWidth: 1.5, selectable: false, evented: false });
-      objs.push(capL, capR);
-    }
-
-    // Объединяем в группу и поворачиваем
-    const group = new fabric.Group(objs, { selectable: false, evented: false });
-    group.set({
-      left: cx, top: cy,
-      originX: "center", originY: "center",
-      angle: angleDeg,
-    });
-    // Сохраняем метаданные для hit-test взаимодействия в интерактивном canvas
-    group._isOpening = true;
-    group._openingIndex = idx;
-    canvas.add(group);
   }
 
   function drawJunctionNodes(canvas: any, walls: WallSegment[]) {

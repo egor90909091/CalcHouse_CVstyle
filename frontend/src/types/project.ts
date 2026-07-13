@@ -48,6 +48,7 @@ export interface FoundationConfig {
   strip_width?: number;
   strip_depth?: number;
   strip_height?: number;
+  strip_cushion?: number;
   slab_thickness?: number;
   slab_cushion?: number;
   pile_step?: number;
@@ -74,6 +75,15 @@ export interface RoofConfig {
   rafter_section_key: string;
   batten_key: string;
   waterproofing_key: string;
+  warm: boolean;
+  rafter_step_mm: number;
+  mauerplat_required: boolean;
+  vapor_key: string;
+  valley_count: number;
+  gutter: boolean;
+  snow_guards: boolean;
+  gable_planks: boolean;
+  drip_edges: boolean;
 }
 
 export type FloorType = "concrete" | "slab";
@@ -156,6 +166,8 @@ export interface MaterialsResult {
   floors: SectionResult;
   roof: SectionResult;
   total_cost: number;
+  works_rate_percent: number;
+  works_estimate_cost: number;
 }
 
 // Состояние редактора

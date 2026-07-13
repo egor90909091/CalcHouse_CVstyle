@@ -111,6 +111,9 @@ class FoundationConfig(BaseModel):
     strip_width: Optional[int] = Field(None, ge=100, description="Ширина ленты, мм")
     strip_depth: Optional[int] = Field(None, ge=300, description="Глубина заложения, мм")
     strip_height: Optional[int] = Field(None, ge=0, description="Высота над землёй, мм")
+    strip_cushion: Optional[int] = Field(
+        None, ge=0, description="Песчаная подушка под ленту, мм"
+    )
 
     # Плитный
     slab_thickness: Optional[int] = Field(None, ge=100, description="Толщина плиты, мм")
@@ -156,6 +159,16 @@ class RoofConfig(BaseModel):
     rafter_section_key: str = Field("rafters", description="Сечение стропил (ключ)")
     batten_key: str = Field("batten", description="Обрешётка (ключ)")
     waterproofing_key: str = Field("waterproofing", description="Гидроизоляция кровли (ключ)")
+
+    warm: bool = Field(True, description="Тёплая мансарда (иначе холодный чердак)")
+    rafter_step_mm: int = Field(600, ge=300, le=1200, description="Шаг стропил, мм")
+    mauerplat_required: bool = Field(True, description="Считать мауэрлат")
+    vapor_key: str = Field("vapor_barrier", description="Пароизоляция (ключ)")
+    valley_count: int = Field(0, ge=0, description="Число ендов")
+    gutter: bool = Field(True, description="Водосточная система")
+    snow_guards: bool = Field(True, description="Снегозадержатели")
+    gable_planks: bool = Field(True, description="Фронтонные/ветровые планки")
+    drip_edges: bool = Field(True, description="Капельники")
 
 
 # ============================================================
@@ -287,7 +300,7 @@ class SectionResult(BaseModel):
     """Результат расчёта по одному разделу (фундамент/стены/перекрытия/кровля)."""
 
     materials: List[MaterialItem] = Field(default_factory=list)
-    section_total: float = Field(0.0, description="Итог по разделу, руб")
+    section_total: float = 0.0  # Итог по разделу, руб
 
 
 class MaterialsResult(BaseModel):
@@ -299,3 +312,9 @@ class MaterialsResult(BaseModel):
     floors: SectionResult = Field(default_factory=SectionResult)
     roof: SectionResult = Field(default_factory=SectionResult)
     total_cost: float = Field(0.0, description="Итоговая стоимость материалов, руб")
+    works_rate_percent: float = Field(
+        0.0, description="Процент стоимости работ к материалам, %"
+    )
+    works_estimate_cost: float = Field(
+        0.0, description="Оценка стоимости работ, руб"
+    )

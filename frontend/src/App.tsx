@@ -50,7 +50,7 @@ function BuilderPage() {
         <Hero />
 
         <main className="page-main">
-          <div className="builder-wrap">
+          <div className={results ? "builder-wrap builder-wrap--results" : "builder-wrap"}>
             <div className="builder-layout">
               <div className="canvas-area">
                 <Toolbar />
